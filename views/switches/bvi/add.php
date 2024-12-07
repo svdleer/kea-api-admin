@@ -7,6 +7,7 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 use App\Auth\Authentication;
 use App\Database\Database;
+use App\Models\CinSwitch;
 
 // Check if user is logged in
 $auth = new Authentication(Database::getInstance());
@@ -24,6 +25,24 @@ if (!$switchId) {
     throw new Exception('Invalid switch ID');
 }
 
+// Get switch details
+try {
+    $db = Database::getInstance();
+    $cinSwitch = new CinSwitch($db);
+    $switch = $cinSwitch->getSwitchById($switchId);
+    
+    if (!$switch) {
+        throw new \Exception('Switch not found');
+    }
+} catch (\Exception $e) {
+    $_SESSION['error'] = 'Switch not found';
+    header('Location: /switches');
+    exit;
+}
+
+// Get next available BVI number
+$nextBVINumber = $cinSwitch->getNextAvailableBVINumber($switchId);
+
 ob_start();
 ?>
 
@@ -38,7 +57,7 @@ ob_start();
     <div class="bg-white shadow rounded-lg p-6">
         <div id="switchInfo" class="mb-6 p-4 bg-gray-50 rounded-lg">
             <h2 class="text-lg font-semibold mb-2">Switch Information</h2>
-            <p class="text-gray-600">Hostname: <span id="switchHostname" class="font-medium text-gray-900"></span></p>
+            <p class="text-gray-600">Hostname: <span id="switchHostname" class="font-medium text-gray-900"><?php echo htmlspecialchars($switch['hostname']); ?></span></p>
         </div>
 
         <form id="addBviForm" class="space-y-6" novalidate>
@@ -53,6 +72,7 @@ ob_start();
                        id="interface_number" 
                        name="interface_number" 
                        class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       value="<?php echo htmlspecialchars($nextBVINumber); ?>"
                        placeholder="BVI100"
                        required>
                 <div class="validation-message mt-1 text-sm"></div>
@@ -89,166 +109,179 @@ ob_start();
 
 <script>
 $(document).ready(function() {
-    const switchId = $('#switchId').val();
+    // DOM Elements
     const form = $('#addBviForm');
+    const bviInput = $('#interface_number');
+    const ipv6Input = $('#ipv6_address');
     const submitButton = $('#submitButton');
+    const switchId = $('#switchId').val();
+    let isFirstLoad = true;
+
+    // Validation state
     let validations = {
-        interface_number: false,
+        interface_number: true,
         ipv6: false
     };
 
-    // Fetch switch details
-    fetch(`/api/switches/${switchId}`)
+    // Validation Functions
+    function isValidBVI(bvi) {
+        return /^BVI\d+$/.test(bvi);
+    }
+
+    function isValidIPv6(address) {
+        return /^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/i.test(address);
+    }
+
+    function updateValidationUI(input, isValid, message) {
+        const validationMessage = input.siblings('.validation-message');
+        validationMessage
+            .removeClass('hidden')
+            .text(message)
+            .removeClass('text-red-500 text-green-500')
+            .addClass(isValid ? 'text-green-500' : 'text-red-500');
+    }
+
+    function validateForm() {
+        submitButton.prop('disabled', !(validations.interface_number && validations.ipv6));
+    }
+
+    // BVI Input Handler
+    let bviCheckTimeout;
+    bviInput.on('input', function() {
+        const input = $(this);
+        const interfaceNumber = input.val().toUpperCase();
+        input.val(interfaceNumber);
+
+        if (!isValidBVI(interfaceNumber)) {
+            updateValidationUI(input, false, 'Invalid format. Must be BVI followed by numbers (e.g., BVI100)');
+            validations.interface_number = false;
+            validateForm();
+            return;
+        }
+
+        clearTimeout(bviCheckTimeout);
+        bviCheckTimeout = setTimeout(() => {
+            fetch(`/api/switches/${switchId}/bvi/check-exists?interface_number=${encodeURIComponent(interfaceNumber)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        updateValidationUI(input, false, 'This BVI interface already exists');
+                        validations.interface_number = false;
+                    } else {
+                        updateValidationUI(input, true, 'Valid BVI interface');
+                        validations.interface_number = true;
+                    }
+                    validateForm();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    updateValidationUI(input, false, 'Error checking BVI interface');
+                    validations.interface_number = false;
+                    validateForm();
+                });
+        }, 500);
+    });
+
+    // IPv6 Input Handler
+    let ipv6CheckTimeout;
+    ipv6Input.on('input', function() {
+        const input = $(this);
+        const ipv6Address = input.val();
+
+        if (!isValidIPv6(ipv6Address)) {
+            updateValidationUI(input, false, 'Invalid IPv6 address format');
+            validations.ipv6 = false;
+            validateForm();
+            return;
+        }
+
+        clearTimeout(ipv6CheckTimeout);
+        ipv6CheckTimeout = setTimeout(() => {
+            fetch(`/api/switches/check-ipv6?ipv6=${encodeURIComponent(ipv6Address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        updateValidationUI(input, false, 'This IPv6 address is already in use');
+                        validations.ipv6 = false;
+                    } else {
+                        updateValidationUI(input, true, 'Valid IPv6 address');
+                        validations.ipv6 = true;
+                    }
+                    validateForm();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    updateValidationUI(input, false, 'Error checking IPv6 address');
+                    validations.ipv6 = false;
+                    validateForm();
+                });
+        }, 500);
+    });
+
+    // Form Submit Handler
+    form.on('submit', function(e) {
+        e.preventDefault();
+        
+        if (!validations.interface_number || !validations.ipv6) {
+            return;
+        }
+
+        submitButton.prop('disabled', true);
+
+        const formData = {
+            interface_number: bviInput.val(),
+            ipv6_address: ipv6Input.val()
+        };
+
+        fetch(`/api/switches/${switchId}/bvi`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                $('#switchHostname').text(data.data.hostname);
+            if (data.success) {
+                // Show success message
+                Swal.fire({
+                    title: 'BVI Interface Created',
+                    html: `
+                        <div class="text-left">
+                            <p><strong>Switch:</strong> ${$('#switchHostname').text()}</p>
+                            <p><strong>BVI Interface:</strong> ${formData.interface_number}</p>
+                            <p><strong>IPv6 Address:</strong> ${formData.ipv6_address}</p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6' // blue-600 in Tailwind
+                }).then((result) => {
+                    // Redirect after user clicks OK
+                    window.location.href = `/switches/${switchId}/bvi`;
+                });
             } else {
-                alert('Error loading switch data');
-                window.location.href = '/switches';
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Error adding BVI interface',
+                    icon: 'error',
+                    confirmButtonColor: '#3B82F6'
+                });
+                submitButton.prop('disabled', false);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error loading switch data');
-            window.location.href = '/switches';
-        });
-
-    function updateSubmitButton() {
-        const isValid = Object.values(validations).every(v => v === true);
-        submitButton.prop('disabled', !isValid);
-    }
-
-    function isValidBVIFormat(value) {
-        return /^BVI\d{3}$/.test(value);
-    }
-
-    function isValidIPv6(address) {
-        try {
-            return address.length > 0 && !!address.match(/^(?:(?:[a-fA-F\d]{1,4}:){7}[a-fA-F\d]{1,4}|(?=(?:[a-fA-F\d]{0,4}:){0,7}[a-fA-F\d]{0,4}$)(([0-9a-fA-F]{1,4}:){1,7}|:)((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[a-fA-F\d]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([a-fA-F\d]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/);
-        } catch (e) {
-            return false;
-        }
-    }
-
-    $('#interface_number').on('input', function() {
-        const input = $(this);
-        const validationMessage = input.siblings('.validation-message');
-        const value = input.val().toUpperCase();
-        input.val(value);
-
-        if (!isValidBVIFormat(value)) {
-            input.removeClass('border-gray-300').addClass('border-red-500');
-            validationMessage.text('Invalid format (should be BVI followed by 3 digits)')
-                            .removeClass('text-green-600')
-                            .addClass('text-red-600');
-            validations.interface_number = false;
-            updateSubmitButton();
-            return;
-        }
-
-        fetch(`/api/switches/${switchId}/bvi/check-exists?interface_number=${encodeURIComponent(value)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.exists) {
-                    input.removeClass('border-gray-300').addClass('border-red-500');
-                    validationMessage.text('BVI interface already exists for this switch')
-                                    .removeClass('text-green-600')
-                                    .addClass('text-red-600');
-                    validations.interface_number = false;
-                } else {
-                    input.removeClass('border-red-500').addClass('border-gray-300');
-                    validationMessage.text('Valid BVI interface')
-                                    .removeClass('text-red-600')
-                                    .addClass('text-green-600');
-                    validations.interface_number = true;
-                }
-                updateSubmitButton();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                input.removeClass('border-gray-300').addClass('border-red-500');
-                validationMessage.text('Error checking BVI interface')
-                                .removeClass('text-green-600')
-                                .addClass('text-red-600');
-                validations.interface_number = false;
-                updateSubmitButton();
+            Swal.fire({
+                title: 'Error',
+                text: 'Error adding BVI interface',
+                icon: 'error',
+                confirmButtonColor: '#3B82F6'
             });
-    });
-
-    $('#ipv6_address').on('input', function() {
-        const input = $(this);
-        const validationMessage = input.siblings('.validation-message');
-        const value = input.val();
-
-        if (!isValidIPv6(value)) {
-            input.removeClass('border-gray-300').addClass('border-red-500');
-            validationMessage.text('Invalid IPv6 address format')
-                            .removeClass('text-green-600')
-                            .addClass('text-red-600');
-            validations.ipv6 = false;
-            updateSubmitButton();
-            return;
-        }
-
-        fetch(`/api/switches/check-ipv6?ipv6=${encodeURIComponent(value)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.exists) {
-                    input.removeClass('border-gray-300').addClass('border-red-500');
-                    validationMessage.text('IPv6 address already exists')
-                                    .removeClass('text-green-600')
-                                    .addClass('text-red-600');
-                    validations.ipv6 = false;
-                } else {
-                    input.removeClass('border-red-500').addClass('border-gray-300');
-                    validationMessage.text('Valid IPv6 address')
-                                    .removeClass('text-red-600')
-                                    .addClass('text-green-600');
-                    validations.ipv6 = true;
-                }
-                updateSubmitButton();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                input.removeClass('border-gray-300').addClass('border-red-500');
-                validationMessage.text('Error checking IPv6 address')
-                                .removeClass('text-green-600')
-                                .addClass('text-red-600');
-                validations.ipv6 = false;
-                updateSubmitButton();
-            });
-    });
-
-    form.on('submit', async function(e) {
-        e.preventDefault();
-        submitButton.prop('disabled', true);
-
-        try {
-            const response = await fetch(`/api/switches/${switchId}/bvi`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    interface_number: $('#interface_number').val(),
-                    ipv6_address: $('#ipv6_address').val()
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                window.location.href = `/switches/${switchId}/bvi`;
-            } else {
-                alert(result.error || 'Error creating BVI interface');
-                submitButton.prop('disabled', false);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error creating BVI interface');
             submitButton.prop('disabled', false);
-        }
+        });
     });
+
 });
 </script>
 

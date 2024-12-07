@@ -77,26 +77,6 @@ if (!$auth->isLoggedIn() && $_SERVER['REQUEST_URI'] !== '/' && $_SERVER['REQUEST
 
 // Protected routes (auth required)
 
-// Web Routes
-$router->get('/dashboard', function() {
-    require BASE_PATH . '/views/dashboard.php';
-});
-
-// Switch Web Routes
-$router->get('/switches', function() {
-    require BASE_PATH . '/views/switches/index.php';
-});
-
-$router->get('/switches/add', function() {
-    require BASE_PATH . '/views/switches/add.php';
-});
-
-// Route for displaying the edit form
-$router->get('/switches/edit/{id}', function($id) {
-    $_GET['id'] = $id;
-    require BASE_PATH . '/views/switches/edit.php';
-});
-
 // API Routes for Switches
 $router->get('/api/switches/check-exists', function() {
     $controller = new \App\Controllers\Api\SwitchController();
@@ -134,26 +114,7 @@ $router->delete('/api/switches/{id}', function($id) {
     $controller->delete($id);
 });
 
-// BVI Interface Routes
 
-
-
-
-$router->get('/switches/{id}/bvi', function($id) {
-    $_GET['id'] = $id;
-    require BASE_PATH . '/views/switches/bvi/index.php';
-});
-
-$router->get('/switches/{id}/bvi/add', function($id) {
-    $_GET['id'] = $id;
-    require BASE_PATH . '/views/switches/bvi/add.php';
-});
-
-$router->get('/switches/{switchId}/bvi/{bviId}/edit', function($switchId, $bviId) {
-    $_GET['switchId'] = $switchId;
-    $_GET['bviId'] = $bviId;
-    require BASE_PATH . '/views/switches/bvi/edit.php';
-});
 
 // BVI Interface API Routes
 $router->get('/api/switches/{id}/bvi', function($id) {
@@ -161,7 +122,7 @@ $router->get('/api/switches/{id}/bvi', function($id) {
     $controller->index($id);
 });
 
-$router->post('/api/switches/{id}/bvi', function($id) {
+$router->put('/api/switches/{id}/bvi', function($id) {
     $controller = new \App\Controllers\Api\BVIController();
     $controller->create($id);
 });
@@ -171,7 +132,7 @@ $router->get('/api/switches/{id}/bvi/check-exists', function($id) {
     $controller->checkBVIExists($id);
 });
 
-$router->put('/api/switches/{id}/bvi/{bviId}', function($id, $bviId) {
+$router->post('/api/switches/{id}/bvi/{bviId}', function($id, $bviId) {
     $controller = new \App\Controllers\Api\BVIController();
     $controller->update($id, $bviId);
 });
@@ -188,6 +149,62 @@ $router->delete('/api/switches/{id}/bvi/{bviId}', function($id, $bviId) {
     $controller = new \App\Controllers\Api\BVIController();
     $controller->delete($id, $bviId);
 });
+
+
+// Dashboard Web Route
+$router->get('/dashboard', function() {
+    require BASE_PATH . '/views/dashboard.php';
+});
+
+// Switch Web Routes
+$router->get('/switches', function() {
+    require BASE_PATH . '/views/switches/index.php';
+});
+
+// Route for displaying the CIN Switch add form
+
+$router->get('/switches/add', function() {
+    require BASE_PATH . '/views/switches/add.php';
+});
+
+// Route for displaying the CIN Switch edit form
+$router->get('/switches/edit/{id}', function($id) {
+    $_GET['id'] = $id;
+    require BASE_PATH . '/views/switches/edit.php';
+});
+
+
+// Switch BVI Routes
+// Route for displaying BVIs CIN swtich 
+
+$router->get('/switches/bvi/list', function() {
+    if (!isset($_GET['switchId'])) {
+        header('Location: /switches');
+        return;
+    }
+    require BASE_PATH . '/views/switches/bvi/bvilist.php';
+});
+
+// Route for displaying BVIs of a CIN swtich 
+$router->get('/switches/{id}/bvi', function($id) {
+    $_GET['id'] = $id;
+    require BASE_PATH . '/views/switches/bvi/index.php';
+});
+
+// Route for displaying the BVI add form
+$router->get('/switches/{id}/bvi/add', function($id) {
+    $_GET['id'] = $id;
+    require BASE_PATH . '/views/switches/bvi/add.php';
+});
+
+// Route for displaying the BVI edit form
+$router->get('/switches/{switchId}/bvi/{bviId}/edit', function($switchId, $bviId) {
+    $_GET['switchId'] = $switchId;
+    $_GET['bviId'] = $bviId;
+    require BASE_PATH . '/views/switches/bvi/edit.php';
+});
+
+
 
 
 

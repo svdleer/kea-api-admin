@@ -345,5 +345,33 @@ public function ipv6AddressExists($ipv6Address, $excludeBviId = null)
     }
 }
 
+public function getNextAvailableBVINumber($switchId) {
+    try {
+        $query = "SELECT interface_number 
+                FROM cin_switch_bvi_interfaces 
+                WHERE switch_id = ? 
+                ORDER BY CAST(SUBSTRING(interface_number, 4) AS UNSIGNED) DESC 
+                LIMIT 1";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$switchId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result) {
+            // Extract the number from BVIxxx format
+            $currentNumber = intval(substr($result['interface_number'], 3));
+            $nextNumber = $currentNumber + 1;
+        } else {
+            // If no BVI interfaces exist, start with 100
+            $nextNumber = 100;
+        }
+
+        return 'BVI' . $nextNumber;
+    } catch (\PDOException $e) {
+        error_log("Error getting next BVI number: " . $e->getMessage());
+        return 'BVI100'; // Default fallback
+    }
+}
+
 
 }

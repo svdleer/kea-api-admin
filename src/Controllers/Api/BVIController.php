@@ -126,4 +126,8 @@ class BVIController
             echo json_encode(['error' => htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         }
     }
+
+    // In your BVIController or similar class
+    
+
 }

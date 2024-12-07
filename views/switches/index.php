@@ -166,13 +166,13 @@ ob_start();
                                                class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded-md">
                                                 Edit Switch
                                             </a>
-                                            <a href="/switches/<?php echo htmlspecialchars($switch['id']); ?>/bvi" 
-                                               class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md">
-                                                BVI Interfaces
+                                            <a href="/switches/bvi/list?switchId=<?php echo htmlspecialchars($switch['id']); ?>" 
+                                            class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md">
+                                                Edit BVI Interfaces
                                             </a>
-                                            <button onclick="deleteSwitch(<?php echo htmlspecialchars($switch['id']); ?>)" 
-                                                    class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md cursor-pointer">
-                                                Delete
+                                            <button onclick="deleteSwitch(<?php echo htmlspecialchars($switch['id']); ?>, '<?php echo htmlspecialchars($switch['hostname']); ?>')" 
+                                            class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md cursor-pointer">
+                                                Delete Switch
                                             </button>
                                         </div>
                                     </td>
@@ -201,28 +201,22 @@ ob_start();
     </footer>
 
     <script>
-    function deleteSwitch(id) {
-        if (confirm('Are you sure you want to delete this switch?')) {
-            fetch(`/switches/delete/${id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+    function deleteSwitch(switchId, hostname) {
+        if (confirm(`Are you sure you want to delete switch "${hostname}"?`)) {
+            $.ajax({
+                url: `/api/switches/${switchId}`,
+                type: 'DELETE',
+                success: function(response) {
+                    // Refresh the page to show updated list
                     window.location.reload();
-                } else {
-                    alert(data.message || 'Error deleting switch');
+                },
+                error: function(xhr, status, error) {
+                    const errorMessage = xhr.responseJSON?.message || 'An error occurred while deleting the switch';
+                    alert(errorMessage);
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error deleting switch');
             });
+            }
         }
-    }
     </script>
 </body>
 </html>

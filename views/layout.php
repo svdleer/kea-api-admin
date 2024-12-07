@@ -6,6 +6,9 @@
     <title><?php echo $title ?? 'VFZ RPD Infrastructure Management'; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-minimal@5/minimal.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </head>
 <body class="h-full flex flex-col bg-gray-100">
     <!-- Header -->
