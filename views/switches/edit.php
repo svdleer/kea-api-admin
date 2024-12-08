@@ -161,12 +161,13 @@ ob_start();
 
     <script>
     $(document).ready(function() {
-        const form = $('#editSwitchForm');
-        const hostnameInput = $('#hostname');
-        const submitButton = $('#submitButton');
-        const switchId = $('#switchId').val();
-        const originalHostname = hostnameInput.val();
-        const bviId = $('#bvi_id').val();     
+    const form = $('#editSwitchForm');
+    const hostnameInput = $('#hostname');
+    const submitButton = $('#submitButton');
+    const switchId = $('#switchId').val();
+    const originalHostname = hostnameInput.val();
+    const bviId = $('#bvi_id').val();
+
 
         // Validate hostname format
         function isValidHostname(hostname) {
@@ -230,34 +231,54 @@ ob_start();
         });
 
         // Form submission
-        form.on('submit', async function(e) {
+
+        form.on('submit', function(e) {
             e.preventDefault();
             
-            const hostname = hostnameInput.val();
-            
-            try {
-                const response = await fetch(`/api/switches/${switchId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        hostname: hostname
-                    })
-                });
+            submitButton.prop('disabled', true);
 
-                const result = await response.json();
+            const formData = {
+                hostname: $('#hostname').val(),
+                ipv6_address: $('#ipv6_address').val(),
+                interface_number: $('#interface_number').val()
+            };
 
-                if (result.success) {
-                    window.location.href = '/switches';
+            fetch(`/api/switches/${switchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Switch Updated',
+                        html: `
+                            <div class="text-left">
+                                <p><strong>Old Hostname:</strong> ${originalHostname}</p>
+                                <p><strong>New Hostname:</strong> ${formData.hostname}</p>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#3B82F6'
+                    }).then((result) => {
+                        window.location.href = '/switches';
+                    });
                 } else {
-                    alert(result.message || 'Error updating switch');
+                    alert(data.message || 'Error updating switch');
+                    submitButton.prop('disabled', false);
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the switch');
-            }
-        });
+                alert('Error updating switch');
+                submitButton.prop('disabled', false);
+            });
+});
+
 
         // BVI interface validation
         const bviInput = $('#interface_number');

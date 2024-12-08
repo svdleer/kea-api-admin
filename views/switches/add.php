@@ -228,36 +228,62 @@ $(document).ready(function() {
             });
     });
 
-    form.on('submit', async function(e) {
+    form.on('submit', function(e) {
         e.preventDefault();
+        
+        if (!validations.hostname || !validations.ipv6) {
+            return;
+        }
+
         submitButton.prop('disabled', true);
 
-        try {
-            const response = await fetch('/api/switches', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    hostname: $('#hostname').val(),
-                    interface_number: $('#interface_number').val(),
-                    ipv6_address: $('#ipv6_address').val()
-                })
-            });
+        const formData = {
+            hostname: $('#hostname').val(),
+            ipv6_address: $('#ipv6_address').val(),
+            interface_number: $('#interface_number').val()
+        };
 
-            const result = await response.json();
-            if (result.success) {
-                window.location.href = '/switches';
+        fetch('/api/switches', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Switch Created',
+                    html: `
+                        <div class="text-left">
+                            <p><strong>Hostname:</strong> ${formData.hostname}</p>
+                            <p><strong>IPv6 Address:</strong> ${formData.ipv6_address}</p>
+                            <p><strong>Interface:</strong> ${formData.interface_number}</p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6'
+                }).then((result) => {
+                    window.location.href = '/switches';
+                });
             } else {
-                alert(result.error || 'Error creating switch');
+                alert(data.message || 'Error creating switch');
                 submitButton.prop('disabled', false);
             }
-        } catch (error) {
+        })
+        .catch(error => {
             console.error('Error:', error);
             alert('Error creating switch');
             submitButton.prop('disabled', false);
-        }
+        });
     });
+
+
+
+
+
 });
 </script>
 

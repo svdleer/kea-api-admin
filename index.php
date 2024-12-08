@@ -94,7 +94,7 @@ $router->get('/api/switches', function() {
     $controller->getAll();
 });
 
-$router->post('/api/switches', function() {
+$router->put('/api/switches', function() {
     $controller = new \App\Controllers\Api\SwitchController();
     $controller->create();
 });
@@ -104,7 +104,7 @@ $router->get('/api/switches/{id}', function($id) {
     $controller->getById($id);
 });
 
-$router->put('/api/switches/{id}', function($id) {
+$router->post('/api/switches/{id}', function($id) {
     $controller = new \App\Controllers\Api\SwitchController();
     $controller->update($id);
 });

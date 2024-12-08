@@ -83,30 +83,23 @@ ob_start();
 
 <script>
 $(document).ready(function() {
-const switchId = <?php echo htmlspecialchars(json_encode($switchId), ENT_QUOTES, 'UTF-8'); ?>;
     const deleteButton = $('#deleteButton');
-
-    // Fetch switch details
-    fetch(`/api/switches/${switchId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.data) {
-                $('#hostname').text(data.data.hostname);
-                $('#interface_number').text(data.data.interface_number);
-                $('#ipv6_address').text(data.data.ipv6_address);
-            } else {
-                alert('Error loading switch data');
-                window.location.href = '/switches';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error loading switch data');
-            window.location.href = '/switches';
-        });
+    const switchId = $('#switchId').val();
 
     deleteButton.on('click', async function() {
-        if (!confirm('Are you absolutely sure you want to delete this switch and all its BVI interfaces?')) {
+        // First confirmation with SweetAlert2
+        const confirmResult = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'Are you absolutely sure you want to delete this switch and all its BVI interfaces?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3B82F6',
+            cancelButtonColor: '#EF4444',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!confirmResult.isConfirmed) {
             return;
         }
 
@@ -121,19 +114,37 @@ const switchId = <?php echo htmlspecialchars(json_encode($switchId), ENT_QUOTES,
             });
 
             const result = await response.json();
+            
             if (result.success) {
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: 'The switch and its BVI interfaces have been deleted.',
+                    icon: 'success',
+                    confirmButtonColor: '#3B82F6'
+                });
                 window.location.href = '/switches';
             } else {
-                alert(result.error || 'Error deleting switch');
+                Swal.fire({
+                    title: 'Error!',
+                    text: result.error || 'Error deleting switch',
+                    icon: 'error',
+                    confirmButtonColor: '#3B82F6'
+                });
                 deleteButton.prop('disabled', false);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error deleting switch');
+            Swal.fire({
+                title: 'Error!',
+                text: 'Error deleting switch',
+                icon: 'error',
+                confirmButtonColor: '#3B82F6'
+            });
             deleteButton.prop('disabled', false);
         }
     });
 });
+
 </script>
 
 <?php

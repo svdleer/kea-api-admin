@@ -148,27 +148,56 @@ $title = 'BVI Interfaces - ' . htmlspecialchars($switch['hostname']);
         }
 
         function deleteBvi(bviId, interfaceNumber) {
-            if (confirm(`Are you sure you want to delete BVI interface ${interfaceNumber}?`)) {
-                const switchId = <?php echo json_encode($switchId); ?>;
-                
-                $.ajax({
-                    url: `/api/switches/${switchId}/bvi/${bviId}`,
-                    type: 'DELETE',
-                    success: function(response) {
-                        if (response.success) {
-                            // Redirect back to BVI list page after successful delete
-                            window.location.href = `/switches/bvi/list?switchId=${switchId}`;
-                        } else {
-                            alert('Error deleting BVI interface');
+            const switchId = <?php echo json_encode($switchId); ?>;
+            
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `Are you sure you want to delete BVI interface ${interfaceNumber}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3B82F6',
+                cancelButtonColor: '#EF4444',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/api/switches/${switchId}/bvi/${bviId}`,
+                        type: 'DELETE',
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    text: `BVI interface ${interfaceNumber} has been deleted successfully.`,
+                                    icon: 'success',
+                                    confirmButtonColor: '#3B82F6'
+                                }).then(() => {
+                                    // Redirect back to BVI list page after successful delete
+                                    window.location.href = `/switches/bvi/list?switchId=${switchId}`;
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'Error deleting BVI interface',
+                                    icon: 'error',
+                                    confirmButtonColor: '#3B82F6'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            const errorMessage = xhr.responseJSON?.message || 'An error occurred while deleting the BVI interface';
+                            Swal.fire({
+                                title: 'Error!',
+                                text: errorMessage,
+                                icon: 'error',
+                                confirmButtonColor: '#3B82F6'
+                            });
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        const errorMessage = xhr.responseJSON?.message || 'An error occurred while deleting the BVI interface';
-                        alert(errorMessage);
-                    }
-                });
-            }
+                    });
+                }
+            });
         }
+
 
     </script>
 </body>
