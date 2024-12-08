@@ -8,11 +8,28 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-minimal@5/minimal.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    <style>
+        body.swal2-shown:not(.swal2-no-backdrop):not(.swal2-toast-shown) { 
+            padding-right: 0 !important; 
+            overflow-y: visible !important;
+        }
+        
+        .swal2-container {
+            padding-right: 0 !important;
+        }
+        
+        html.swal2-shown:not(.swal2-no-backdrop):not(.swal2-toast-shown) {
+            overflow-y: visible !important;
+        }
+        
+        .swal2-shown .footer {
+            padding-right: 0 !important;
+        }
+    </style>    
 </head>
 <body class="h-full flex flex-col bg-gray-100">
     <!-- Header -->
-    <header class="bg-white shadow">
+    <header class="bg-white shadow sticky top-0 z-50">
         <nav class="bg-white">
             <div class="max-w-7xl mx-auto px-4">
                 <div class="flex justify-between h-16">
@@ -40,14 +57,14 @@
     </header>
 
     <!-- Main Content (Scrollable) -->
-    <main class="flex-1 overflow-y-auto">
+    <main class="flex-1 overflow-y-auto pb-16">
         <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <?php echo $content ?? ''; ?>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white shadow">
+    <footer class="bg-white shadow fixed bottom-0 w-full z-40">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center">
                 <div class="text-sm text-gray-500">

@@ -274,44 +274,79 @@ ob_start();
                 return;
             }
 
-            submitButton.prop('disabled', true);
+            const newBvi = bviInput.val();
+            const newIpv6 = ipv6Input.val();
+            
+            // Create changes message
+            let changesMessage = '<div class="text-left">';
+            if (originalBVI !== newBvi) {
+                changesMessage += `BVI Interface: ${originalBVI} → ${newBvi}<br>`;
+            }
+            if (originalIPv6 !== newIpv6) {
+                changesMessage += `IPv6 Address: ${originalIPv6} → ${newIpv6}`;
+            }
+            changesMessage += '</div>';
 
-            const formData = {
-                interface_number: bviInput.val(),
-                ipv6_address: ipv6Input.val()
-            };
+            Swal.fire({
+                title: 'Confirm Changes',
+                html: changesMessage,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3B82F6',
+                cancelButtonColor: '#EF4444',
+                confirmButtonText: 'Yes, update it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitButton.prop('disabled', true);
 
-            fetch(`/api/switches/${switchId}/bvi/${bviId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = `/switches/${switchId}/bvi`;
-                } else {
-                    alert(data.message || 'Error updating BVI interface');
-                    submitButton.prop('disabled', false);
+                    const formData = {
+                        interface_number: newBvi,
+                        ipv6_address: newIpv6
+                    };
+
+                    fetch(`/api/switches/${switchId}/bvi/${bviId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Updated!',
+                                text: 'BVI interface has been updated successfully.',
+                                icon: 'success',
+                                confirmButtonColor: '#3B82F6'
+                            }).then(() => {
+                                window.location.href = `/switches/${switchId}/bvi`;
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message || 'Error updating BVI interface',
+                                icon: 'error',
+                                confirmButtonColor: '#3B82F6'
+                            });
+                            submitButton.prop('disabled', false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        console.log('Response:', error.response);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Error updating BVI interface',
+                            icon: 'error',
+                            confirmButtonColor: '#3B82F6'
+                        });
+                        submitButton.prop('disabled', false);
+                    });
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                console.log('Response:', error.response);
-                alert('Error updating BVI interface');
-                submitButton.prop('disabled', false);
             });
         });
-
-        // Initial validation
-        if (originalBVI) {
-            updateValidationUI(bviInput, true, 'Valid BVI interface');
-        }
-        if (originalIPv6) {
-            updateValidationUI(ipv6Input, true, 'Valid IPv6 address');
-        }
     });
     </script>
 
