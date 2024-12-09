@@ -20,7 +20,7 @@ $currentPage = 'switches';
 $title = 'Add BVI Interface';
 
 // Get switch ID from URL parameter
-$switchId = isset($_GET['id']) ? $_GET['id'] : null;
+$switchId = isset($_GET['switchId']) ? $_GET['switchId'] : null;
 if (!$switchId) {
     throw new Exception('Invalid switch ID');
 }
@@ -37,7 +37,7 @@ try {
 } catch (\Exception $e) {
     $_SESSION['error'] = 'Switch not found';
     header('Location: /switches');
-    exit;
+    return;
 }
 
 // Get next available BVI number
@@ -197,7 +197,7 @@ $(document).ready(function() {
 
         clearTimeout(ipv6CheckTimeout);
         ipv6CheckTimeout = setTimeout(() => {
-            fetch(`/api/switches/check-ipv6?ipv6=${encodeURIComponent(ipv6Address)}`)
+            fetch(`/api/switches/bvi/check-ipv6?ipv6=${encodeURIComponent(ipv6Address)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.exists) {
@@ -234,7 +234,7 @@ $(document).ready(function() {
         };
 
         fetch(`/api/switches/${switchId}/bvi`, {
-            method: 'PUT',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },

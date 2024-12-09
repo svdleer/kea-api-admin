@@ -30,20 +30,19 @@ try {
     // Get switch data
     $switch = $cinSwitch->getSwitchById($switchId);
     if (!$switch) {
-        header('Location: /switches');
-        exit;
+        throw new Exception('Switch not found');
     }
 
     // Get BVI interface data
     $bvi = $cinSwitch->getBviInterface($switchId, $bviId);
     if (!$bvi) {
-        header('Location: /switches/edit/' . $switchId);
-        exit;
+        throw new Exception('BVI interface not found');
     }
 
 } catch (\Exception $e) {
     error_log("Error in BVI edit.php: " . $e->getMessage());
     $error = $e->getMessage();
+    // Handle the exception appropriately, e.g., display an error page
 }
 
 $currentPage = 'switches';
@@ -245,7 +244,7 @@ ob_start();
 
             clearTimeout(ipv6CheckTimeout);
             ipv6CheckTimeout = setTimeout(() => {
-                fetch(`/api/switches/check-ipv6?ipv6=${encodeURIComponent(ipv6Address)}`)
+                fetch(`/api/switches/bvi/check-ipv6?ipv6=${encodeURIComponent(ipv6Address)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.exists) {
@@ -306,7 +305,7 @@ ob_start();
                     };
 
                     fetch(`/api/switches/${switchId}/bvi/${bviId}`, {
-                        method: 'POST',
+                        method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json'
                         },
@@ -321,7 +320,7 @@ ob_start();
                                 icon: 'success',
                                 confirmButtonColor: '#3B82F6'
                             }).then(() => {
-                                window.location.href = `/switches/${switchId}/bvi`;
+                                window.location.href = `/switches/bvi/list/${switchId}`;
                             });
                         } else {
                             Swal.fire({
@@ -347,6 +346,7 @@ ob_start();
                 }
             });
         });
+
     });
     </script>
 

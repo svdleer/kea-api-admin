@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Controllers\Api;
 
 use PDO;
 
@@ -13,100 +13,276 @@ class CinSwitch
         $this->db = $db;
     }
 
-    public function getSwitchById($id)
-    {
+    public function getAll() {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM cin_switches WHERE id = ?");
+            header('Content-Type: application/json');
+            
+            $stmt = $this->db->prepare("
+                SELECT s.*, b.interface_number, b.ipv6_address 
+                FROM cin_switches s
+                LEFT JOIN cin_switch_bvi_interfaces b ON s.id = b.switch_id
+                ORDER BY s.hostname
+            ");
+            $stmt->execute();
+            $switches = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $switches
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error'
+            ]);
+        }
+    }
+
+    public function getById($id) {
+        try {
+            header('Content-Type: application/json');
+            
+            $stmt = $this->db->prepare("
+                SELECT s.*, b.interface_number, b.ipv6_address 
+                FROM cin_switches s
+                LEFT JOIN cin_switch_bvi_interfaces b ON s.id = b.switch_id
+                WHERE s.id = ?
+            ");
             $stmt->execute([$id]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Error getting switch by ID: " . $e->getMessage());
-            throw $e;
+            $switch = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($switch) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $switch
+                ]);
+            } else {
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Switch not found'
+                ]);
+            }
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error'
+            ]);
         }
     }
 
-    public function getBviInterfaces($switchId)
-    {
+    public function checkExists() {
         try {
-            $stmt = $this->db->prepare("
-                SELECT * FROM cin_switch_bvi_interfaces 
-                WHERE switch_id = ? 
-                ORDER BY interface_number
-            ");
-            $stmt->execute([$switchId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Error getting BVI interfaces: " . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    public function updateSwitch($id, $data)
-    {
-        try {
-            $stmt = $this->db->prepare("
-                UPDATE cin_switches 
-                SET hostname = ? 
-                WHERE id = ?
-            ");
-            return $stmt->execute([$data['hostname'], $id]);
-        } catch (\PDOException $e) {
-            error_log("Error updating switch: " . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    public function hostnameExists($hostname, $excludeId = null)
-    {
-        try {
-            $sql = "SELECT COUNT(*) FROM cin_switches WHERE hostname = ?";
-            $params = [$hostname];
-
-            if ($excludeId) {
-                $sql .= " AND id != ?";
-                $params[] = $excludeId;
+            header('Content-Type: application/json');
+            
+            if (!isset($_GET['hostname'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Hostname parameter is required']);
+                return;
             }
 
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
-            error_log("Error checking hostname: " . $e->getMessage());
-            throw $e;
+            $hostname = $_GET['hostname'];
+            
+            $stmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+            $stmt->execute([$hostname]);
+            $switch = $stmt->fetch();
+
+            echo json_encode([
+                'success' => true,
+                'exists' => !empty($switch)
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error'
+            ]);
         }
     }
 
-    public function getBviInterface($switchId, $bviId)
-    {
+    public function checkIpv6() {
         try {
+            header('Content-Type: application/json');
+            
+            if (!isset($_GET['ipv6'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'IPv6 parameter is required']);
+                return;
+            }
+
+            $ipv6 = $_GET['ipv6'];
+            
             $stmt = $this->db->prepare("
-                SELECT id, interface_number, ipv6_address 
-                FROM cin_switch_bvi_interfaces 
-                WHERE switch_id = ? AND id = ?
+                SELECT id FROM cin_switch_bvi_interfaces 
+                WHERE ipv6_address = ?
             ");
-            $stmt->execute([$switchId, $bviId]);
-            return $stmt->fetch(\PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Error getting BVI interface: " . $e->getMessage());
-            throw $e;
+            $stmt->execute([$ipv6]);
+            $interface = $stmt->fetch();
+
+            echo json_encode([
+                'success' => true,
+                'exists' => !empty($interface)
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error'
+            ]);
         }
     }
 
-    public function interfaceNumberExists($switchId, $interfaceNumber)
-    {
+    public function create() {
         try {
-            $stmt = $this->db->prepare("
-                SELECT COUNT(*) 
-                FROM cin_switch_bvi_interfaces 
-                WHERE switch_id = ? AND interface_number = ?
-            ");
-            $stmt->execute([$switchId, $interfaceNumber]);
-            return $stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
-            error_log("Error checking interface number: " . $e->getMessage());
-            throw $e;
+            header('Content-Type: application/json');
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (!isset($data['hostname']) || !isset($data['interface_number']) || !isset($data['ipv6_address'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Missing required fields. Hostname, BVI interface, and IPv6 address are mandatory.'
+                ]);
+                return;
+            }
+
+            // Start transaction since we need to insert into two tables
+            $this->db->beginTransaction();
+
+            try {
+                // First create the switch
+                $stmtSwitch = $this->db->prepare("
+                    INSERT INTO cin_switches (hostname) 
+                    VALUES (?)
+                ");
+
+                $stmtSwitch->execute([$data['hostname']]);
+                $switchId = $this->db->lastInsertId();
+
+                // Then create the BVI interface
+                $stmtBvi = $this->db->prepare("
+                    INSERT INTO cin_switch_bvi_interfaces 
+                    (switch_id, interface_number, ipv6_address) 
+                    VALUES (?, ?, ?)
+                ");
+
+                $stmtBvi->execute([
+                    $switchId,
+                    $data['interface_number'],
+                    $data['ipv6_address']
+                ]);
+
+                // If we get here, commit the transaction
+                $this->db->commit();
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Switch and BVI interface created successfully',
+                    'id' => $switchId
+                ]);
+
+            } catch (\Exception $e) {
+                // If anything goes wrong, roll back the transaction
+                $this->db->rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error: ' . $e->getMessage()
+            ]);
         }
     }
 
-    
+    public function update($id) {
+        try {
+            header('Content-Type: application/json');
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (!isset($data['hostname'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Hostname is required'
+                ]);
+                return;
+            }
+
+            $stmt = $this->db->prepare("
+                UPDATE cin_switches 
+                SET hostname = ?
+                WHERE id = ?
+            ");
+
+            $result = $stmt->execute([
+                $data['hostname'],
+                $id
+            ]);
+
+            if ($result) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Switch updated successfully'
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Failed to update switch'
+                ]);
+            }
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error'
+            ]);
+        }
+    }
+
+    public function delete($id) {
+        try {
+            header('Content-Type: application/json');
+
+            $this->db->beginTransaction();
+
+            try {
+                // First delete related BVI interfaces
+                $stmtBvi = $this->db->prepare("
+                    DELETE FROM cin_switch_bvi_interfaces 
+                    WHERE switch_id = ?
+                ");
+                $stmtBvi->execute([$id]);
+
+                // Then delete the switch
+                $stmtSwitch = $this->db->prepare("
+                    DELETE FROM cin_switches 
+                    WHERE id = ?
+                ");
+                $stmtSwitch->execute([$id]);
+
+                $this->db->commit();
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Switch and related BVI interfaces deleted successfully'
+                ]);
+            } catch (\Exception $e) {
+                $this->db->rollBack();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Database error'
+            ]);
+        }
+    }
 }

@@ -1,7 +1,8 @@
 <?php
 error_reporting(E_ALL);
 // amazonq-ignore-next-line
-ini_set('display_errors', 1);
+// Remove or comment out the line to prevent displaying errors in production
+// ini_set('display_errors', 1);
 
 require_once BASE_PATH . '/vendor/autoload.php';
 
@@ -112,7 +113,7 @@ ob_start();
 
 <script>
 // Define switchId in global scope
-const switchId = <?php echo json_encode($switchId); ?>;
+const switchId = <?php echo json_encode(htmlspecialchars($switchId, ENT_QUOTES, 'UTF-8')); ?>;
 
 $(document).ready(function() {
     const loadingIndicator = $('#loadingIndicator');

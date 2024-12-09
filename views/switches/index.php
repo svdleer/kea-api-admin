@@ -132,7 +132,7 @@ ob_start();
                                                class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded-md">
                                                 Edit Switch
                                             </a>
-                                            <a href="/switches/bvi/list?switchId=<?php echo htmlspecialchars($switch['id']); ?>" 
+                                            <a href="/switches/bvi/list/<?php echo htmlspecialchars($switch['id']); ?>" 
                                             class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md">
                                                 Edit BVI Interfaces
                                             </a>

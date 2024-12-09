@@ -20,6 +20,7 @@ try {
     // Get the switch ID from URL
     $switchId = isset($_GET['switchId']) ? $_GET['switchId'] : null;
     
+    
     if (!$switchId) {
         throw new Exception('Missing switch ID');
     }
@@ -29,8 +30,7 @@ try {
     // Get switch data
     $switch = $cinSwitch->getSwitchById($switchId);
     if (!$switch) {
-        header('Location: /switches');
-        exit;
+        throw new Exception('Switch not found');
     }
 
     // Get all BVI interfaces for this switch

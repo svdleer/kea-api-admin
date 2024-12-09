@@ -2,132 +2,163 @@
 
 namespace App\Controllers\Api;
 
+use App\Models\BVIModel;
 use App\Database\Database;
-use App\Models\BVIInterface;
 
 class BVIController
 {
+    private BVIModel $bviModel;
     private $db;
-    private $bviInterface;
 
     public function __construct()
     {
         $this->db = Database::getInstance();
-        $this->bviInterface = new BVIInterface($this->db);
+        $this->bviModel = new BVIModel($this->db);
     }
 
     public function index($switchId)
     {
-        header('Content-Type: application/json');
         try {
-            $bviInterfaces = $this->bviInterface->getAllBviInterfaces($switchId);
-            echo json_encode(['success' => true, 'data' => $bviInterfaces]);
+            $interfaces = $this->bviModel->getAllBviInterfaces($switchId);
+            header('Content-Type: application/json');
+            echo json_encode($interfaces);
         } catch (\Exception $e) {
+            error_log("Error in BVIController::index: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
-
-    public function create($switchId)
-    {
-        header('Content-Type: application/json');
-        try {
-            $data = json_decode(file_get_contents('php://input'), true);
-            
-            if (!isset($data['interface_number']) || !isset($data['ipv6_address'])) {
-                throw new \Exception('Missing required fields');
-            }
-
-            $result = $this->bviInterface->createBviInterface($switchId, $data);
-            echo json_encode(['success' => true, 'data' => $result]);
-        } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode(['error' => 'Internal server error']);
         }
     }
 
     public function show($switchId, $bviId)
     {
-        header('Content-Type: application/json');
         try {
-            $bviInterface = $this->bviInterface->getBviInterface($switchId, $bviId);
-            if (!$bviInterface) {
+            $interface = $this->bviModel->getBviInterface($switchId, $bviId);
+            
+            if (!$interface) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'message' => 'BVI Interface not found']);
+                echo json_encode(['error' => 'BVI interface not found']);
                 return;
             }
-            echo json_encode(['success' => true, 'data' => $bviInterface]);
+
+            header('Content-Type: application/json');
+            echo json_encode($interface);
         } catch (\Exception $e) {
+            error_log("Error in BVIController::show: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    public function create($switchId)
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!$data) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid JSON data']);
+                return;
+            }
+
+            $result = $this->bviModel->createBviInterface($switchId, $data);
+            
+            if ($result) {
+                http_response_code(201);
+                echo json_encode(['success' => true,'message' => 'BVI interface created successfully', 'id' => $result]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => 'Failed to create BVI interface']);
+            }
+        } catch (\Exception $e) {
+            error_log("Error in BVIController::create: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
         }
     }
 
     public function update($switchId, $bviId)
     {
-        header('Content-Type: application/json');
         try {
+            header('Content-Type: application/json');
             $data = json_decode(file_get_contents('php://input'), true);
             
-            if (!isset($data['interface_number']) || !isset($data['ipv6_address'])) {
-                throw new \Exception('Missing required fields');
+            if (!$data) {
+                echo json_encode(['success' => false, 'error' => 'Invalid JSON data']);
+                return;
             }
-
-            $result = $this->bviInterface->updateBviInterface($switchId, $bviId, $data);
-            echo json_encode(['success' => true, 'data' => $result]);
+    
+            $result = $this->bviModel->updateBviInterface($switchId, $bviId, $data);
+            
+            if ($result) {
+                echo json_encode(['success' => true, 'message' => 'BVI interface updated successfully']);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'BVI interface not found']);
+            }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            error_log("Error in BVIController::update: " . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
         }
     }
+    
+    
 
     public function delete($switchId, $bviId)
     {
-        header('Content-Type: application/json');
         try {
-            $result = $this->bviInterface->deleteBviInterface($switchId, $bviId);
-            echo json_encode(['success' => true]);
+            $result = $this->bviModel->deleteBviInterface($switchId, $bviId);
+            
+            if ($result) {
+                echo json_encode(['success' => true,'message' => 'BVI interface deleted successfully']);
+            } else {
+                http_response_code(404);
+                echo json_encode(['error' => 'BVI interface not found']);
+            }
         } catch (\Exception $e) {
+            error_log("Error in BVIController::delete: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode(['error' => 'Internal server error']);
         }
     }
-
     public function checkBVIExists($switchId) 
     {
         header('Content-Type: application/json');
         
         $interfaceNumber = $_GET['interface_number'] ?? '';
-        $excludeId = $_GET['exclude_id'] ?? null;  // Added support for exclude_id
+        $excludeId = $_GET['exclude_id'] ?? null;
     
         try {
-            $exists = $this->bviInterface->bviExists($switchId, $interfaceNumber, $excludeId);
-            echo json_encode(['exists' => $exists]);
+            $exists = $this->bviModel->bviExists($switchId, $interfaceNumber, $excludeId);
+            echo json_encode([
+                'exists' => $exists
+            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         } catch (\Exception $e) {
+            error_log("Error in checkBVIExists: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode([
+                'error' => htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')
+            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         }
     }
     
-    
-
     public function checkIPv6Exists()
     {
         header('Content-Type: application/json');
         
         $ipv6 = $_GET['ipv6'] ?? '';
-
+    
         try {
-            $exists = $this->bviInterface->ipv6Exists($ipv6);
-            // amazonq-ignore-next-line
-            echo json_encode(['exists' => $exists], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            $exists = $this->bviModel->ipv6Exists($ipv6);
+            echo json_encode([
+                'exists' => $exists
+            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         } catch (\Exception $e) {
+            error_log("Error in checkIPv6Exists: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+            echo json_encode([
+                'error' => htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')
+            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         }
     }
-
-    // In your BVIController or similar class
     
 
 }

@@ -244,9 +244,10 @@ ob_start();
             };
 
             fetch(`/api/switches/${switchId}`, {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(formData)
             })

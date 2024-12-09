@@ -244,7 +244,7 @@ $(document).ready(function() {
         };
 
         fetch('/api/switches', {
-            method: 'PUT',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },

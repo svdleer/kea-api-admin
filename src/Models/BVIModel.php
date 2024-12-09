@@ -4,7 +4,7 @@ namespace App\Models;
 
 use PDO;
 
-class BVIInterface
+class BVIModel
 {
     private $db;
 

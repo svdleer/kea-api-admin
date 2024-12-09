@@ -1,9 +1,8 @@
 <?php
 error_reporting(E_ALL);
-// Remove or comment out the line to prevent displaying errors in production
-// ini_set('display_errors', 1);
+ini_set('display_errors', 1);
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once BASE_PATH . '/vendor/autoload.php';
 
 use App\Auth\Authentication;
 use App\Database\Database;

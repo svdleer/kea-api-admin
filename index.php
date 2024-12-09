@@ -6,13 +6,14 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
-// No direct fix is applicable. The line should be removed or commented out in a production environment.
+ini_set('display_errors', 1);
+error_log("Script started - BASE_PATH: " . BASE_PATH);
 
 // Load environment variables
 $dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
 
-// Initialize session
+// Initialize session with secure settings
 if (session_status() === PHP_SESSION_NONE) {
     session_start([
         'cookie_httponly' => true,
@@ -21,208 +22,190 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
 }
 
-// Initialize router
-$router = new App\Router();
-
-// Debug log
-error_log("Request URI: " . $_SERVER['REQUEST_URI']);
-error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
-
-// Public routes (no auth required)
-$router->get('/', function() {
-    require BASE_PATH . '/views/login.php';
-});
-
-$router->post('/login', function() {
+try {
+    // Initialize router and dependencies
+    $router = new App\Router();
     $auth = new \App\Auth\Authentication(\App\Database\Database::getInstance());
-    
-    error_log("Login attempt - POST data: " . print_r($_POST, true));
-    
-    try {
-        if (empty($_POST['username']) || empty($_POST['password'])) {
-            throw new \Exception('Username and password are required');
-        }
+    $database = \App\Database\Database::getInstance();
+    $apiKeyModel = new App\Models\ApiKey($database);
 
-        if ($auth->login($_POST['username'], $_POST['password'])) {
-            error_log("Login successful - redirecting to dashboard");
+    // Debug log
+    error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+    error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
+
+    // Public routes
+    $router->get('/', function() use ($auth) {
+        if ($auth->isLoggedIn()) {
             header('Location: /dashboard');
-            return;
+            exit();
         } else {
-            error_log("Login failed - invalid credentials");
+            $loginPath = BASE_PATH . '/views/login.php';
+            error_log("Attempting to load login file from: " . $loginPath);
+            if (!file_exists($loginPath)) {
+                error_log("Login file not found at: " . $loginPath);
+                throw new Exception("Login file not found at: " . $loginPath);
+            }
+            require $loginPath;
+        }
+    });
+
+    $router->post('/login', function() use ($auth) {
+        if (empty($_POST['username']) || empty($_POST['password'])) {
+            $_SESSION['error'] = 'Username and password are required';
+            header('Location: /');
+            exit();
+        }
+    
+        if ($auth->login($_POST['username'], $_POST['password'])) {
+            // Successful login - just redirect
+            header('Location: /dashboard');
+            exit();
+        } else {
             $_SESSION['error'] = 'Invalid username or password';
             header('Location: /');
-            return;
+            exit();
         }
-    } catch (\Exception $e) {
-        error_log("Login error: " . $e->getMessage());
-        $_SESSION['error'] = $e->getMessage();
+    });
+    
+    
+
+    $router->get('/logout', function() use ($auth) {
+        $auth->logout();
         header('Location: /');
-        return;
+        exit();
+    });
+
+    // Check authentication for protected routes
+    $publicRoutes = ['/', '/login', '/logout'];
+    if (!$auth->isLoggedIn() && !in_array($_SERVER['REQUEST_URI'], $publicRoutes)) {
+        error_log("Unauthorized access attempt to: " . $_SERVER['REQUEST_URI']);
+        header('Location: /');
+        exit();
     }
-});
 
-$router->get('/logout', function() {
-    $auth = new \App\Auth\Authentication(\App\Database\Database::getInstance());
-    $auth->logout();
-    header('Location: /');
-    throw new \Exception('Logout completed'); // import Exception
-});
+    // API Key Management Routes
+    $router->get('/api/keys', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'list'])
+        ->middleware(new \App\Middleware\AuthMiddleware($auth));
+    $router->post('/api/keys', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'create'])
+        ->middleware(new \App\Middleware\AuthMiddleware($auth));
+$router->post('/api/keys/{id}/deactivate', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'deactivate'])
+        ->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-// Check authentication for all other routes
-$auth = new \App\Auth\Authentication(\App\Database\Database::getInstance());
-if (!$auth->isLoggedIn() && $_SERVER['REQUEST_URI'] !== '/' && $_SERVER['REQUEST_URI'] !== '/login' && $_SERVER['REQUEST_URI'] !== '/logout') {
-    header('Location: /');
-    throw new Exception('User not logged in and accessing restricted page'); // Exception handling instead of exit
-}
+    // CIN Switch Routes - Read Only with Combined Auth
+    $router->get('/api/switches', [\App\Controllers\Api\CinSwitch::class, 'getAll'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/switches/{id}', [\App\Controllers\Api\CinSwitch::class, 'getById'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
-// Protected routes (auth required)
+    // CIN Switch Routes - Read/Write with Combined Auth
+    $router->post('/api/switches', [\App\Controllers\Api\CinSwitch::class, 'create'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->put('/api/switches/{id}', [\App\Controllers\Api\CinSwitch::class, 'update'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/switches/{id}', [\App\Controllers\Api\CinSwitch::class, 'delete'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
-// API Routes for Switches
-$router->get('/api/switches/check-exists', function() {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->checkExists();
-});
+    // Validation Check Routes with Combined Auth
+    $router->get('/api/switches/check-exists', [\App\Controllers\Api\CinSwitch::class, 'hostnameExists'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/switches/check-bvi', [\App\Controllers\Api\CinSwitch::class, 'checkBvi'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/switches/check-ipv6', [\App\Controllers\Api\CinSwitch::class, 'checkIpv6'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
-
-$router->get('/api/switches/check-ipv6', function() {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->checkIpv6();
-});
-
-$router->get('/api/switches', function() {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->getAll();
-});
-
-$router->put('/api/switches', function() {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->create();
-});
-
-$router->get('/api/switches/{id}', function($id) {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->getById($id);
-});
-
-$router->post('/api/switches/{id}', function($id) {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->update($id);
-});
-
-$router->delete('/api/switches/{id}', function($id) {
-    $controller = new \App\Controllers\Api\SwitchController();
-    $controller->delete($id);
-});
+    // BVI check routes with Combined Auth
+    $router->get('/api/switches/{switchId}/bvi/check-exists', [\App\Controllers\Api\BVIController::class, 'checkBVIExists'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/switches/bvi/check-ipv6', [\App\Controllers\Api\BVIController::class, 'checkIPv6Exists'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
 
+    // BVI Interface Routes with Combined Auth
+    $router->get('/api/switches/{switchId}/bvi', [\App\Controllers\Api\BVIController::class, 'index'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->post('/api/switches/{switchId}/bvi', [\App\Controllers\Api\BVIController::class, 'create'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->put('/api/switches/{switchId}/bvi/{bviId}', [\App\Controllers\Api\BVIController::class, 'update'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/switches/{switchId}/bvi/{bviId}', [\App\Controllers\Api\BVIController::class, 'delete'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->get('/api/switches/{switchId}/bvi/{bviId}', [\App\Controllers\Api\BVIController::class, 'show'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
-// BVI Interface API Routes
-$router->get('/api/switches/{id}/bvi', function($id) {
-    $controller = new \App\Controllers\Api\BVIController();
-    $controller->index($id);
-});
+    // Web UI Routes with Auth Middleware
+    $router->get('/dashboard', function() {
+        $dashboardPath = BASE_PATH . '/views/dashboard.php';
+        if (!file_exists($dashboardPath)) {
+            throw new \Exception("Dashboard file not found at: " . $dashboardPath);
+        }
+        require $dashboardPath;
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+    
 
-$router->put('/api/switches/{id}/bvi', function($id) {
-    $controller = new \App\Controllers\Api\BVIController();
-    $controller->create($id);
-});
+    $router->get('/switches', function() {
+        require BASE_PATH . '/views/switches/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-$router->get('/api/switches/{id}/bvi/check-exists', function($id) {
-    $controller = new \App\Controllers\Api\BVIController();
-    $controller->checkBVIExists($id);
-});
+    $router->get('/switches/add', function() {
+        require BASE_PATH . '/views/switches/add.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-$router->post('/api/switches/{id}/bvi/{bviId}', function($id, $bviId) {
-    $controller = new \App\Controllers\Api\BVIController();
-    $controller->update($id, $bviId);
-});
+    // Route for displaying the CIN Switch edit form
+    $router->get('/switches/edit/{id}', function($id) {
+        $_GET['id'] = $id;
+        require BASE_PATH . '/views/switches/edit.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    $router->get('/switches/bvi/list/{switchId}', function($switchId) {
+        $_GET['switchId'] = $switchId;
+        require BASE_PATH . '/views/switches/bvi/bvilist.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-$router->get('/api/switches/{id}/bvi/{bviId}', function($id, $bviId) {
-    $controller = new \App\Controllers\Api\BVIController();
-    $controller->show($id, $bviId);
-});
+    $router->get('/switches/{switchId}/bvi', function($switchId) {
+        $_GET['switchId'] = $switchId;
+        require BASE_PATH . '/views/switches/bvi/bvilist.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    $router->get('/switches/{switchId}/bvi/add', function($switchId) {
+        $_GET['switchId'] = $switchId; // Make sure the view has access to the ID
+        $viewPath = BASE_PATH . '/views/switches/bvi/add.php';
+        
+        if (!file_exists($viewPath)) {
+            error_log("BVI add view not found at: " . $viewPath);
+            throw new \Exception("View file not found: " . $viewPath);
+        }
+        
+        require $viewPath;
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+    
 
+    // Route for displaying the BVI edit form
+    $router->get('/switches/{switchId}/bvi/{bviId}/edit', function($switchId, $bviId) {
+        $_GET['switchId'] = $switchId;
+        $_GET['bviId'] = $bviId;
+        require BASE_PATH . '/views/switches/bvi/edit.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-$router->delete('/api/switches/{id}/bvi/{bviId}', function($id, $bviId) {
-    $controller = new \App\Controllers\Api\BVIController();
-    $controller->delete($id, $bviId);
-});
+    // API Keys management page
+    $router->get('/api-keys', function() {
+        require BASE_PATH . '/views/api-keys/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // 404 Handler
+    $router->setNotFoundHandler(function() {
+        header("HTTP/1.0 404 Not Found");
+        require BASE_PATH . '/views/errors/404.php';
+    });
 
-// Dashboard Web Route
-$router->get('/dashboard', function() {
-    require BASE_PATH . '/views/dashboard.php';
-});
+    // Handle CORS
+    $router->handleCORS();
 
-// Switch Web Routes
-$router->get('/switches', function() {
-    require BASE_PATH . '/views/switches/index.php';
-});
-
-// Route for displaying the CIN Switch add form
-
-$router->get('/switches/add', function() {
-    require BASE_PATH . '/views/switches/add.php';
-});
-
-// Route for displaying the CIN Switch edit form
-$router->get('/switches/edit/{id}', function($id) {
-    $_GET['id'] = $id;
-    require BASE_PATH . '/views/switches/edit.php';
-});
-
-
-// Switch BVI Routes
-// Route for displaying BVIs CIN swtich 
-
-$router->get('/switches/bvi/list', function() {
-    if (!isset($_GET['switchId'])) {
-        header('Location: /switches');
-        return;
-    }
-    require BASE_PATH . '/views/switches/bvi/bvilist.php';
-});
-
-// Route for displaying BVIs of a CIN swtich 
-$router->get('/switches/{id}/bvi', function($id) {
-    $_GET['id'] = $id;
-    require BASE_PATH . '/views/switches/bvi/index.php';
-});
-
-// Route for displaying the BVI add form
-$router->get('/switches/{id}/bvi/add', function($id) {
-    $_GET['id'] = $id;
-    require BASE_PATH . '/views/switches/bvi/add.php';
-});
-
-// Route for displaying the BVI edit form
-$router->get('/switches/{switchId}/bvi/{bviId}/edit', function($switchId, $bviId) {
-    $_GET['switchId'] = $switchId;
-    $_GET['bviId'] = $bviId;
-    require BASE_PATH . '/views/switches/bvi/edit.php';
-});
-
-
-
-
-
-// 404 Handler
-$router->setNotFoundHandler(function() {
-    error_log("404 - Page not found: " . $_SERVER['REQUEST_URI']);
-    http_response_code(404);
-    require BASE_PATH . '/views/errors/404.php';
-});
-
-// Handle CORS for API requests
-$router->handleCORS();
-
-// Dispatch the router
-try {
+    // Dispatch the router
     $router->dispatch();
+
 } catch (\Exception $e) {
-    error_log("Router error: " . $e->getMessage());
+    error_log("Critical error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
-    require BASE_PATH . '/views/errors/500.php';
+    echo "An error occurred. Please check the error logs for more details.";
 }
