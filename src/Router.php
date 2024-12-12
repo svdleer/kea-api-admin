@@ -59,12 +59,26 @@ class Router
     private function executeController($handler, $params = [])
     {
         if (is_array($handler)) {
-            $controller = new $handler[0](\App\Database\Database::getInstance()); // Inject the database
-            $method = $handler[1];
-            return call_user_func_array([$controller, $method], $params);
+            if (is_string($handler[0])) {
+                // Handle different controller types
+                $controllerClass = $handler[0];
+                $controller = match ($controllerClass) {
+                    \App\Controllers\Api\UserController::class => new $controllerClass(
+                        new \App\Models\User(\App\Database\Database::getInstance()),
+                        new \App\Auth\Authentication(\App\Database\Database::getInstance())
+                    ),
+                    default => new $controllerClass(\App\Database\Database::getInstance())
+                };
+                
+                $method = $handler[1];
+                return call_user_func_array([$controller, $method], $params);
+            }
+            // If controller is already instantiated
+            return call_user_func_array($handler, $params);
         }
         return call_user_func_array($handler, $params);
     }
+    
     
     
 

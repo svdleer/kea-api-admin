@@ -151,7 +151,30 @@ class Authentication
      */
     public function isAdmin(): bool
     {
-        return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+
+        error_log('Session data in isAdmin: ' . print_r($_SESSION, true));
+        error_log('User ID in session: ' . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set'));
+        
+        // If you're storing is_admin in session
+        error_log('Is admin in session: ' . (isset($_SESSION['is_admin']) ? $_SESSION['is_admin'] : 'not set'));
+        
+        // If you're checking against database
+        if (isset($_SESSION['user_id'])) {
+            try {
+                $stmt = $this->db->prepare("SELECT is_admin FROM users WHERE id = :user_id");
+                $stmt->execute(['user_id' => $_SESSION['user_id']]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                error_log('Database user data: ' . print_r($result, true));
+                
+                return isset($result['is_admin']) && $result['is_admin'] == true;
+            } catch (\PDOException $e) {
+                error_log('Database error in isAdmin: ' . $e->getMessage());
+                return false;
+            }
+        }
+        
+        return false; // Current return value
+        //return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
     }
 
     /**

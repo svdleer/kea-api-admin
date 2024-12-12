@@ -167,5 +167,6 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
+$auth = $GLOBALS['auth'];
 require_once __DIR__ . '/layout.php';
 ?>

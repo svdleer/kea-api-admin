@@ -6,7 +6,6 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 use App\Controllers\Api\UserController;
 use App\Controllers\Api\IPv6Controller;
-
 use App\Models\User;
 use App\Models\IPv6Subnet;
 
@@ -31,12 +30,10 @@ if (session_status() === PHP_SESSION_NONE) {
 try {
     // Initialize router and dependencies
     $router = new App\Router();
+    $auth = new \App\Auth\Authentication(\App\Database\Database::getInstance());
     $database = \App\Database\Database::getInstance();
     $apiKeyModel = new App\Models\ApiKey($database);
-    $userModel = new \App\Models\User($database);  
-    $auth = new \App\Auth\Authentication($database);
 
-    
     // Debug log
     error_log("Request URI: " . $_SERVER['REQUEST_URI']);
     error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
@@ -57,8 +54,6 @@ try {
         }
     });
 
-    // Login route
-
     $router->post('/login', function() use ($auth) {
         if (empty($_POST['username']) || empty($_POST['password'])) {
             $_SESSION['error'] = 'Username and password are required';
@@ -78,45 +73,23 @@ try {
     });
     
     
-    // Logout route 
+
     $router->get('/logout', function() use ($auth) {
         $auth->logout();
         header('Location: /');
         exit();
     });
 
-    // Documentation route
-    $router->get('/api/docs/spec', function() {
-        header('Content-Type: application/json');
-        echo json_encode(\App\Documentation\ApiDocumentation::getSpecification());
-    });
-    
-
     // User Management Routes
     $router->get('/users', function() {
         require BASE_PATH . '/views/users/index.php';
     });
     
-    $router->get('/api/users', [new UserController($userModel, $auth), 'list'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->post('/api/users', [new UserController($userModel, $auth), 'create'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->get('/api/users/{id}', [new UserController($userModel, $auth), 'getById'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->put('/api/users/{id}', [new UserController($userModel, $auth), 'update'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->delete('/api/users/{id}', [new UserController($userModel, $auth), 'delete'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-
-    // User validation routes
-    $router->get('/api/users/check-username/{username}', [new UserController($userModel, $auth), 'checkUsername'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->get('/api/users/check-email/{email}', [new UserController($userModel, $auth), 'checkEmail'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-
-
-
- 
+    $router->get('/api/users', [UserController::class, 'list']);
+    $router->post('/api/users', [UserController::class, 'create']);
+    $router->get('/api/users/{id}', [UserController::class, 'getById']);
+    $router->put('/api/users/{id}', [UserController::class, 'update']);
+    $router->delete('/api/users/{id}', [UserController::class, 'delete']);
 
     // IPv6 Subnet Routes
     $router->get('/ipv6', function() {
@@ -131,7 +104,8 @@ try {
     $router->get('/api/ipv6/bvi/{bviId}/subnets', [IPv6Controller::class, 'getByBvi']);
 
     // Load configuration for Kea DHCPv6 servers
-   // $dhcp6Client = new \App\Kea\DHCPv6Client($_ENV['KEA_API_ENDPOINT'], $_ENV['KEA_PRIMARY_URL']);
+    $keaConfig = require BASE_PATH . '/config/kea.php';
+    $dhcp6Client = new \App\Kea\DHCPv6Client($keaConfig['api_endpoint'], $keaConfig['servers']);
     
     // Check authentication for protected routes
     $publicRoutes = ['/', '/login', '/logout'];
@@ -143,14 +117,11 @@ try {
 
     // API Key Management Routes
     $router->get('/api/keys', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'list'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+        ->middleware(new \App\Middleware\AuthMiddleware($auth));
     $router->post('/api/keys', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'create'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->post('/api/keys/{id}/deactivate', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'deactivate'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->delete('/api/keys/{id}', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'delete'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-
+        ->middleware(new \App\Middleware\AuthMiddleware($auth));
+$router->post('/api/keys/{id}/deactivate', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'deactivate'])
+        ->middleware(new \App\Middleware\AuthMiddleware($auth));
 
     // CIN Switch Routes - Read Only with Combined Auth
     $router->get('/api/switches', [\App\Controllers\Api\CinSwitch::class, 'getAll'])

@@ -5,65 +5,140 @@ namespace App\Controllers\Api;
 use App\Models\ApiKey;
 use App\Auth\Authentication;
 
-class ApiKeyController
-{
+
+
+class ApiKeyController {
     private $apiKeyModel;
     private $auth;
 
-    public function __construct(ApiKey $apiKeyModel, Authentication $auth)
-    {
+    public function __construct(ApiKey $apiKeyModel, Authentication $auth) {
         $this->apiKeyModel = $apiKeyModel;
         $this->auth = $auth;
     }
 
-    public function create()
-    {
-        if (!$this->auth->isLoggedIn() || !$this->auth->isAdmin()) {
-            return json_encode(['error' => 'Unauthorized']);
+    public function create() {
+        try {
+            if (!$this->auth->isAdmin()) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Unauthorized: Admin access required']);
+                exit;
+            }
+    
+            $data = json_decode(file_get_contents('php://input'), true);
+    
+            if (!isset($data['name'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Missing required fields']);
+                exit;
+            }
+    
+            $readOnly = isset($data['read_only']) ? (bool)$data['read_only'] : false;
+            
+            $apiKey = $this->apiKeyModel->createApiKey(
+                $data['name'],
+                $readOnly
+            );
+    
+            if ($apiKey) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'status' => 'success',
+                    'apiKey' => $apiKey, // Make sure this is included
+                    'message' => 'API key created successfully'
+                ]);
+                exit;
+            }
+    
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to create API key']);
+            exit;
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+            exit;
         }
+    }
+    
 
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        if (!isset($data['name']) || empty($data['name'])) {
-            return json_encode(['error' => 'Name is required']);
-        }
+    public function list() {
+        try {
+            // Check if user is admin
+            if (!$this->auth->isAdmin()) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Unauthorized: Admin access required']);
+                exit;
+            }
 
-        $readOnly = isset($data['read_only']) ? (bool)$data['read_only'] : false;
-        $userId = $this->auth->getCurrentUserId();
-        
-        $apiKey = $this->apiKeyModel->createApiKey($userId, $data['name'], $readOnly);
-        
-        if ($apiKey) {
-            return json_encode(['success' => true, 'api_key' => $apiKey]);
+            $keys = $this->apiKeyModel->getApiKeys();
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'success',
+                'keys' => $keys
+            ]);
+            exit;
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Server error']);
+            exit;
         }
-        
-        return json_encode(['error' => 'Failed to create API key']);
     }
 
-    public function list()
-    {
-        if (!$this->auth->isLoggedIn()) {
-            return json_encode(['error' => 'Unauthorized']);
-        }
+    public function deactivate($id) {
+        try {
+            // Check if user is admin
+            if (!$this->auth->isAdmin()) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Unauthorized: Admin access required']);
+                exit;
+            }
 
-        $userId = $this->auth->getCurrentUserId();
-        $keys = $this->apiKeyModel->getUserApiKeys($userId);
-        
-        return json_encode(['success' => true, 'keys' => $keys]);
+            $success = $this->apiKeyModel->deactivateApiKey($id);
+            
+            if ($success) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'API key deactivated successfully'
+                ]);
+                exit;
+            }
+
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to deactivate API key']);
+            exit;
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Server error']);
+            exit;
+        }
     }
-
-    public function deactivate($keyId)
-    {
-        if (!$this->auth->isLoggedIn()) {
-            return json_encode(['error' => 'Unauthorized']);
+    public function delete($id) {
+        try {
+            $success = $this->apiKeyModel->deleteApiKey($id);
+            
+            if ($success) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'API key deleted successfully'
+                ]);
+                exit;
+            }
+    
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Failed to delete API key'
+            ]);
+            exit;
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+            exit;
         }
-
-        $userId = $this->auth->getCurrentUserId();
-        
-        if ($this->apiKeyModel->deactivateApiKey($keyId, $userId)) {
-            return json_encode(['success' => true]);
-        }
-        
-        return json_encode(['error' => 'Failed to deactivate API key']);
     }
+    
 }
