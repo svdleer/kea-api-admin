@@ -86,6 +86,8 @@ class KeaStatusMonitor {
             }
         } catch (\Exception $e) {
             $status['error'] = $e->getMessage();
+            // Log detailed error for debugging
+            error_log("Kea Status Error for {$server['name']} ({$server['url']}): " . $e->getMessage());
         }
 
         return $status;
