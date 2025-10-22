@@ -24,6 +24,7 @@ $latestSwitch = null;
 $keaServers = [];
 $haStatus = [];
 
+// Fetch switches data
 try {
     $db = Database::getInstance();
     $cinSwitch = new CinSwitch($db);
@@ -38,14 +39,20 @@ try {
     
     // Get latest switch (last one in the array)
     $latestSwitch = !empty($switches) ? end($switches) : null;
-    
-    // Get Kea daemon status
+} catch (\Exception $e) {
+    $error = "Error fetching switches: " . $e->getMessage();
+    error_log("Dashboard switches error: " . $e->getMessage());
+}
+
+// Get Kea daemon status (separate try-catch to not interfere with switches)
+try {
     $keaConfig = require BASE_PATH . '/config/kea.php';
     $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
     $keaServers = $keaMonitor->getServersStatus();
     $haStatus = $keaMonitor->getHAStatus();
 } catch (\Exception $e) {
-    $error = $e->getMessage();
+    // Kea errors are non-critical, just log them
+    error_log("Dashboard Kea status error: " . $e->getMessage());
 }
 
 $currentPage = 'dashboard';
