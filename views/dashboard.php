@@ -78,94 +78,102 @@ ob_start();
     <!-- Kea DHCP Status Section -->
     <div class="px-4 sm:px-0 mb-6">
         <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Kea DHCPv6 Server Status</h3>
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <?php foreach ($keaServers as $server): ?>
-                <div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 <?php echo $server['online'] ? 'border-green-500' : 'border-red-500'; ?>">
-                    <div class="px-4 py-5 sm:p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h4 class="text-lg font-semibold text-gray-900 capitalize">
-                                <?php echo htmlspecialchars($server['name']); ?> Server
-                            </h4>
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <?php echo $server['online'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                                <?php echo $server['online'] ? '● Online' : '● Offline'; ?>
-                            </span>
-                        </div>
-                        
-                        <?php if ($server['online']): ?>
-                            <dl class="grid grid-cols-1 gap-2 text-sm">
-                                <?php if ($server['version']): ?>
-                                    <div class="flex justify-between">
-                                        <dt class="text-gray-500">Version:</dt>
-                                        <dd class="text-gray-900 font-medium"><?php echo htmlspecialchars($server['version']); ?></dd>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <?php if ($server['uptime']): ?>
-                                    <div class="flex justify-between">
-                                        <dt class="text-gray-500">Uptime:</dt>
-                                        <dd class="text-gray-900 font-medium"><?php echo htmlspecialchars($server['uptime']); ?></dd>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <?php if ($server['response_time']): ?>
-                                    <div class="flex justify-between">
-                                        <dt class="text-gray-500">Response Time:</dt>
-                                        <dd class="text-gray-900 font-medium"><?php echo $server['response_time']; ?> ms</dd>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <?php if ($server['subnets'] !== null): ?>
-                                    <div class="flex justify-between">
-                                        <dt class="text-gray-500">Configured Subnets:</dt>
-                                        <dd class="text-gray-900 font-medium"><?php echo $server['subnets']; ?></dd>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <?php if ($server['leases']): ?>
-                                    <div class="flex justify-between">
-                                        <dt class="text-gray-500">Active Leases:</dt>
-                                        <dd class="text-gray-900 font-medium">
-                                            <?php echo $server['leases']['assigned']; ?> / <?php echo $server['leases']['total']; ?>
-                                        </dd>
-                                    </div>
-                                <?php endif; ?>
-                            </dl>
-                        <?php else: ?>
-                            <div class="text-sm text-red-600">
-                                <?php echo htmlspecialchars($server['error'] ?? 'Unable to connect to server'); ?>
+        <?php if (!empty($keaServers)): ?>
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <?php foreach ($keaServers as $server): ?>
+                    <div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 <?php echo ($server['online'] ?? false) ? 'border-green-500' : 'border-red-500'; ?>">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-gray-900 capitalize">
+                                    <?php echo htmlspecialchars($server['name'] ?? 'Unknown'); ?> Server
+                                </h4>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <?php echo ($server['online'] ?? false) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                    <?php echo ($server['online'] ?? false) ? '● Online' : '● Offline'; ?>
+                                </span>
                             </div>
-                        <?php endif; ?>
+                            
+                            <?php if ($server['online'] ?? false): ?>
+                                <dl class="grid grid-cols-1 gap-2 text-sm">
+                                    <?php if (!empty($server['version'])): ?>
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-500">Version:</dt>
+                                            <dd class="text-gray-900 font-medium"><?php echo htmlspecialchars($server['version']); ?></dd>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($server['uptime'])): ?>
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-500">Uptime:</dt>
+                                            <dd class="text-gray-900 font-medium"><?php echo htmlspecialchars($server['uptime']); ?></dd>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($server['response_time'])): ?>
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-500">Response Time:</dt>
+                                            <dd class="text-gray-900 font-medium"><?php echo $server['response_time']; ?> ms</dd>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (isset($server['subnets']) && $server['subnets'] !== null): ?>
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-500">Configured Subnets:</dt>
+                                            <dd class="text-gray-900 font-medium"><?php echo $server['subnets']; ?></dd>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($server['leases'])): ?>
+                                        <div class="flex justify-between">
+                                            <dt class="text-gray-500">Active Leases:</dt>
+                                            <dd class="text-gray-900 font-medium">
+                                                <?php echo $server['leases']['assigned'] ?? 0; ?> / <?php echo $server['leases']['total'] ?? 0; ?>
+                                            </dd>
+                                        </div>
+                                    <?php endif; ?>
+                                </dl>
+                            <?php else: ?>
+                                <div class="text-sm text-red-600">
+                                    <?php echo htmlspecialchars($server['error'] ?? 'Unable to connect to server'); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p class="text-sm text-yellow-800">
+                    Unable to retrieve Kea server status. Please check your configuration.
+                </p>
+            </div>
+        <?php endif; ?>
         
         <!-- HA Status -->
-        <?php if ($haStatus['configured']): ?>
+        <?php if (!empty($haStatus['configured'])): ?>
             <div class="mt-4 bg-white overflow-hidden shadow-sm rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="text-lg font-semibold text-gray-900">High Availability Status</h4>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <?php echo $haStatus['working'] ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
-                            <?php echo $haStatus['working'] ? '● Active' : '● Not Active'; ?>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium <?php echo ($haStatus['working'] ?? false) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
+                            <?php echo ($haStatus['working'] ?? false) ? '● Active' : '● Not Active'; ?>
                         </span>
                     </div>
                     <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <?php if ($haStatus['mode']): ?>
+                        <?php if (!empty($haStatus['mode'])): ?>
                             <div>
                                 <dt class="text-gray-500">HA Mode:</dt>
                                 <dd class="text-gray-900 font-medium capitalize"><?php echo htmlspecialchars($haStatus['mode']); ?></dd>
                             </div>
                         <?php endif; ?>
                         
-                        <?php if ($haStatus['primary_state']): ?>
+                        <?php if (!empty($haStatus['primary_state'])): ?>
                             <div>
                                 <dt class="text-gray-500">Primary State:</dt>
                                 <dd class="text-gray-900 font-medium"><?php echo htmlspecialchars($haStatus['primary_state']); ?></dd>
                             </div>
                         <?php endif; ?>
                         
-                        <?php if ($haStatus['secondary_state']): ?>
+                        <?php if (!empty($haStatus['secondary_state'])): ?>
                             <div>
                                 <dt class="text-gray-500">Secondary State:</dt>
                                 <dd class="text-gray-900 font-medium"><?php echo htmlspecialchars($haStatus['secondary_state']); ?></dd>
@@ -173,7 +181,7 @@ ob_start();
                         <?php endif; ?>
                     </dl>
                     
-                    <?php if (isset($haStatus['error'])): ?>
+                    <?php if (!empty($haStatus['error'])): ?>
                         <div class="mt-2 text-sm text-yellow-600">
                             <?php echo htmlspecialchars($haStatus['error']); ?>
                         </div>
