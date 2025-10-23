@@ -82,7 +82,8 @@ class KeaStatusMonitor {
                     $status['subnets'] = count($subnetResponse['arguments']['subnets']);
                 }
             } else {
-                $status['error'] = $response['text'] ?? 'Unknown error';
+                $status['error'] = $response['text'] ?? ($response[0]['text'] ?? 'Unknown error');
+                error_log("Kea response error for {$server['name']}: " . json_encode($response));
             }
         } catch (\Exception $e) {
             $status['error'] = $e->getMessage();
