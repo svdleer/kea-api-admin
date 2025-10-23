@@ -6,53 +6,12 @@ require_once BASE_PATH . '/vendor/autoload.php';
 
 use App\Auth\Authentication;
 use App\Database\Database;
-use App\Models\CinSwitch;
-use App\Kea\KeaStatusMonitor;
 
 // Check if user is logged in
 $auth = new Authentication(Database::getInstance());
 if (!$auth->isLoggedIn()) {
     header('Location: /');
     throw new Exception('User not logged in');
-}
-
-$error = null;
-$switches = [];
-$totalSwitches = 0;
-$totalBVI = 0;
-$latestSwitch = null;
-$keaServers = [];
-$haStatus = [];
-
-// Fetch switches data
-try {
-    $db = Database::getInstance();
-    $cinSwitch = new CinSwitch($db);
-    $switches = $cinSwitch->getAllSwitches();
-    $totalSwitches = count($switches);
-    
-    // Calculate total BVI count from all switches
-    $totalBVI = 0;
-    foreach ($switches as $switch) {
-        $totalBVI += $cinSwitch->getBviCount($switch['id']);
-    }
-    
-    // Get latest switch (last one in the array)
-    $latestSwitch = !empty($switches) ? end($switches) : null;
-} catch (\Exception $e) {
-    $error = "Error fetching switches: " . $e->getMessage();
-    error_log("Dashboard switches error: " . $e->getMessage());
-}
-
-// Get Kea daemon status (separate try-catch to not interfere with switches)
-try {
-    $keaConfig = require BASE_PATH . '/config/kea.php';
-    $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
-    $keaServers = $keaMonitor->getServersStatus();
-    $haStatus = $keaMonitor->getHAStatus();
-} catch (\Exception $e) {
-    // Kea errors are non-critical, just log them
-    error_log("Dashboard Kea status error: " . $e->getMessage());
 }
 
 $currentPage = 'dashboard';
@@ -76,11 +35,19 @@ ob_start();
         </div>
     </div>
 
-    <?php if ($error): ?>
-        <div class="mb-4 px-4 py-3 rounded relative bg-red-100 border border-red-400 text-red-700">
-            <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <p class="mt-2 text-gray-600">Loading dashboard...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="hidden mb-4 px-4 py-3 rounded relative bg-red-100 border border-red-400 text-red-700">
+        <span id="error-text"></span>
+    </div>
+
+    <!-- Dashboard Content (Hidden until loaded) -->
+    <div id="dashboard-content" class="hidden">
 
     <!-- Kea DHCP Status Section -->
     <div class="px-4 sm:px-0 mb-6">

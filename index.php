@@ -114,7 +114,11 @@ try {
     $router->get('/api/users/check-email/{email}', [new UserController($userModel, $auth), 'checkEmail'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
-
+    // Dashboard API routes
+    $router->get('/api/dashboard/stats', [new \App\Controllers\Api\DashboardController(), 'getStats'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/dashboard/kea-status', [new \App\Controllers\Api\DashboardController(), 'getKeaStatus'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
  
 
