@@ -154,14 +154,7 @@ class KeaStatusMonitor {
      * @return string|null Uptime string
      */
     private function getUptimeFromPid(int $pid): ?string {
-        // Try to get process start time on Unix-like systems
-        if (PHP_OS_FAMILY === 'Linux' || PHP_OS_FAMILY === 'Darwin') {
-            $psOutput = shell_exec("ps -p $pid -o etime=");
-            if ($psOutput) {
-                return trim($psOutput);
-            }
-        }
-        
+        // Simply return the PID since shell_exec may be disabled
         return "Running (PID: $pid)";
     }
 
