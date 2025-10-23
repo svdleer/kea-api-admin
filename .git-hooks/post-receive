@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Post-receive hook for kea-api-admin
+# This runs on the server after receiving a git push
+
+TARGET="/home/httpd/vhosts/kea.useless.nl/httpdocs"
+GIT_DIR="/home/kea_admin/git/kea.git"
+
+# Checkout the latest code
+cd $TARGET
+git --git-dir=$GIT_DIR --work-tree=$TARGET checkout -f
+
+# Regenerate Composer autoloader
+cd $TARGET
+/usr/local/bin/composer dump-autoload --optimize --no-dev
+
+# Set proper permissions
+chmod -R 755 $TARGET
+chown -R kea_admin:psacln $TARGET
+
+echo "Deployment complete!"
