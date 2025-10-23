@@ -24,6 +24,9 @@
                         <a href="/ipv6" class="inline-flex items-center px-1 pt-1 text-gray-500 hover:text-gray-700">
                             IPv6 Subnets
                         </a>
+                        <a href="/leases" class="inline-flex items-center px-1 pt-1 text-gray-500 hover:text-gray-700">
+                            Leases
+                        </a>
                         <a href="/users" class="inline-flex items-center px-1 pt-1 text-gray-500 hover:text-gray-700">
                             Users
                         </a>

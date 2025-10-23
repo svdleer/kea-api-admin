@@ -130,6 +130,23 @@ try {
     $router->delete('/api/ipv6/subnets/{subnetId}', [IPv6Controller::class, 'delete']);
     $router->get('/api/ipv6/bvi/{bviId}/subnets', [IPv6Controller::class, 'getByBvi']);
 
+    // DHCP Leases routes
+    $router->get('/leases', function() {
+        require BASE_PATH . '/leases.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    $router->get('/dhcp/leases', function() {
+        require BASE_PATH . '/views/dhcp/leases.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    $router->get('/dhcp/options', function() {
+        require BASE_PATH . '/views/dhcp/options.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    $router->get('/dhcp/optionsdef', function() {
+        require BASE_PATH . '/views/dhcp/optionsdef.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // Load configuration for Kea DHCPv6 servers
    // $dhcp6Client = new \App\Kea\DHCPv6Client($_ENV['KEA_API_ENDPOINT'], $_ENV['KEA_PRIMARY_URL']);
     
