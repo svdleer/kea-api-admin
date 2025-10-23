@@ -51,6 +51,11 @@ class KeaStatusMonitor {
             
             $status['response_time'] = round((microtime(true) - $startTime) * 1000, 2);
             
+            // Kea can return response as array or object, normalize it
+            if (is_array($response) && isset($response[0])) {
+                $response = $response[0];
+            }
+            
             if ($response && isset($response['result']) && $response['result'] === 0) {
                 $status['online'] = true;
                 
