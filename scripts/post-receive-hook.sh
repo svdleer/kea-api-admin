@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#
 # Post-receive hook for kea-api-admin
 # This script should be configured in Plesk Git settings as a post-receive hook
 # 
