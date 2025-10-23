@@ -45,8 +45,8 @@
                                 Switches
                             </a>
                             <?php if ($auth->isAdmin()): ?>
-                            <a href="/dhcp/scopes" class="<?php echo $currentPage === 'dhcp-scopes' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                DHCP Scopes
+                            <a href="/ipv6" class="<?php echo $currentPage === 'ipv6' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                IPv6 Subnets
                             </a>
                             <a href="/users" class="<?php echo $currentPage === 'users' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 Users
@@ -54,38 +54,7 @@
                             <a href="/api-keys" class="<?php echo $currentPage === 'api-keys' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 API Keys
                             </a>
-                            <?php endif; ?>order-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Dashboard
-                            </a>
-                            <a href="/switches" class="<?php echo $currentPage === 'switches' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Switches
-                            </a>
-                            <?php if ($auth->isAdmin()): ?>
-                            <a href="/dhcp/scopes" class="<?php echo $currentPage === 'dhcp-scopes' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                DHCP Scopes
-                            </a>
-                            <a href="/users" class="<?php echo $currentPage === 'users' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Users
-                            </a>
-                            <a href="/api-keys" class="<?php echo $currentPage === 'api-keys' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                API Keys
-                            </a>
-                            <?php endif; ?>der-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Switches
-                            </a>
-                            <?php if ($auth->isAdmin()): ?>
-                            <a href="/dhcp/scopes" class="<?php echo $currentPage === 'dhcp-scopes' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                DHCP Scopes
-                            </a>
-                            <a href="/users" class="<?php echo $currentPage === 'users' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Users
-                            </a>
-                            <a href="/api-keys" class="<?php echo $currentPage === 'api-keys' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                API Keys
-                            </a>
-                            <?php endif; ?>der-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Switches
-                            </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="flex items-center">
