@@ -12,7 +12,7 @@
 
 # Configuration
 TARGET="/home/httpd/vhosts/kea.useless.nl/httpdocs"
-GIT_DIR="/home/httpd/vhosts/kea.useless.nl/git"
+GIT_DIR="/home/httpd/vhosts/kea.useless.nl/git/kea.git"
 
 echo "Deploying to production..."
 
