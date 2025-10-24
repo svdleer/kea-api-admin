@@ -128,30 +128,55 @@ function loadSubnets() {
 }
 
 function showCreateSubnetModal() {
-    const bviOptions = bviInterfaces.map(bvi => 
-        `<option value="${bvi.id}">${bvi.name} (${bvi.ipv6_address})</option>`
-    ).join('');
-
     Swal.fire({
         title: 'Create New IPv6 Subnet',
         html: `
-            <input id="name" class="swal2-input" placeholder="Subnet Name">
-            <input id="prefix" class="swal2-input" placeholder="IPv6 Prefix (e.g., 2001:db8::/64)">
-            <select id="bvi_id" class="swal2-select">
-                <option value="">Select BVI Interface</option>
-                ${bviOptions}
-            </select>
-            <textarea id="description" class="swal2-textarea" placeholder="Description"></textarea>
+            <div class="text-left space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">IPv6 Subnet (CIDR)</label>
+                    <input id="subnet" class="swal2-input w-full" placeholder="e.g., 2001:db8::/64">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pool Start Address</label>
+                    <input id="pool_start" class="swal2-input w-full" placeholder="e.g., 2001:db8::1000">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pool End Address</label>
+                    <input id="pool_end" class="swal2-input w-full" placeholder="e.g., 2001:db8::1fff">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Relay Address (Optional)</label>
+                    <input id="relay_address" class="swal2-input w-full" placeholder="e.g., fe80::1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">CCAP Core Address (Optional)</label>
+                    <input id="ccap_core_address" class="swal2-input w-full" placeholder="e.g., 10.0.0.1">
+                </div>
+            </div>
         `,
+        width: '600px',
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: 'Create',
         preConfirm: () => {
+            const subnet = document.getElementById('subnet').value;
+            const pool_start = document.getElementById('pool_start').value;
+            const pool_end = document.getElementById('pool_end').value;
+            
+            if (!subnet || !pool_start || !pool_end) {
+                Swal.showValidationMessage('Subnet, Pool Start, and Pool End are required');
+                return false;
+            }
+            
             return {
-                name: document.getElementById('name').value,
-                prefix: document.getElementById('prefix').value,
-                bvi_id: document.getElementById('bvi_id').value,
-                description: document.getElementById('description').value
+                subnet: subnet,
+                pool_start: pool_start,
+                pool_end: pool_end,
+                relay_address: document.getElementById('relay_address').value || 'fe80::1',
+                ccap_core_address: document.getElementById('ccap_core_address').value || '',
+                switch_id: null,
+                bvi_interface: null,
+                ipv6_address: null
             }
         }
     }).then((result) => {
