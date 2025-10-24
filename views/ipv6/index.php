@@ -54,10 +54,7 @@ function loadBVIInterfaces() {
     fetch('/api/switches')
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                // Filter for rows that have BVI interface data
-                bviInterfaces = data.data.filter(item => item.interface_number !== null && item.interface_number !== undefined);
-            }
+            bviInterfaces = data.switches;
         })
         .catch(error => {
             console.error('Error loading BVI interfaces:', error);
@@ -66,54 +63,32 @@ function loadBVIInterfaces() {
 
 function loadSubnets() {
     fetch('/api/ipv6/subnets')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.text();
-        })
-        .then(text => {
-            console.log('Raw response:', text);
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                console.error('JSON parse error:', e);
-                throw new Error('Invalid JSON response: ' + text.substring(0, 100));
-            }
-        })
+        .then(response => response.json())
         .then(data => {
             const tbody = document.getElementById('subnets-table-body');
             tbody.innerHTML = '';
             
-            if (!data.subnets || data.subnets.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-5 text-center text-gray-500">No subnets found</td></tr>';
-                return;
-            }
-            
             data.subnets.forEach(subnet => {
                 const tr = document.createElement('tr');
-                const bviInfo = subnet.bvi_interface ? `BVI${subnet.bvi_interface}` : 'N/A';
-                const ipv6Info = subnet.ipv6_address ? `(${subnet.ipv6_address})` : '';
-                
                 tr.innerHTML = `
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${subnet.ccap_core || 'N/A'}</p>
+                        <p class="text-gray-900 whitespace-no-wrap">${subnet.name}</p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${subnet.subnet || 'N/A'}</p>
+                        <p class="text-gray-900 whitespace-no-wrap">${subnet.prefix}</p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${bviInfo} ${ipv6Info}</p>
+                        <p class="text-gray-900 whitespace-no-wrap">${subnet.bvi_name} (${subnet.bvi_address})</p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <p class="text-gray-900 whitespace-no-wrap">
-                            ${subnet.pool && subnet.pool.start ? `${subnet.pool.start} - ${subnet.pool.end}` : 'N/A'}
+                            ${subnet.pool ? `${subnet.pool.start} - ${subnet.pool.end}` : 'N/A'}
                         </p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
-                            <span aria-hidden class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
-                            <span class="relative">Active</span>
+                        <span class="relative inline-block px-3 py-1 font-semibold ${subnet.active ? 'text-green-900' : 'text-red-900'} leading-tight">
+                            <span aria-hidden class="absolute inset-0 ${subnet.active ? 'bg-green-200' : 'bg-red-200'} opacity-50 rounded-full"></span>
+                            <span class="relative">${subnet.active ? 'Active' : 'Inactive'}</span>
                         </span>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
@@ -125,14 +100,14 @@ function loadSubnets() {
             });
         })
         .catch(error => {
-            Swal.fire('Error', 'Failed to load IPv6 subnets: ' + error.message, 'error');
+            Swal.fire('Error', 'Failed to load IPv6 subnets', 'error');
             console.error('Error:', error);
         });
 }
 
 function showCreateSubnetModal() {
     const bviOptions = bviInterfaces.map(bvi => 
-        `<option value="${bvi.id}">${bvi.hostname || 'Switch'} - BVI${bvi.interface_number} (${bvi.ipv6_address})</option>`
+        `<option value="${bvi.id}">${bvi.name} (${bvi.ipv6_address})</option>`
     ).join('');
 
     Swal.fire({
