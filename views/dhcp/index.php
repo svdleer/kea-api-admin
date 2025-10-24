@@ -137,14 +137,14 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                 <?= htmlspecialchars($switch['ipv6_address'] ?? '') ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?php if (isset($switch['subnet'])): ?>
+                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
                                     <?= htmlspecialchars($switch['subnet']['subnet']) ?>
                                 <?php else: ?>
                                     <span class="text-gray-400">Not Configured</span>
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
-                                <?php if (isset($switch['subnet'])): ?>
+                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet']) && isset($switch['subnet']['pool'])): ?>
                                     <div class="flex flex-col">
                                         <span class="mb-1"><?= htmlspecialchars($switch['subnet']['pool']['start']) ?></span>
                                         <span><?= htmlspecialchars($switch['subnet']['pool']['end']) ?></span>
@@ -156,14 +156,14 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?php if (isset($switch['subnet'])): ?>
+                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
                                     <?= htmlspecialchars($switch['subnet']['ccap_core'] ?? 'Not set') ?>
                                 <?php else: ?>
                                     <span class="text-gray-400">Not configured</span>
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <?php if (isset($switch['subnet'])): ?>
+                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
                                     <button onclick="showEditSubnetModal('<?= htmlspecialchars(json_encode($switch['subnet']), ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>')"
                                             class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2">
                                         Edit
