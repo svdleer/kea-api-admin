@@ -24,7 +24,7 @@ try {
     $switchId = isset($_GET['switchId']) ? $_GET['switchId'] : null;
     
     
-    if (!$switchId) {
+    if ($switchId === null || $switchId === '') {
         throw new Exception('Missing switch ID');
     }
     

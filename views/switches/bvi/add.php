@@ -21,7 +21,7 @@ $title = 'Add BVI Interface';
 
 // Get switch ID from URL parameter
 $switchId = isset($_GET['switchId']) ? $_GET['switchId'] : null;
-if (!$switchId) {
+if ($switchId === null || $switchId === '') {
     throw new Exception('Invalid switch ID');
 }
 

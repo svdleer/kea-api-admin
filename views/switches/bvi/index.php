@@ -22,7 +22,7 @@ $title = 'BVI Interfaces';
 // Get switch ID from URL parameter
 $switchId = isset($_GET['id']) ? $_GET['id'] : null;
 
-if (!$switchId) {
+if ($switchId === null || $switchId === '') {
     header('Location: /switches');
     throw new Exception('Invalid switch ID');
 }

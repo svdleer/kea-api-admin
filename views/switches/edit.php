@@ -24,7 +24,7 @@ try {
     // Get the switch ID from URL
     $switchId = isset($_GET['id']) ? $_GET['id'] : null;
     
-    if (!$switchId) {
+    if ($switchId === null || $switchId === '') {
         throw new Exception('Switch ID not provided');
     }
     

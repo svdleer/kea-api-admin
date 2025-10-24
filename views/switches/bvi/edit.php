@@ -21,7 +21,7 @@ try {
     $switchId = isset($_GET['switchId']) ? $_GET['switchId'] : null;
     $bviId = isset($_GET['bviId']) ? $_GET['bviId'] : null;
     
-    if (!$switchId || !$bviId) {
+    if ($switchId === null || $switchId === '' || $bviId === null || $bviId === '') {
         throw new Exception('Invalid switch or BVI ID');
     }
     
