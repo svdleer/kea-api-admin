@@ -54,7 +54,10 @@ function loadBVIInterfaces() {
     fetch('/api/switches')
         .then(response => response.json())
         .then(data => {
-            bviInterfaces = data.switches;
+            // API returns data.data with success flag
+            if (data.success && data.data) {
+                bviInterfaces = data.data.filter(item => item.interface_number);
+            }
         })
         .catch(error => {
             console.error('Error loading BVI interfaces:', error);
