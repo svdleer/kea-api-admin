@@ -138,6 +138,14 @@ try {
     // DHCP Management
     $router->get('/dhcp', function() use ($auth) {
         $currentPage = 'dhcp';
+        $subPage = 'subnets';
+        require BASE_PATH . '/views/dhcp/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    // DHCP Subnets (same as /dhcp)
+    $router->get('/dhcp/subnets', function() use ($auth) {
+        $currentPage = 'dhcp';
+        $subPage = 'subnets';
         require BASE_PATH . '/views/dhcp/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
