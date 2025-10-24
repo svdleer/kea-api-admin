@@ -283,7 +283,13 @@ try {
     $router->handleCORS();
 
     // Dispatch the router
-    $router->dispatch();
+    $result = $router->dispatch();
+    
+    // If result is an array (API response), output as JSON
+    if (is_array($result)) {
+        header('Content-Type: application/json');
+        echo json_encode($result);
+    }
 
 } catch (\Exception $e) {
     error_log("Critical error: " . $e->getMessage());

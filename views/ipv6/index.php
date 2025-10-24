@@ -63,7 +63,21 @@ function loadBVIInterfaces() {
 
 function loadSubnets() {
     fetch('/api/ipv6/subnets')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(text => {
+            console.log('Raw response:', text);
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+            }
+        })
         .then(data => {
             const tbody = document.getElementById('subnets-table-body');
             tbody.innerHTML = '';
