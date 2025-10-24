@@ -55,6 +55,9 @@ class IPv6Controller {
             // Get subnets directly from Kea API
             $keaSubnets = $this->dhcpModel->getAllSubnetsfromKEA();
             
+            error_log("IPv6Controller: Got " . count($keaSubnets) . " subnets from Kea");
+            error_log("IPv6Controller: Kea subnets: " . json_encode($keaSubnets));
+            
             // Format for display - show raw Kea data even without BVI enrichment
             $subnets = [];
             foreach ($keaSubnets as $subnet) {
@@ -68,9 +71,12 @@ class IPv6Controller {
                 ];
             }
             
+            error_log("IPv6Controller: Returning " . count($subnets) . " formatted subnets");
+            
             return ['subnets' => $subnets];
         } catch (\Exception $e) {
             error_log("IPv6Controller list error: " . $e->getMessage());
+            error_log("IPv6Controller list trace: " . $e->getTraceAsString());
             http_response_code(500);
             return ['error' => 'Failed to retrieve subnets: ' . $e->getMessage()];
         }
