@@ -68,7 +68,7 @@ class Router
                         new \App\Auth\Authentication(\App\Database\Database::getInstance())
                     ),
                     \App\Controllers\Api\IPv6Controller::class => new $controllerClass(
-                        new \App\Models\IPv6Subnet(\App\Database\Database::getInstance()),
+                        new \App\Models\DHCP(\App\Database\Database::getInstance()),
                         new \App\Auth\Authentication(\App\Database\Database::getInstance())
                     ),
                     default => new $controllerClass(\App\Database\Database::getInstance())

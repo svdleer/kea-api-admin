@@ -2,15 +2,15 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\IPv6Subnet;
+use App\Models\DHCP;
 use App\Auth\Authentication;
 
 class IPv6Controller {
-    private IPv6Subnet $subnetModel;
+    private DHCP $dhcpModel;
     private Authentication $auth;
 
-    public function __construct(IPv6Subnet $subnetModel, Authentication $auth) {
-        $this->subnetModel = $subnetModel;
+    public function __construct(DHCP $dhcpModel, Authentication $auth) {
+        $this->dhcpModel = $dhcpModel;
         $this->auth = $auth;
     }
 
@@ -27,25 +27,18 @@ class IPv6Controller {
             return ['error' => 'Missing required fields'];
         }
 
-        if (!$this->subnetModel->validatePrefix($data['prefix'])) {
-            http_response_code(400);
-            return ['error' => 'Invalid IPv6 prefix format'];
-        }
-
-        $subnetId = $this->subnetModel->createSubnet(
-            $data['prefix'],
-            $data['bvi_id'],
-            $data['name'],
-            $data['description'] ?? null
-        );
-
-        if ($subnetId) {
-            $pool = $this->subnetModel->getPool($data['prefix']);
-            return [
-                'id' => $subnetId,
-                'message' => 'IPv6 subnet created successfully',
-                'pool' => $pool
-            ];
+        try {
+            $result = $this->dhcpModel->createSubnet($data);
+            
+            if ($result) {
+                return [
+                    'message' => 'IPv6 subnet created successfully via Kea API',
+                    'subnet' => $result
+                ];
+            }
+        } catch (\Exception $e) {
+            http_response_code(500);
+            return ['error' => 'Failed to create IPv6 subnet: ' . $e->getMessage()];
         }
 
         http_response_code(500);
@@ -58,12 +51,14 @@ class IPv6Controller {
             return ['error' => 'Unauthorized'];
         }
 
-        $subnets = $this->subnetModel->getAllSubnets();
-        foreach ($subnets as &$subnet) {
-            $subnet['pool'] = $this->subnetModel->getPool($subnet['prefix']);
+        try {
+            // Get subnets from Kea API (source of truth)
+            $subnets = $this->dhcpModel->getAllSubnetsfromKEA();
+            return ['subnets' => $subnets];
+        } catch (\Exception $e) {
+            http_response_code(500);
+            return ['error' => 'Failed to retrieve subnets: ' . $e->getMessage()];
         }
-
-        return ['subnets' => $subnets];
     }
 
     public function update($subnetId) {
@@ -79,20 +74,19 @@ class IPv6Controller {
             return ['error' => 'No data provided'];
         }
 
-        if (isset($data['prefix']) && !$this->subnetModel->validatePrefix($data['prefix'])) {
-            http_response_code(400);
-            return ['error' => 'Invalid IPv6 prefix format'];
-        }
-
-        if ($this->subnetModel->updateSubnet($subnetId, $data)) {
-            $subnet = $this->subnetModel->getSubnetById($subnetId);
-            if ($subnet) {
-                $subnet['pool'] = $this->subnetModel->getPool($subnet['prefix']);
+        try {
+            $data['id'] = $subnetId;
+            $result = $this->dhcpModel->updateSubnet($data);
+            
+            if ($result) {
+                return [
+                    'message' => 'IPv6 subnet updated successfully via Kea API',
+                    'subnet' => $result
+                ];
             }
-            return [
-                'message' => 'IPv6 subnet updated successfully',
-                'subnet' => $subnet
-            ];
+        } catch (\Exception $e) {
+            http_response_code(500);
+            return ['error' => 'Failed to update IPv6 subnet: ' . $e->getMessage()];
         }
 
         http_response_code(500);
@@ -105,8 +99,15 @@ class IPv6Controller {
             return ['error' => 'Unauthorized'];
         }
 
-        if ($this->subnetModel->deleteSubnet($subnetId)) {
-            return ['message' => 'IPv6 subnet deleted successfully'];
+        try {
+            $result = $this->dhcpModel->deleteSubnet($subnetId);
+            
+            if ($result) {
+                return ['message' => 'IPv6 subnet deleted successfully from Kea'];
+            }
+        } catch (\Exception $e) {
+            http_response_code(500);
+            return ['error' => 'Failed to delete IPv6 subnet: ' . $e->getMessage()];
         }
 
         http_response_code(500);
@@ -119,11 +120,38 @@ class IPv6Controller {
             return ['error' => 'Unauthorized'];
         }
 
-        $subnets = $this->subnetModel->getSubnetsByBvi($bviId);
-        foreach ($subnets as &$subnet) {
-            $subnet['pool'] = $this->subnetModel->getPool($subnet['prefix']);
+        try {
+            // Get all subnets from Kea and filter by BVI
+            $allSubnets = $this->dhcpModel->getAllSubnetsfromKEA();
+            $subnets = array_filter($allSubnets, function($subnet) use ($bviId) {
+                return isset($subnet['bvi_id']) && $subnet['bvi_id'] == $bviId;
+            });
+
+            return ['subnets' => array_values($subnets)];
+        } catch (\Exception $e) {
+            http_response_code(500);
+            return ['error' => 'Failed to retrieve subnets: ' . $e->getMessage()];
+        }
+    }
+
+    public function getById($subnetId) {
+        if (!$this->auth->isLoggedIn()) {
+            http_response_code(403);
+            return ['error' => 'Unauthorized'];
         }
 
-        return ['subnets' => $subnets];
+        try {
+            $subnet = $this->dhcpModel->getSubnetById($subnetId);
+            
+            if ($subnet) {
+                return $subnet;
+            }
+            
+            http_response_code(404);
+            return ['error' => 'Subnet not found'];
+        } catch (\Exception $e) {
+            http_response_code(500);
+            return ['error' => 'Failed to retrieve subnet: ' . $e->getMessage()];
+        }
     }
 }
