@@ -14,6 +14,10 @@ if (!$auth->isLoggedIn()) {
 
 $error = null;
 $success = null;
+$switch = null;
+$bviInterfaces = [];
+$switchId = null;
+
 try {
     $db = Database::getInstance();
     
@@ -84,8 +88,8 @@ ob_start();
                            id="hostname" 
                            name="hostname" 
                            class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           value="<?php echo htmlspecialchars($switch['hostname']); ?>"
-                           required>
+                           value="<?php echo $switch ? htmlspecialchars($switch['hostname']) : ''; ?>"
+                           <?php echo $switch ? 'required' : 'disabled'; ?>>
                     <div class="validation-message mt-1 text-sm hidden"></div>
                 </div>
 
@@ -104,6 +108,7 @@ ob_start();
         </div>
 
         <!-- BVI Interfaces Section -->
+        <?php if ($switch): ?>
         <div class="mt-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-gray-800">BVI Interfaces</h2>
@@ -157,10 +162,12 @@ ob_start();
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 
     <script>
     $(document).ready(function() {
+    <?php if ($switch): ?>
     const form = $('#editSwitchForm');
     const hostnameInput = $('#hostname');
     const submitButton = $('#submitButton');
@@ -332,6 +339,7 @@ ob_start();
 
         // Initial validation
         validateForm();
+    <?php endif; ?>
     });
 </script>
 
