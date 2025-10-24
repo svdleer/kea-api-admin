@@ -335,7 +335,8 @@ class DHCP
                     [
                         "id" => intval($subnetId)
                     ]
-                ]
+                ],
+                "server-tags" => ["all"]
             ];
     
             error_log("DHCP Model: Attempting to delete subnet with ID: " . $subnetId);
