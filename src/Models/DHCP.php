@@ -44,6 +44,20 @@ class DHCP
         return json_decode($response, true);
     }
 
+    private function reloadKeaConfig()
+    {
+        error_log("DHCP Model: Triggering config-reload to refresh Kea cache");
+        try {
+            $response = $this->sendKeaCommand('config-reload');
+            error_log("DHCP Model: Config-reload response: " . json_encode($response));
+            return true;
+        } catch (Exception $e) {
+            error_log("DHCP Model: Warning - config-reload failed: " . $e->getMessage());
+            // Don't throw - reload failure shouldn't fail the main operation
+            return false;
+        }
+    }
+
 
     private function getNextAvailableSubnetId()
     {
@@ -220,6 +234,10 @@ class DHCP
             ]);
     
             error_log("DHCP Model: Remote subnet set successfully");
+            
+            // Reload Kea config to immediately refresh cache
+            $this->reloadKeaConfig();
+            
             return $subnetId;
     
         } catch (Exception $e) {
@@ -314,6 +332,10 @@ class DHCP
             ]);
     
             error_log("DHCP Model: Remote subnet reconfigured successfully");
+            
+            // Reload Kea config to immediately refresh cache
+            $this->reloadKeaConfig();
+            
             return $data['subnet_id'];
     
         } catch (Exception $e) {
@@ -367,6 +389,9 @@ class DHCP
             
             $rowsAffected = $stmt->rowCount();
             error_log("DHCP Model: Updated {$rowsAffected} rows in cin_bvi_dhcp_core table");
+
+            // Reload Kea config to immediately refresh cache
+            $this->reloadKeaConfig();
 
             error_log("DHCP Model: ====== Completed deleteSubnet successfully ======");
             return true;
