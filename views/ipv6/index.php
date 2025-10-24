@@ -54,9 +54,11 @@ function loadBVIInterfaces() {
     fetch('/api/switches')
         .then(response => response.json())
         .then(data => {
+            console.log('Switches data:', data);
             if (data.success && data.data) {
-                // Extract BVI interfaces from switches
-                bviInterfaces = data.data.filter(item => item.interface_number);
+                // Filter for rows that have BVI interface data
+                bviInterfaces = data.data.filter(item => item.interface_number !== null && item.interface_number !== undefined);
+                console.log('BVI interfaces found:', bviInterfaces);
             }
         })
         .catch(error => {
