@@ -12,6 +12,10 @@
                         
                         <a href="/switches" class="<?php echo $currentPage === 'switches' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Switches</a>
                         
+                        <a href="/switches" class="<?php echo $currentPage === 'switches' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Switches</a>
+                        
+                        <a href="/dhcp" class="<?php echo $currentPage === 'dhcp' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">DHCP</a>
+                        
                         <a href="/subnets" class="<?php echo $currentPage === 'subnets' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Subnets</a>
                         
                         <a href="/prefixes" class="<?php echo $currentPage === 'prefixes' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Prefixes</a>

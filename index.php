@@ -135,6 +135,12 @@ try {
         require BASE_PATH . '/views/subnets/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
     
+    // DHCP Management
+    $router->get('/dhcp', function() use ($auth) {
+        $currentPage = 'dhcp';
+        require BASE_PATH . '/views/dhcp/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {
         $currentPage = 'ipv6';
@@ -164,7 +170,12 @@ try {
     $router->delete('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'deletePrefix'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
-    // DHCP Leases routes
+    // DHCP Routes
+    $router->get('/dhcp', function() use ($auth) {
+        $currentPage = 'dhcp';
+        require BASE_PATH . '/views/dhcp/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     $router->get('/leases', function() {
         require BASE_PATH . '/leases.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
