@@ -151,13 +151,13 @@ try {
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
     // DHCP API Routes
-    $router->post('/api/dhcp/subnets/check-duplicate', [DHCPController::class, 'checkDuplicate'])
+    $router->post('/api/dhcp/subnets/check-duplicate', [new DHCPController($dhcpModel, $auth), 'checkDuplicate'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->post('/api/dhcp/subnets', [DHCPController::class, 'create'])
+    $router->post('/api/dhcp/subnets', [new DHCPController($dhcpModel, $auth), 'create'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->put('/api/dhcp/subnets/{id}', [DHCPController::class, 'update'])
+    $router->put('/api/dhcp/subnets/{id}', [new DHCPController($dhcpModel, $auth), 'update'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->delete('/api/dhcp/subnets/{id}', [DHCPController::class, 'delete'])
+    $router->delete('/api/dhcp/subnets/{id}', [new DHCPController($dhcpModel, $auth), 'delete'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // IPv6 Subnets (Kea DHCP management)
