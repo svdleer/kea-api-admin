@@ -122,7 +122,17 @@ try {
 
  
 
-    // IPv6 Subnet Routes
+    // Prefixes Routes
+    $router->get('/prefixes', function() {
+        require BASE_PATH . '/views/prefixes/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    // Subnets Routes (IPv6)
+    $router->get('/subnets', function() {
+        require BASE_PATH . '/views/ipv6/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+    
+    // Keep /ipv6 for backward compatibility
     $router->get('/ipv6', function() {
         require BASE_PATH . '/views/ipv6/index.php';
     });
