@@ -37,6 +37,7 @@ try {
     $apiKeyModel = new App\Models\ApiKey($database);
     $userModel = new \App\Models\User($database);  
     $auth = new \App\Auth\Authentication($database);
+    $dhcpModel = new \App\Models\DHCP($database);
 
     
     // Debug log
