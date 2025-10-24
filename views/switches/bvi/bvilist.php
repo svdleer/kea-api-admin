@@ -14,6 +14,9 @@ if (!$auth->isLoggedIn()) {
 
 $error = null;
 $success = null;
+$switch = null;
+$bviInterfaces = [];
+
 try {
     $db = Database::getInstance();
     
@@ -42,12 +45,9 @@ try {
 }
 
 $currentPage = 'BVI List';
-$title = 'Edit BVI';
+$title = 'BVI Interfaces' . ($switch ? ' - ' . htmlspecialchars($switch['hostname']) : '');
 
 ob_start();
-
-
-$title = 'BVI Interfaces - ' . htmlspecialchars($switch['hostname']);
 ?>
 
 <!DOCTYPE html>
@@ -63,16 +63,18 @@ $title = 'BVI Interfaces - ' . htmlspecialchars($switch['hostname']);
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">
-                BVI Interfaces for <?php echo htmlspecialchars($switch['hostname']); ?>
+                BVI Interfaces<?php echo $switch ? ' for ' . htmlspecialchars($switch['hostname']) : ''; ?>
             </h1>
             <div class="space-x-4">
                 <a href="/switches" class="text-blue-500 hover:text-blue-700">
                     ← Back to Switches
                 </a>
+                <?php if ($switch): ?>
                 <button onclick="addBvi()" 
                    class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
                 Add BVI Interface
                 </button>
+                <?php endif; ?>
             </div>
         </div>
 
