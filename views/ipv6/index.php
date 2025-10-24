@@ -131,10 +131,33 @@ function loadSubnets() {
 }
 
 function showCreateSubnetModal() {
-    // Show manual entry form (works with or without BVI interfaces)
+    // Check if there are any BVI interfaces available
+    if (!bviInterfaces || bviInterfaces.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No BVI Interfaces',
+            html: 'You need to create switches and BVI interfaces before adding IPv6 subnets.<br><br><a href="/switches" class="text-blue-600 hover:text-blue-800">Go to Switches Management</a>',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    const bviOptions = bviInterfaces.map(bvi => 
+        `<option value="${bvi.id}"
+            data-ipv6="${bvi.ipv6_address || ''}"
+            data-interface="${bvi.interface_number || ''}"
+            data-switch="${bvi.switch_id || ''}">
+            ${bvi.hostname || 'Switch'} - BVI${bvi.interface_number} (${bvi.ipv6_address})
+        </option>`
+    ).join('');
+
     Swal.fire({
         title: 'Create New IPv6 Subnet',
         html: `
+            <select id="bvi_id" class="swal2-select">
+                <option value="">Select BVI Interface</option>
+                ${bviOptions}
+            </select>
             <input id="subnet" class="swal2-input" placeholder="IPv6 Subnet (e.g., 2001:db8::/64)">
             <input id="pool_start" class="swal2-input" placeholder="Pool Start (e.g., 2001:db8::1000)">
             <input id="pool_end" class="swal2-input" placeholder="Pool End (e.g., 2001:db8::1fff)">
@@ -145,9 +168,16 @@ function showCreateSubnetModal() {
         showCancelButton: true,
         confirmButtonText: 'Create',
         preConfirm: () => {
+            const bviSelect = document.getElementById('bvi_id');
+            const selectedOption = bviSelect.options[bviSelect.selectedIndex];
             const subnet = document.getElementById('subnet').value;
             const pool_start = document.getElementById('pool_start').value;
             const pool_end = document.getElementById('pool_end').value;
+            
+            if (!bviSelect.value) {
+                Swal.showValidationMessage('Please select a BVI interface');
+                return false;
+            }
             
             if (!subnet || !pool_start || !pool_end) {
                 Swal.showValidationMessage('Subnet, Pool Start, and Pool End are required');
@@ -160,9 +190,9 @@ function showCreateSubnetModal() {
                 pool_end: pool_end,
                 relay_address: document.getElementById('relay_address').value || 'fe80::1',
                 ccap_core_address: document.getElementById('ccap_core_address').value || '',
-                switch_id: null,
-                bvi_interface: null,
-                ipv6_address: null
+                switch_id: selectedOption.dataset.switch,
+                bvi_interface: selectedOption.dataset.interface,
+                ipv6_address: selectedOption.dataset.ipv6
             }
         }
     }).then((result) => {
