@@ -59,36 +59,6 @@ ob_start();
                 <!-- Stats will be inserted here -->
             </div>
         </div>
-
-        <!-- Recent Switches Table -->
-        <div class="mt-8 px-4 sm:px-0">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Recent Switches</h3>
-            <div class="bg-white shadow-sm overflow-hidden rounded-lg">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Hostname
-                                </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    BVI Count
-                                </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Created At
-                                </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="recent-switches" class="bg-white divide-y divide-gray-200">
-                            <!-- Recent switches will be inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -194,7 +164,6 @@ function renderKeaStatus(data) {
 
 function renderStats(data) {
     const statsCardsEl = document.getElementById('stats-cards');
-    const recentSwitchesEl = document.getElementById('recent-switches');
     
     // Render stats cards
     let statsHtml = '';
@@ -219,44 +188,12 @@ function renderStats(data) {
     statsHtml += '</dd></div></div>';
     
     statsCardsEl.innerHTML = statsHtml;
-    
-    // Render recent switches
-    if (data.recent_switches && data.recent_switches.length > 0) {
-        let switchesHtml = '';
-        data.recent_switches.forEach(function(sw) {
-            switchesHtml += '<tr>';
-            switchesHtml += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">';
-            switchesHtml += escapeHtml(sw.hostname) + '</td>';
-            switchesHtml += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">';
-            switchesHtml += (sw.bvi_count || 0) + '</td>';
-            switchesHtml += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">';
-            switchesHtml += formatDate(sw.created_at) + '</td>';
-            switchesHtml += '<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">';
-            switchesHtml += '<a href="/switches/edit/' + sw.id + '" class="text-indigo-600 hover:text-indigo-900">View Details</a>';
-            switchesHtml += '</td></tr>';
-        });
-        recentSwitchesEl.innerHTML = switchesHtml;
-    } else {
-        recentSwitchesEl.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No switches found</td></tr>';
-    }
 }
 
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
 }
 </script>
 
