@@ -52,8 +52,22 @@ class IPv6Controller {
         }
 
         try {
-            // Get subnets from Kea API (source of truth) enriched with BVI data from DB (read-only)
-            $subnets = $this->dhcpModel->getEnrichedSubnets();
+            // Get subnets directly from Kea API
+            $keaSubnets = $this->dhcpModel->getAllSubnetsfromKEA();
+            
+            // Format for display - show raw Kea data even without BVI enrichment
+            $subnets = [];
+            foreach ($keaSubnets as $subnet) {
+                $subnets[] = [
+                    'id' => $subnet['id'],
+                    'subnet' => $subnet['subnet'],
+                    'pool' => null,
+                    'bvi_interface' => null,
+                    'ipv6_address' => null,
+                    'ccap_core' => 'N/A'
+                ];
+            }
+            
             return ['subnets' => $subnets];
         } catch (\Exception $e) {
             error_log("IPv6Controller list error: " . $e->getMessage());
