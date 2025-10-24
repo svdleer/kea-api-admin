@@ -22,9 +22,10 @@ class IPv6Controller {
 
         $data = json_decode(file_get_contents('php://input'), true);
 
-        if (!isset($data['prefix']) || !isset($data['bvi_id']) || !isset($data['name'])) {
+        // Validate required fields
+        if (!isset($data['subnet']) || !isset($data['pool_start']) || !isset($data['pool_end'])) {
             http_response_code(400);
-            return ['error' => 'Missing required fields'];
+            return ['error' => 'Missing required fields: subnet, pool_start, and pool_end are required'];
         }
 
         try {
@@ -33,10 +34,11 @@ class IPv6Controller {
             if ($result) {
                 return [
                     'message' => 'IPv6 subnet created successfully via Kea API',
-                    'subnet' => $result
+                    'subnet_id' => $result
                 ];
             }
         } catch (\Exception $e) {
+            error_log("IPv6Controller create error: " . $e->getMessage());
             http_response_code(500);
             return ['error' => 'Failed to create IPv6 subnet: ' . $e->getMessage()];
         }
