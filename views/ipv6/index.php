@@ -54,7 +54,10 @@ function loadBVIInterfaces() {
     fetch('/api/switches')
         .then(response => response.json())
         .then(data => {
-            bviInterfaces = data.switches;
+            if (data.success && data.data) {
+                // Extract BVI interfaces from switches
+                bviInterfaces = data.data.filter(item => item.interface_number);
+            }
         })
         .catch(error => {
             console.error('Error loading BVI interfaces:', error);
@@ -128,6 +131,7 @@ function loadSubnets() {
 }
 
 function showCreateSubnetModal() {
+    // Show manual entry form (works with or without BVI interfaces)
     Swal.fire({
         title: 'Create New IPv6 Subnet',
         html: `
