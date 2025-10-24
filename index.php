@@ -129,15 +129,15 @@ try {
         require BASE_PATH . '/views/prefixes/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-    // Subnets Routes (IPv6)
+    // Subnets Routes (Network management)
     $router->get('/subnets', function() use ($auth) {
         $currentPage = 'subnets';
-        require BASE_PATH . '/views/ipv6/index.php';
+        require BASE_PATH . '/views/subnets/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
     
-    // Keep /ipv6 for backward compatibility
+    // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {
-        $currentPage = 'subnets';
+        $currentPage = 'ipv6';
         require BASE_PATH . '/views/ipv6/index.php';
     });
 
