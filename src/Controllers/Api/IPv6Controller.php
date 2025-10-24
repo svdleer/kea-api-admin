@@ -22,14 +22,33 @@ class IPv6Controller {
 
         $data = json_decode(file_get_contents('php://input'), true);
 
-        // Validate required fields
-        if (!isset($data['subnet']) || !isset($data['pool_start']) || !isset($data['pool_end'])) {
+        // Validate required fields (old format: name, prefix, bvi_id)
+        if (!isset($data['prefix']) || !isset($data['bvi_id'])) {
             http_response_code(400);
-            return ['error' => 'Missing required fields: subnet, pool_start, and pool_end are required'];
+            return ['error' => 'Missing required fields: prefix and bvi_id are required'];
         }
 
         try {
-            $result = $this->dhcpModel->createSubnet($data);
+            // Transform old format to new format for Kea API
+            // Calculate pool from prefix (e.g., 2001:db8::/64 -> 2001:db8::1000 to 2001:db8::ffff)
+            $prefix = $data['prefix'];
+            list($network, $length) = explode('/', $prefix);
+            
+            // Simple pool calculation - use ::1000 to ::ffff as pool range
+            $baseNetwork = substr($network, 0, strrpos($network, ':') + 1);
+            
+            $keaData = [
+                'subnet' => $prefix,
+                'pool_start' => $baseNetwork . '1000',
+                'pool_end' => $baseNetwork . 'ffff',
+                'relay_address' => 'fe80::1', // default relay
+                'ccap_core_address' => '',
+                'switch_id' => null, // Will be populated from BVI
+                'bvi_interface' => $data['bvi_id'],
+                'ipv6_address' => null
+            ];
+            
+            $result = $this->dhcpModel->createSubnet($keaData);
             
             if ($result) {
                 return [
