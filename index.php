@@ -7,6 +7,7 @@ require_once BASE_PATH . '/vendor/autoload.php';
 use App\Controllers\Api\UserController;
 use App\Controllers\Api\IPv6Controller;
 use App\Controllers\Api\NetworkController;
+use App\Controllers\Api\DHCPController;
 
 use App\Models\User;
 use App\Models\IPv6Subnet;
@@ -148,6 +149,16 @@ try {
         $subPage = 'subnets';
         require BASE_PATH . '/views/dhcp/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    // DHCP API Routes
+    $router->post('/api/dhcp/subnets/check-duplicate', [DHCPController::class, 'checkDuplicate'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/dhcp/subnets', [DHCPController::class, 'create'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->put('/api/dhcp/subnets/{id}', [DHCPController::class, 'update'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/dhcp/subnets/{id}', [DHCPController::class, 'delete'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {
