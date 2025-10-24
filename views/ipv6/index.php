@@ -131,30 +131,12 @@ function showCreateSubnetModal() {
     Swal.fire({
         title: 'Create New IPv6 Subnet',
         html: `
-            <div class="text-left space-y-3">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">IPv6 Subnet (CIDR)</label>
-                    <input id="subnet" class="swal2-input w-full" placeholder="e.g., 2001:db8::/64">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Pool Start Address</label>
-                    <input id="pool_start" class="swal2-input w-full" placeholder="e.g., 2001:db8::1000">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Pool End Address</label>
-                    <input id="pool_end" class="swal2-input w-full" placeholder="e.g., 2001:db8::1fff">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Relay Address (Optional)</label>
-                    <input id="relay_address" class="swal2-input w-full" placeholder="e.g., fe80::1">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">CCAP Core Address (Optional)</label>
-                    <input id="ccap_core_address" class="swal2-input w-full" placeholder="e.g., 10.0.0.1">
-                </div>
-            </div>
+            <input id="subnet" class="swal2-input" placeholder="IPv6 Subnet (e.g., 2001:db8::/64)">
+            <input id="pool_start" class="swal2-input" placeholder="Pool Start (e.g., 2001:db8::1000)">
+            <input id="pool_end" class="swal2-input" placeholder="Pool End (e.g., 2001:db8::1fff)">
+            <input id="relay_address" class="swal2-input" placeholder="Relay Address (optional)">
+            <input id="ccap_core_address" class="swal2-input" placeholder="CCAP Core Address (optional)">
         `,
-        width: '600px',
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: 'Create',
