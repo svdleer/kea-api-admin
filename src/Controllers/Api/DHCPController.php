@@ -206,6 +206,25 @@ class DHCPController
         }
     }
 
+    public function delete($id)
+    {
+        try {
+            error_log("DHCPController: Attempting to delete subnet with ID: $id");
+            
+            $result = $this->subnetModel->deleteSubnet($id);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Subnet deleted successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Error in DHCPController::delete: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
 
     public function deleteLease()
     {
