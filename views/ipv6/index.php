@@ -133,6 +133,9 @@ function loadSubnets() {
 }
 
 function showCreateSubnetModal() {
+    console.log('showCreateSubnetModal called, bviInterfaces:', bviInterfaces);
+    console.log('bviInterfaces.length:', bviInterfaces ? bviInterfaces.length : 'undefined');
+    
     // Check if there are any BVI interfaces available
     if (!bviInterfaces || bviInterfaces.length === 0) {
         Swal.fire({
