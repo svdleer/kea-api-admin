@@ -52,10 +52,11 @@ class IPv6Controller {
         }
 
         try {
-            // Get subnets from Kea API (source of truth)
-            $subnets = $this->dhcpModel->getAllSubnetsfromKEA();
+            // Get subnets from Kea API (source of truth) enriched with BVI data from DB (read-only)
+            $subnets = $this->dhcpModel->getEnrichedSubnets();
             return ['subnets' => $subnets];
         } catch (\Exception $e) {
+            error_log("IPv6Controller list error: " . $e->getMessage());
             http_response_code(500);
             return ['error' => 'Failed to retrieve subnets: ' . $e->getMessage()];
         }

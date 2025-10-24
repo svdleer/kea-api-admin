@@ -68,27 +68,35 @@ function loadSubnets() {
             const tbody = document.getElementById('subnets-table-body');
             tbody.innerHTML = '';
             
+            if (!data.subnets || data.subnets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-5 text-center text-gray-500">No subnets found</td></tr>';
+                return;
+            }
+            
             data.subnets.forEach(subnet => {
                 const tr = document.createElement('tr');
+                const bviInfo = subnet.bvi_interface ? `BVI${subnet.bvi_interface}` : 'N/A';
+                const ipv6Info = subnet.ipv6_address ? `(${subnet.ipv6_address})` : '';
+                
                 tr.innerHTML = `
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${subnet.name}</p>
+                        <p class="text-gray-900 whitespace-no-wrap">${subnet.ccap_core || 'N/A'}</p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${subnet.prefix}</p>
+                        <p class="text-gray-900 whitespace-no-wrap">${subnet.subnet || 'N/A'}</p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${subnet.bvi_name} (${subnet.bvi_address})</p>
+                        <p class="text-gray-900 whitespace-no-wrap">${bviInfo} ${ipv6Info}</p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <p class="text-gray-900 whitespace-no-wrap">
-                            ${subnet.pool ? `${subnet.pool.start} - ${subnet.pool.end}` : 'N/A'}
+                            ${subnet.pool && subnet.pool.start ? `${subnet.pool.start} - ${subnet.pool.end}` : 'N/A'}
                         </p>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <span class="relative inline-block px-3 py-1 font-semibold ${subnet.active ? 'text-green-900' : 'text-red-900'} leading-tight">
-                            <span aria-hidden class="absolute inset-0 ${subnet.active ? 'bg-green-200' : 'bg-red-200'} opacity-50 rounded-full"></span>
-                            <span class="relative">${subnet.active ? 'Active' : 'Inactive'}</span>
+                        <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
+                            <span aria-hidden class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                            <span class="relative">Active</span>
                         </span>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
@@ -100,7 +108,7 @@ function loadSubnets() {
             });
         })
         .catch(error => {
-            Swal.fire('Error', 'Failed to load IPv6 subnets', 'error');
+            Swal.fire('Error', 'Failed to load IPv6 subnets: ' + error.message, 'error');
             console.error('Error:', error);
         });
 }
