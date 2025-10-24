@@ -204,7 +204,20 @@ class DHCP
             }
     
             // After successful KEA subnet creation, store in database
+            // First, get the BVI interface details to ensure we have the correct data
+            $bviSql = "SELECT id, switch_id, interface_number, ipv6_address 
+                       FROM cin_switch_bvi_interfaces 
+                       WHERE id = :bvi_interface_id";
+            $bviStmt = $this->db->prepare($bviSql);
+            $bviStmt->execute([':bvi_interface_id' => $data['bvi_interface_id']]);
+            $bviData = $bviStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$bviData) {
+                throw new Exception("BVI interface not found with ID: " . $data['bvi_interface_id']);
+            }
+            
             $sql = "REPLACE INTO cin_bvi_dhcp_core (
+                        id,
                         switch_id, 
                         kea_subnet_id, 
                         interface_number, 
@@ -213,6 +226,7 @@ class DHCP
                         end_address, 
                         ccap_core
                     ) VALUES (
+                        :id,
                         :switch_id,
                         :kea_subnet_id,
                         :interface_number,
@@ -224,10 +238,11 @@ class DHCP
     
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':switch_id' => $data['switch_id'],
+                ':id' => $bviData['id'], // Use the BVI interface ID as the primary key
+                ':switch_id' => $bviData['switch_id'],
                 ':kea_subnet_id' => $subnetId,
-                ':interface_number' => $data['bvi_interface'],
-                ':ipv6_address' => $data['ipv6_address'],
+                ':interface_number' => $bviData['interface_number'],
+                ':ipv6_address' => $bviData['ipv6_address'],
                 ':start_address' => $data['pool_start'],
                 ':end_address' => $data['pool_end'],
                 ':ccap_core' => $data['ccap_core_address']
