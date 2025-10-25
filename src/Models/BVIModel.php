@@ -49,6 +49,11 @@ class BVIModel
     public function createBviInterface($switchId, $data)
     {
         try {
+            // Auto-calculate next interface number if not provided
+            if (!isset($data['interface_number'])) {
+                $data['interface_number'] = $this->getNextInterfaceNumber($switchId);
+            }
+            
             // Validate data
             if ($this->bviExists($switchId, $data['interface_number'])) {
                 throw new \Exception("BVI interface already exists for this switch");
@@ -73,6 +78,21 @@ class BVIModel
             error_log("Error creating BVI interface: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    private function getNextInterfaceNumber($switchId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT MAX(interface_number) as max_number 
+            FROM cin_switch_bvi_interfaces 
+            WHERE switch_id = ?
+        ");
+        $stmt->execute([$switchId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // If no BVI exists, start at 0 (displays as BVI100)
+        // Otherwise increment the max by 1
+        return ($result['max_number'] !== null) ? $result['max_number'] + 1 : 0;
     }
 
     public function updateBviInterface($switchId, $bviId, $data)
