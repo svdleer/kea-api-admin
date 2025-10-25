@@ -91,23 +91,15 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 
 
-<div class="container mx-auto px-4 py-6">
-    <div class="mb-4">
-        <input type="text" 
-               id="searchInput" 
-               placeholder="Search by hostname, BVI, IPv6 or subnet..." 
-               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-               onkeyup="performSearch(this.value)">
-    </div>    
-
-
-    <!-- Main Table -->
-<!-- Main Table -->
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <!-- Page Header -->
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">DHCP Subnet Configuration</h1>
-        <p class="mt-2 text-sm text-gray-600">Configure and manage DHCP subnets for switches and interfaces</p>
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900">DHCP Subnet Configuration</h1>
+                <p class="mt-1 text-sm text-gray-600">Configure and manage DHCP subnets for switches and interfaces</p>
+            </div>
+        </div>
     </div>
 
     <!-- Table Container -->
