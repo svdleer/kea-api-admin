@@ -1527,7 +1527,7 @@ async function viewStaticLeases(subnetId) {
                                         ${host.hostname || 'N/A'}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <button onclick="deleteStaticLease('${host['ip-addresses'][0]}')" 
+                                        <button onclick="deleteStaticLease('${host['ip-addresses'][0]}', ${subnetId})" 
                                                 class="text-red-600 hover:text-red-900">
                                             Delete
                                         </button>
@@ -1656,7 +1656,7 @@ function deleteLease(IPv6Address) {
     });
 }
 
-async function deleteStaticLease(ipAddress) {
+async function deleteStaticLease(ipAddress, subnetId) {
     const result = await Swal.fire({
         title: 'Delete Static Lease?',
         text: `Are you sure you want to delete the static lease for ${ipAddress}?`,
@@ -1680,7 +1680,7 @@ async function deleteStaticLease(ipAddress) {
             },
             body: JSON.stringify({
                 'ip-address': ipAddress,
-                'subnet-id': 0  // Subnet ID might need to be passed or determined
+                'subnet-id': subnetId
             }),
         });
 
