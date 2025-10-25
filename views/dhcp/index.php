@@ -197,8 +197,18 @@ require BASE_PATH . '/views/dhcp-menu.php';
     error_log("Assigned BVI IDs: " . json_encode($assignedBviIds));
     
     $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds) {
-        return isset($subnet['bvi_interface_id']) && 
-               !in_array($subnet['bvi_interface_id'], $assignedBviIds);
+        // A subnet is orphaned if:
+        // 1. It has a bvi_interface_id that doesn't match any current BVI
+        // 2. OR it has a null bvi_interface_id (subnet exists in Kea but not in our database)
+        $hasBviId = isset($subnet['bvi_interface_id']) && $subnet['bvi_interface_id'] !== null;
+        
+        if ($hasBviId) {
+            // Has a BVI ID but it doesn't match any current BVI
+            return !in_array($subnet['bvi_interface_id'], $assignedBviIds);
+        } else {
+            // No BVI ID means it's an orphaned subnet (exists in Kea but not tracked)
+            return true;
+        }
     });
     
     error_log("Found " . count($orphanedSubnets) . " orphaned subnets");
