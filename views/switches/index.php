@@ -33,7 +33,6 @@ try {
 }
 
 ob_start();
-```
 ?>
 
 
@@ -84,7 +83,6 @@ ob_start();
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-```
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostname</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BVI Count</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -224,15 +222,3 @@ function performSearch(searchTerm) {
 <?php
 $content = ob_get_clean();
 require_once BASE_PATH . '/views/layout.php';
-```
-        }
-    });
-}
-
-    </script>
-
-<?php
-$content = ob_get_clean();
-require_once BASE_PATH . '/views/layout.php';
-?>
-
