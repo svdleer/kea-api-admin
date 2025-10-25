@@ -271,7 +271,66 @@ function closeCreateDefModal() {
     errorElements.forEach(element => element.classList.add('hidden'));
 }
 
+// Generate input field based on option type
+function generateInputField(type, value = '', id = 'optionData') {
+    let inputType = 'text';
+    let extraAttributes = '';
+    let placeholder = '';
+    
+    switch (type.toLowerCase()) {
+        case 'uint8':
+            inputType = 'number';
+            extraAttributes = 'min="0" max="255"';
+            placeholder = '0-255';
+            break;
+        case 'uint16':
+            inputType = 'number';
+            extraAttributes = 'min="0" max="65535"';
+            placeholder = '0-65535';
+            break;
+        case 'uint32':
+            inputType = 'number';
+            extraAttributes = 'min="0" max="4294967295"';
+            placeholder = '0-4294967295';
+            break;
+        case 'string':
+            inputType = 'text';
+            placeholder = 'Enter text string';
+            break;
+        case 'ipv6-address':
+            inputType = 'text';
+            placeholder = '2001:db8::1';
+            break;
+        case 'ipv6-prefix':
+            inputType = 'text';
+            placeholder = '2001:db8::/64';
+            break;
+        case 'psid':
+            inputType = 'number';
+            extraAttributes = 'min="0" max="65535"';
+            placeholder = 'PSID value (0-65535)';
+            break;
+        case 'binary':
+            inputType = 'text';
+            placeholder = 'Hexadecimal format';
+            break;
+        case 'fqdn':
+            inputType = 'text';
+            placeholder = 'example.com';
+            break;
+        default:
+            inputType = 'text';
+            placeholder = `Enter ${type}`;
+    }
 
+    return `<input type="${inputType}" 
+                   id="${id}" 
+                   value="${value}"
+                   placeholder="${placeholder}"
+                   ${extraAttributes}
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            <div class="text-sm text-gray-500 mt-1">${placeholder}</div>`;
+}
 
 function openEditDefModal(optionDef) {
     originalOptionDef = { ...optionDef };
