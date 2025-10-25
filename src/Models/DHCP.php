@@ -387,22 +387,16 @@ class DHCP
                 throw new Exception("Failed to delete subnet: " . ($response[0]['text'] ?? 'Unknown error'));
             }
     
-            error_log("DHCP Model: Successfully deleted subnet. Response text: " . $response[0]['text']);
-            error_log("DHCP Model: Cleaning up cin_bvi_dhcp_core table");
+            error_log("DHCP Model: Successfully deleted subnet from Kea. Response text: " . $response[0]['text']);
+            error_log("DHCP Model: Deleting record from cin_bvi_dhcp_core table");
             
-            $sql = "UPDATE cin_bvi_dhcp_core 
-                    SET kea_subnet_id = NULL,
-                        start_address = NULL,
-                        end_address = NULL,
-                        ccap_core = NULL,
-                        updated_at = NOW()
-                    WHERE kea_subnet_id = :subnet_id";
-
+            // Delete the record from cin_bvi_dhcp_core table
+            $sql = "DELETE FROM cin_bvi_dhcp_core WHERE id = :subnet_id";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':subnet_id' => $subnetId]);
             
             $rowsAffected = $stmt->rowCount();
-            error_log("DHCP Model: Updated {$rowsAffected} rows in cin_bvi_dhcp_core table");
+            error_log("DHCP Model: Deleted {$rowsAffected} rows from cin_bvi_dhcp_core table");
 
             // Reload Kea config to immediately refresh cache
             $this->reloadKeaConfig();
