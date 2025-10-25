@@ -144,13 +144,10 @@ error_log('isAdmin result: ' . ($auth->isAdmin() ? 'true' : 'false'));
                             <a href="/switches" class="<?php echo $currentPage === 'switches' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 Switches
                             </a>
+                            <a href="/dhcp" class="<?php echo $currentPage === 'dhcp' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                DHCPv6
+                            </a>
                             <?php if ($auth->isAdmin()): ?>
-                            <a href="/ipv6" class="<?php echo $currentPage === 'ipv6' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                IPv6 Subnets
-                            </a>
-                            <a href="/leases" class="<?php echo $currentPage === 'leases' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Leases
-                            </a>
                             <a href="/users" class="<?php echo $currentPage === 'users' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 Users
                             </a>
