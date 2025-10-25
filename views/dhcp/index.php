@@ -1132,6 +1132,7 @@ function showEditSubnetModal(subnetData, relay) {
     window.handleCreateSubmit = handleCreateSubmit;
     window.handleEditSubmit = handleEditSubmit;
     window.deleteSubnet = deleteSubnet;
+    window.deleteOrphanedSubnet = deleteOrphanedSubnet;
     window.performSearch = performSearch;
 });
 </script>
