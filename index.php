@@ -193,6 +193,17 @@ try {
     $router->delete('/api/dhcp/options/{code}', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'delete'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
+    // DHCPv6 Lease/Reservation API Routes
+    $leaseModel = new \App\Models\DHCPv6LeaseModel($database);
+    $router->get('/api/dhcp/leases/{switchId}/{bviId}/{from}/{limit}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'getLeases'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->delete('/api/dhcp/leases', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'deleteLease'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/dhcp/static', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'addStaticLease'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->get('/api/dhcp/static/{subnetId}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'getStaticLeases'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+
     // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {
         $currentPage = 'ipv6';
