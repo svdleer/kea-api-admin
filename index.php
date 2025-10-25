@@ -241,25 +241,26 @@ try {
 
 
     // CIN Switch Routes - Read Only with Combined Auth
-    $router->get('/api/switches', [\App\Controllers\Api\CinSwitch::class, 'getAll'])
+    $cinSwitchController = new \App\Controllers\Api\CinSwitch($db);
+    $router->get('/api/switches', [$cinSwitchController, 'getAll'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->get('/api/switches/{id}', [\App\Controllers\Api\CinSwitch::class, 'getById'])
+    $router->get('/api/switches/{id}', [$cinSwitchController, 'getById'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
     // CIN Switch Routes - Read/Write with Combined Auth
-    $router->post('/api/switches', [\App\Controllers\Api\CinSwitch::class, 'create'])
+    $router->post('/api/switches', [$cinSwitchController, 'create'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->put('/api/switches/{id}', [\App\Controllers\Api\CinSwitch::class, 'update'])
+    $router->put('/api/switches/{id}', [$cinSwitchController, 'update'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->delete('/api/switches/{id}', [\App\Controllers\Api\CinSwitch::class, 'delete'])
+    $router->delete('/api/switches/{id}', [$cinSwitchController, 'delete'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Validation Check Routes with Combined Auth
-    $router->get('/api/switches/check-exists', [\App\Controllers\Api\CinSwitch::class, 'hostnameExists'])
+    $router->get('/api/switches/check-exists', [$cinSwitchController, 'hostnameExists'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->get('/api/switches/check-bvi', [\App\Controllers\Api\CinSwitch::class, 'checkBvi'])
+    $router->get('/api/switches/check-bvi', [$cinSwitchController, 'checkBvi'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->get('/api/switches/check-ipv6', [\App\Controllers\Api\CinSwitch::class, 'checkIpv6'])
+    $router->get('/api/switches/check-ipv6', [$cinSwitchController, 'checkIpv6'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
     // BVI check routes with Combined Auth
