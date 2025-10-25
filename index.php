@@ -125,6 +125,12 @@ try {
 
  
 
+    // BVI Interfaces Overview
+    $router->get('/bvi', function() use ($auth) {
+        $currentPage = 'bvi';
+        require BASE_PATH . '/views/bvi/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // Prefixes Routes
     $router->get('/prefixes', function() use ($auth) {
         $currentPage = 'prefixes';

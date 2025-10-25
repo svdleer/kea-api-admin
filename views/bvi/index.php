@@ -1,0 +1,224 @@
+<?php
+require_once BASE_PATH . '/vendor/autoload.php';
+
+use App\Auth\Authentication;
+use App\Database\Database;
+
+// Check if user is logged in
+$auth = new Authentication(Database::getInstance());
+if (!$auth->isLoggedIn()) {
+    header('Location: /');
+    exit;
+}
+
+$currentPage = 'bvi';
+$title = 'BVI Interfaces Overview';
+
+// Get all switches and their BVI interfaces
+$db = Database::getInstance();
+$query = "SELECT 
+            s.id as switch_id,
+            s.hostname as switch_hostname,
+            bvi.id as bvi_id,
+            bvi.interface_number,
+            bvi.ipv6_address
+          FROM switches s
+          LEFT JOIN cin_switch_bvi_interfaces bvi ON s.id = bvi.switch_id
+          ORDER BY s.hostname, bvi.interface_number";
+
+$stmt = $db->query($query);
+$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get list of switches for the create dropdown
+$switchQuery = "SELECT id, hostname FROM switches ORDER BY hostname";
+$switchStmt = $db->query($switchQuery);
+$switches = $switchStmt->fetchAll(PDO::FETCH_ASSOC);
+
+ob_start();
+?>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">BVI Interfaces Overview</h1>
+            <p class="text-gray-600 mt-1">Manage all BVI interfaces across all switches</p>
+        </div>
+        <button onclick="showCreateModal()" 
+                class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+            + Create BVI Interface
+        </button>
+    </div>
+
+    <!-- BVI Interfaces Table -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Switch Name
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        BVI Interface
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        IPv6 Address
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php if (empty($data) || (count($data) === 1 && $data[0]['bvi_id'] === null)): ?>
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                            No BVI interfaces found. Create one to get started.
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($data as $row): ?>
+                        <?php if ($row['bvi_id']): ?>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?= htmlspecialchars($row['switch_hostname']) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    BVI<?= 100 + intval($row['interface_number']) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?= htmlspecialchars($row['ipv6_address']) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="/switches/<?= $row['switch_id'] ?>/bvi/<?= $row['bvi_id'] ?>/edit" 
+                                       class="text-blue-600 hover:text-blue-900">
+                                        Edit
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create BVI Modal -->
+<div id="createBviModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Create New BVI Interface</h3>
+            <form id="createBviForm">
+                <div class="mb-4">
+                    <label for="switch_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Switch (CIN)
+                    </label>
+                    <select id="switch_id" name="switch_id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Select a Switch --</option>
+                        <?php foreach ($switches as $switch): ?>
+                            <option value="<?= $switch['id'] ?>">
+                                <?= htmlspecialchars($switch['hostname']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="ipv6_address" class="block text-sm font-medium text-gray-700 mb-2">
+                        IPv6 Address
+                    </label>
+                    <input type="text" id="ipv6_address" name="ipv6_address" required
+                           placeholder="2001:db8::1"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p id="ipv6_error" class="text-red-600 text-sm mt-1 hidden"></p>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeCreateModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit" id="createBtn"
+                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showCreateModal() {
+    document.getElementById('createBviModal').classList.remove('hidden');
+}
+
+function closeCreateModal() {
+    document.getElementById('createBviModal').classList.add('hidden');
+    document.getElementById('createBviForm').reset();
+    document.getElementById('ipv6_error').classList.add('hidden');
+}
+
+document.getElementById('createBviForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const switchId = document.getElementById('switch_id').value;
+    const ipv6Address = document.getElementById('ipv6_address').value;
+    const createBtn = document.getElementById('createBtn');
+    
+    if (!switchId) {
+        alert('Please select a switch');
+        return;
+    }
+    
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating...';
+    
+    try {
+        const response = await fetch(`/api/switches/${switchId}/bvi`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ipv6_address: ipv6Address
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await Swal.fire({
+                title: 'Success!',
+                text: 'BVI interface created successfully',
+                icon: 'success',
+                confirmButtonColor: '#3085d6'
+            });
+            window.location.reload();
+        } else {
+            document.getElementById('ipv6_error').textContent = result.error || 'Failed to create BVI interface';
+            document.getElementById('ipv6_error').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('ipv6_error').textContent = 'An error occurred';
+        document.getElementById('ipv6_error').classList.remove('hidden');
+    } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create';
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('createBviModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCreateModal();
+    }
+});
+</script>
+
+<?php
+$content = ob_get_clean();
+require_once BASE_PATH . '/views/layout.php';
+?>
