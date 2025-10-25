@@ -118,9 +118,12 @@ $(document).ready(function() {
 
 async function loadBviData() {
     try {
+        console.log('Loading BVI data...');
         // Get all switches
         const switchesResponse = await fetch('/api/switches');
         const switchesData = await switchesResponse.json();
+        
+        console.log('Switches loaded:', switchesData.data ? switchesData.data.length : 0);
         
         if (!switchesData.success || !switchesData.data) {
             throw new Error('Failed to load switches');
@@ -136,6 +139,7 @@ async function loadBviData() {
                 const bviData = await bviResponse.json();
                 
                 if (bviData.success && bviData.data && bviData.data.length > 0) {
+                    console.log(`Switch ${switchItem.hostname} has ${bviData.data.length} BVI interfaces`);
                     bviData.data.forEach(bvi => {
                         allBviInterfaces.push({
                             switch_id: switchItem.id,
@@ -151,6 +155,7 @@ async function loadBviData() {
             }
         }
         
+        console.log('Total BVI interfaces:', allBviInterfaces.length);
         displayBviData(allBviInterfaces);
         
     } catch (error) {
