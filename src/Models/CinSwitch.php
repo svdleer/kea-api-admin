@@ -350,7 +350,7 @@ public function getNextAvailableBVINumber($switchId) {
         $query = "SELECT interface_number 
                 FROM cin_switch_bvi_interfaces 
                 WHERE switch_id = ? 
-                ORDER BY CAST(SUBSTRING(interface_number, 4) AS UNSIGNED) DESC 
+                ORDER BY interface_number DESC 
                 LIMIT 1";
         
         $stmt = $this->db->prepare($query);
@@ -358,12 +358,12 @@ public function getNextAvailableBVINumber($switchId) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($result) {
-            // Extract the number from BVIxxx format
-            $currentNumber = intval(substr($result['interface_number'], 3));
-            $nextNumber = $currentNumber + 1;
+            // Interface numbers are stored as 0, 1, 2, etc.
+            // Next one is current + 1
+            $nextNumber = intval($result['interface_number']) + 1;
         } else {
-            // If no BVI interfaces exist, start with 100
-            $nextNumber = 100;
+            // If no BVI interfaces exist, start with 0 (displays as BVI100)
+            $nextNumber = 0;
         }
 
         return 'BVI' . $nextNumber;

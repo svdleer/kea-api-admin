@@ -110,7 +110,7 @@ ob_start();
                         <?php foreach ($bviInterfaces as $bvi): ?>
                             <tr>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                    <?php echo htmlspecialchars($bvi['interface_number']); ?>
+                                    BVI<?php echo 100 + intval($bvi['interface_number']); ?>
                                 </td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                                     <?php echo htmlspecialchars($bvi['ipv6_address']); ?>
@@ -121,7 +121,7 @@ ob_start();
                                                 class="text-blue-600 hover:text-blue-900">
                                             Edit
                                         </button>
-                                        <button onclick="deleteBvi(<?php echo htmlspecialchars($bvi['id']); ?>, '<?php echo htmlspecialchars($bvi['interface_number']); ?>')" 
+                                        <button onclick="deleteBvi(<?php echo htmlspecialchars($bvi['id']); ?>, 'BVI<?php echo 100 + intval($bvi['interface_number']); ?>')" 
                                                 class="text-red-600 hover:text-red-900">
                                             Delete
                                         </button>
