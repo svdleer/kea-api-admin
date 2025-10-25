@@ -32,11 +32,7 @@ try {
     
     // Add DHCP subnets
     $dhcp = new DHCP($db);
-    error_log("====== DHCP View: About to call DHCPModel->getEnrichedSubnets() ======");
     $subnets = $subnetModel->getEnrichedSubnets();
-    error_log("getEnrichedSubnets returned " . count($subnets) . " subnets");
-    error_log("Subnets data: " . json_encode($subnets));
-    error_log("====== DHCP View: Returned from DHCPModel->getEnrichedSubnets() ======");
 
 
 
@@ -194,8 +190,6 @@ require BASE_PATH . '/views/dhcp-menu.php';
     }, $switches);
     $assignedBviIds = array_filter($assignedBviIds);
     
-    error_log("Assigned BVI IDs: " . json_encode($assignedBviIds));
-    
     $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds) {
         // A subnet is orphaned if:
         // 1. It has a bvi_interface_id that doesn't match any current BVI
@@ -210,9 +204,6 @@ require BASE_PATH . '/views/dhcp-menu.php';
             return true;
         }
     });
-    
-    error_log("Found " . count($orphanedSubnets) . " orphaned subnets");
-    error_log("Orphaned subnets: " . json_encode($orphanedSubnets));
     ?>
 
     <?php if (!empty($orphanedSubnets)): ?>
@@ -224,12 +215,6 @@ require BASE_PATH . '/views/dhcp-menu.php';
         <p class="text-sm text-red-600 mb-4">
             These subnets exist in Kea but their associated BVI interfaces have been deleted. You should delete these orphaned subnets.
         </p>
-        <?php if (count($orphanedSubnets) === 0): ?>
-        <div class="bg-white p-4 rounded text-gray-600">
-            No orphaned subnets detected, but this section is showing because the array is not empty.
-            Debug: <?= htmlspecialchars(json_encode($orphanedSubnets)) ?>
-        </div>
-        <?php else: ?>
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -265,7 +250,6 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </tbody>
             </table>
         </div>
-        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
