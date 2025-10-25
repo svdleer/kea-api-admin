@@ -88,17 +88,19 @@ class DHCPController
         error_log("DHCPController: ====== Starting getAllSubnets ======");
         try {
             $subnets = $this->subnetModel->getEnrichedSubnets();
-            error_log("DHCPController: Received response from getEnrichedSubnets: " . json_encode($subnets));
+            error_log("DHCPController: Received " . count($subnets) . " subnets from getEnrichedSubnets");
+            error_log("DHCPController: Subnet data: " . json_encode($subnets));
             
             // Set proper JSON header
             header('Content-Type: application/json');
             
-            // Since the frontend expects a direct array of subnets, we'll return it directly
+            // Return the array directly as the frontend expects
             echo json_encode($subnets, JSON_PRETTY_PRINT);
     
         } catch (\Exception $e) {
             error_log("DHCPController: ====== ERROR in getAllSubnets ======");
             error_log("DHCPController: Exception message: " . $e->getMessage());
+            error_log("DHCPController: Stack trace: " . $e->getTraceAsString());
             
             // Set error status code
             http_response_code(500);
