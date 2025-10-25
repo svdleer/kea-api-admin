@@ -65,6 +65,29 @@ class CinSwitch
     public function deleteSwitch($id)
     {
         try {
+            // Get all BVI interfaces for this switch
+            $bviInterfaces = $this->getBviInterfaces($id);
+            
+            // Delete each BVI interface and its associated DHCP subnets
+            foreach ($bviInterfaces as $bvi) {
+                error_log("Deleting BVI interface {$bvi['id']} for switch $id");
+                
+                // Delete DHCP subnets for this BVI
+                $dhcpStmt = $this->db->prepare("
+                    DELETE FROM cin_bvi_dhcp_core 
+                    WHERE bvi_interface_id = ?
+                ");
+                $dhcpStmt->execute([$bvi['id']]);
+                
+                // Delete the BVI interface
+                $bviStmt = $this->db->prepare("
+                    DELETE FROM cin_switch_bvi_interfaces 
+                    WHERE id = ?
+                ");
+                $bviStmt->execute([$bvi['id']]);
+            }
+            
+            // Finally delete the switch itself
             $stmt = $this->db->prepare("
                 DELETE FROM cin_switches 
                 WHERE id = ?
@@ -72,7 +95,7 @@ class CinSwitch
             return $stmt->execute([$id]);
         } catch (\PDOException $e) {
             error_log("Database error in deleteSwitch(): " . $e->getMessage());
-            throw new \RuntimeException('Error deleting switch');
+            throw new \RuntimeException('Error deleting switch: ' . $e->getMessage());
         }
     }
 

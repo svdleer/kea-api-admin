@@ -157,14 +157,35 @@ ob_start();
     <script>
 function deleteSwitch(switchId, hostname) {
     Swal.fire({
-        title: 'Are you sure?',
-        text: `Are you absolutely sure you want to delete switch "${hostname}" and all its BVI interfaces?`,
+        title: 'Delete Switch?',
+        html: `
+            <div class="text-left">
+                <p class="mb-3">You are about to delete switch: <strong>${hostname}</strong></p>
+                <p class="mb-3 text-red-600 font-semibold">⚠️ This will also delete:</p>
+                <ul class="list-disc list-inside mb-3 text-sm">
+                    <li>All BVI interfaces</li>
+                    <li>All DHCP subnet configurations</li>
+                    <li>All DHCP leases and reservations</li>
+                    <li>All associated data</li>
+                </ul>
+                <p class="mb-3">Type <strong class="text-red-600">I AM SURE!</strong> to confirm:</p>
+                <input type="text" id="delete-switch-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
+            </div>
+        `,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3B82F6',
-        cancelButtonColor: '#EF4444',
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'Cancel'
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Delete Switch',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const confirmation = document.getElementById('delete-switch-confirmation').value;
+            if (confirmation !== 'I AM SURE!') {
+                Swal.showValidationMessage('Please type "I AM SURE!" exactly to confirm');
+                return false;
+            }
+            return true;
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/api/switches/${switchId}`, {
@@ -178,7 +199,7 @@ function deleteSwitch(switchId, hostname) {
                 if (result.success) {
                     await Swal.fire({
                         title: 'Deleted!',
-                        text: `Switch "${hostname}" and its BVI interfaces have been deleted.`,
+                        text: `Switch "${hostname}" and all associated data have been deleted.`,
                         icon: 'success',
                         confirmButtonColor: '#3B82F6'
                     });

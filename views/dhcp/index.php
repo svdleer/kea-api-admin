@@ -958,13 +958,35 @@ function showEditSubnetModal(subnetData, relay) {
         try {
             const subnet = typeof subnetData === 'string' ? JSON.parse(subnetData) : subnetData;
             const result = await Swal.fire({
-                title: 'Are you sure?',
-                text: `Do you want to delete the subnet ${subnet}?`,
+                title: 'Delete DHCP Subnet?',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-3">You are about to delete subnet: <strong>${subnet}</strong></p>
+                        <p class="mb-3 text-red-600 font-semibold">⚠️ This will also delete:</p>
+                        <ul class="list-disc list-inside mb-3 text-sm">
+                            <li>All pool configurations</li>
+                            <li>All DHCP options</li>
+                            <li>All active leases</li>
+                            <li>All reservations</li>
+                        </ul>
+                        <p class="mb-3">Type <strong class="text-red-600">I AM SURE!</strong> to confirm:</p>
+                        <input type="text" id="delete-subnet-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!'
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Delete Subnet',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const confirmation = document.getElementById('delete-subnet-confirmation').value;
+                    if (confirmation !== 'I AM SURE!') {
+                        Swal.showValidationMessage('Please type "I AM SURE!" exactly to confirm');
+                        return false;
+                    }
+                    return true;
+                }
             });
 
             if (result.isConfirmed) {
@@ -977,7 +999,7 @@ function showEditSubnetModal(subnetData, relay) {
                 if (data.success) {
                     await Swal.fire({
                         title: 'Success!',
-                        text: 'DHCP Subnet have been removed successfully.',
+                        text: 'DHCP Subnet and all associated data have been removed successfully.',
                         icon: 'success',
                         confirmButtonColor: '#3085d6'
                     });

@@ -153,14 +153,33 @@ ob_start();
             const switchId = <?php echo json_encode($switchId); ?>;
             
             Swal.fire({
-                title: 'Are you sure?',
-                text: `Are you sure you want to delete BVI interface ${interfaceNumber}?`,
+                title: 'Delete BVI Interface?',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-3">You are about to delete <strong>${interfaceNumber}</strong></p>
+                        <p class="mb-3 text-red-600 font-semibold">⚠️ This will also delete:</p>
+                        <ul class="list-disc list-inside mb-3 text-sm">
+                            <li>Associated DHCP subnet configuration</li>
+                            <li>All DHCP leases and reservations</li>
+                        </ul>
+                        <p class="mb-3">Type <strong class="text-red-600">I AM SURE!</strong> to confirm:</p>
+                        <input type="text" id="delete-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3B82F6',
-                cancelButtonColor: '#EF4444',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel'
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Delete BVI',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const confirmation = document.getElementById('delete-confirmation').value;
+                    if (confirmation !== 'I AM SURE!') {
+                        Swal.showValidationMessage('Please type "I AM SURE!" exactly to confirm');
+                        return false;
+                    }
+                    return true;
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
@@ -170,7 +189,7 @@ ob_start();
                             if (response.success) {
                                 Swal.fire({
                                     title: 'Deleted!',
-                                    text: `BVI interface ${interfaceNumber} has been deleted successfully.`,
+                                    text: `BVI interface ${interfaceNumber} and all associated data have been deleted successfully.`,
                                     icon: 'success',
                                     confirmButtonColor: '#3B82F6'
                                 }).then(() => {
