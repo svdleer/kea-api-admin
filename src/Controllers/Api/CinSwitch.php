@@ -18,9 +18,8 @@ class CinSwitch
             header('Content-Type: application/json');
             
             $stmt = $this->db->prepare("
-                SELECT s.*, b.interface_number, b.ipv6_address 
+                SELECT s.id, s.hostname, s.location, s.description, s.created_at, s.updated_at
                 FROM cin_switches s
-                LEFT JOIN cin_switch_bvi_interfaces b ON s.id = b.switch_id
                 ORDER BY s.hostname
             ");
             $stmt->execute();
