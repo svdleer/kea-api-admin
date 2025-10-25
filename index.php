@@ -216,13 +216,7 @@ try {
     // Load configuration for Kea DHCPv6 servers
    // $dhcp6Client = new \App\Kea\DHCPv6Client($_ENV['KEA_API_ENDPOINT'], $_ENV['KEA_PRIMARY_URL']);
     
-    // Check authentication for protected routes
-    $publicRoutes = ['/', '/login', '/logout'];
-    if (!$auth->isLoggedIn() && !in_array($_SERVER['REQUEST_URI'], $publicRoutes)) {
-        error_log("Unauthorized access attempt to: " . $_SERVER['REQUEST_URI']);
-        header('Location: /');
-        exit();
-    }
+    // Note: Authentication is handled by middleware on individual routes
 
     // API Key Management Routes
     $router->get('/api/keys', [new \App\Controllers\Api\ApiKeyController($apiKeyModel, $auth), 'list'])
