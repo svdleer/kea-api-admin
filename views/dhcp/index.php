@@ -255,7 +255,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button onclick="deleteOrphanedSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')" ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
+                                <button onclick="deleteOrphanedSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                     Delete
                                 </button>
