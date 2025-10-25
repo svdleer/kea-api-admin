@@ -339,47 +339,62 @@ function openEditDefModal(optionDef) {
         modal.innerHTML = `
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium">Configure DHCPv6 Option</h3>
-                    <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-500">
+                    <h3 class="text-lg font-medium">Edit DHCPv6 Option Definition</h3>
+                    <button onclick="closeEditDefModal()" class="text-gray-400 hover:text-gray-500">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-                <form id="createOptionForm" onsubmit="handleCreateSubmit(event)">
+                <form id="editOptionDefForm" onsubmit="handleEditSubmit(event)">
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2">Option Code</label>
-                        <input type="number" id="optionCode" value="${optionDef.code}" 
+                        <input type="number" id="editCode" value="${optionDef.code}" 
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight bg-gray-100" 
                             readonly>
                     </div>
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
-                        <input type="text" id="optionName" value="${optionDef.name}" 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight bg-gray-100" 
-                            readonly>
+                        <input type="text" id="editName" value="${optionDef.name}" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" 
+                            required>
                     </div>
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2">Type</label>
-                        <input type="text" id="optionType" value="${optionDef.type}" 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight bg-gray-100" 
-                            readonly>
+                        <select id="editType" 
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" 
+                                required>
+                            <option value="">Select Type</option>
+                            <option value="string" ${optionDef.type === 'string' ? 'selected' : ''}>String</option>
+                            <option value="uint8" ${optionDef.type === 'uint8' ? 'selected' : ''}>Uint8</option>
+                            <option value="uint16" ${optionDef.type === 'uint16' ? 'selected' : ''}>Uint16</option>
+                            <option value="uint32" ${optionDef.type === 'uint32' ? 'selected' : ''}>Uint32</option>
+                            <option value="ipv6-address" ${optionDef.type === 'ipv6-address' ? 'selected' : ''}>IPv6 Address</option>
+                            <option value="ipv6-prefix" ${optionDef.type === 'ipv6-prefix' ? 'selected' : ''}>IPv6 Prefix</option>
+                            <option value="fqdn" ${optionDef.type === 'fqdn' ? 'selected' : ''}>FQDN</option>
+                            <option value="binary" ${optionDef.type === 'binary' ? 'selected' : ''}>Binary</option>
+                        </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="optionData">
-                            Value <span class="text-red-500">*</span>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Space</label>
+                        <input type="text" id="editSpace" value="${optionDef.space}" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" 
+                            required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="editArray" ${optionDef.array ? 'checked' : ''} class="mr-2">
+                            <span class="text-gray-700 text-sm font-bold">Array</span>
                         </label>
-                        ${generateInputField(optionDef.type, '', 'optionData')}
-                        <p id="dataError" class="text-red-500 text-xs italic hidden"></p>
                     </div>
                     <div class="flex justify-end">
-                        <button type="button" onclick="closeCreateModal()" 
+                        <button type="button" onclick="closeEditDefModal()" 
                                 class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
                             Cancel
                         </button>
                         <button type="submit" 
-                                class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                            Save
+                                class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                            Update
                         </button>
                     </div>
                 </form>
@@ -387,14 +402,8 @@ function openEditDefModal(optionDef) {
         `;
         modal.classList.remove('hidden');
 
-    document.getElementById('editCode').value = optionDef.code;
-    document.getElementById('editSpace').value = optionDef.space;
-    document.getElementById('editName').value = optionDef.name;
-    document.getElementById('editType').value = optionDef.type;
-    document.getElementById('editArray').checked = optionDef.array;
-
     // Add change listeners after the HTML is created
-    ['editName', 'editType', 'editArray'].forEach(id => {
+    ['editName', 'editType', 'editArray', 'editSpace'].forEach(id => {
         document.getElementById(id).addEventListener('input', checkChanges);
     });
 
