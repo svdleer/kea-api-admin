@@ -21,11 +21,17 @@ class BVIController
         try {
             $interfaces = $this->bviModel->getAllBviInterfaces($switchId);
             header('Content-Type: application/json');
-            echo json_encode($interfaces);
+            echo json_encode([
+                'success' => true,
+                'data' => $interfaces
+            ]);
         } catch (\Exception $e) {
             error_log("Error in BVIController::index: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Internal server error']);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Internal server error'
+            ]);
         }
     }
 
