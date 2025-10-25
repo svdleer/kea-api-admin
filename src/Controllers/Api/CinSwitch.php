@@ -18,9 +18,9 @@ class CinSwitch
             header('Content-Type: application/json');
             
             $stmt = $this->db->prepare("
-                SELECT s.id, s.hostname, s.description, s.created_at, s.updated_at
-                FROM cin_switches s
-                ORDER BY s.hostname
+                SELECT * 
+                FROM cin_switches 
+                ORDER BY hostname
             ");
             $stmt->execute();
             $switches = $stmt->fetchAll(\PDO::FETCH_ASSOC);
