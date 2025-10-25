@@ -18,7 +18,7 @@ class CinSwitch
             header('Content-Type: application/json');
             
             $stmt = $this->db->prepare("
-                SELECT s.id, s.hostname, s.location, s.description, s.created_at, s.updated_at
+                SELECT s.id, s.hostname, s.description, s.created_at, s.updated_at
                 FROM cin_switches s
                 ORDER BY s.hostname
             ");
