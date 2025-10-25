@@ -30,10 +30,11 @@ class CinSwitch
                 'data' => $switches
             ]);
         } catch (\Exception $e) {
+            error_log("Error in CinSwitch::getAll: " . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Database error'
+                'error' => 'Database error: ' . $e->getMessage()
             ]);
         }
     }
