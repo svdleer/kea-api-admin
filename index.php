@@ -196,12 +196,7 @@ try {
     $router->delete('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'deletePrefix'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
-    // DHCP Routes
-    $router->get('/dhcp', function() use ($auth) {
-        $currentPage = 'dhcp';
-        require BASE_PATH . '/views/dhcp/index.php';
-    })->middleware(new \App\Middleware\AuthMiddleware($auth));
-
+    // DHCP Routes - Leases
     $router->get('/leases', function() {
         require BASE_PATH . '/leases.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
