@@ -61,28 +61,48 @@ ob_start();
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">
-                BVI Interfaces<?php echo $switch ? ' for ' . htmlspecialchars($switch['hostname']) : ''; ?>
-            </h1>
-            <div class="space-x-4">
-                <a href="/switches" class="text-blue-500 hover:text-blue-700">
-                    ← Back to Switches
+        <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900">BVI Interfaces<?php echo $switch ? ' for ' . htmlspecialchars($switch['hostname']) : ''; ?></h1>
+                <p class="mt-1 text-sm text-gray-600">Manage BVI interface configurations for this switch</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="/switches" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Switches
                 </a>
                 <?php if ($switch): ?>
                 <button onclick="addBvi()" 
-                   class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                Add BVI Interface
+                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add BVI Interface
                 </button>
                 <?php endif; ?>
             </div>
         </div>
+    </div>
 
-        <?php if ($error): ?>
-            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                <?php echo htmlspecialchars($error); ?>
+        <!-- Alert Messages -->
+    <?php if ($error): ?>
+    <div class="mb-4 rounded-md bg-red-50 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
             </div>
-        <?php endif; ?>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-red-800"><?php echo htmlspecialchars($error); ?></p>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
         <!-- Search Box -->
         <div class="mb-4">
