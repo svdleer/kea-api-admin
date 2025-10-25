@@ -15,7 +15,7 @@ class DHCPv6LeaseController
     }
 
 
-    public function getLeases(string $switchId, string $bviId, string $from, int $limit)
+    public function getLeases(string $switchId, string $bviId, string $from, string $limit)
     {   
         try {
             // Log incoming parameters
@@ -25,11 +25,13 @@ class DHCPv6LeaseController
             error_log("from: " . print_r($from, true));
             error_log("limit: " . print_r($limit, true));
 
-            // Validate limit parameter
-            if (!is_numeric($limit) || $limit <= 0) {
+            // Validate and cast limit parameter
+            if (!is_numeric($limit) || (int)$limit <= 0) {
                 error_log("Invalid limit parameter: " . print_r($limit, true));
                 throw new Exception('Limit must be a positive integer');
             }
+            
+            $limit = (int)$limit;
 
             // Log before database call
             error_log("Calling leaseModel->getLeases with parameters");
