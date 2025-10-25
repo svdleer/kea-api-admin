@@ -66,14 +66,15 @@ ob_start();
             <div>
                 <label for="interface_number" class="block text-lg font-semibold mb-2">
                     BVI Interface Number
-                    <span class="text-sm font-normal text-gray-600 ml-1">(Format: BVI followed by 3 digits)</span>
+                    <span class="text-sm font-normal text-gray-600 ml-1">(Minimum: 100)</span>
                 </label>
-                <input type="text" 
+                <input type="number" 
                        id="interface_number" 
                        name="interface_number" 
-                       class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       min="100"
+                       class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                        value="<?php echo htmlspecialchars($nextBVINumber); ?>"
-                       placeholder="BVI100"
+                       placeholder="100"
                        required>
                 <div class="validation-message mt-1 text-sm"></div>
             </div>
@@ -149,11 +150,10 @@ $(document).ready(function() {
     let bviCheckTimeout;
     bviInput.on('input', function() {
         const input = $(this);
-        const interfaceNumber = input.val().toUpperCase();
-        input.val(interfaceNumber);
+        const interfaceNumber = parseInt(input.val());
 
-        if (!isValidBVI(interfaceNumber)) {
-            updateValidationUI(input, false, 'Invalid format. Must be BVI followed by numbers (e.g., BVI100)');
+        if (isNaN(interfaceNumber) || interfaceNumber < 100) {
+            updateValidationUI(input, false, 'Interface number must be at least 100');
             validations.interface_number = false;
             validateForm();
             return;
@@ -168,7 +168,7 @@ $(document).ready(function() {
                         updateValidationUI(input, false, 'This BVI interface already exists');
                         validations.interface_number = false;
                     } else {
-                        updateValidationUI(input, true, 'Valid BVI interface');
+                        updateValidationUI(input, true, `Valid BVI interface (BVI${interfaceNumber})`);
                         validations.interface_number = true;
                     }
                     validateForm();
