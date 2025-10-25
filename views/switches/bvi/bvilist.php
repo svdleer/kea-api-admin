@@ -138,14 +138,14 @@ ob_start();
     <script>
         function addBvi() {
             const switchId = <?php echo json_encode($switchId); ?>;
-            sessionStorage.setItem('bviReturnUrl', `/switches/bvi/list?switchId=${switchId}`);
+            sessionStorage.setItem('bviReturnUrl', `/switches/bvi/list/${switchId}`);
             window.location.href = `/switches/${switchId}/bvi/add`;
         }
 
         function editBvi(bviId) {
             const switchId = <?php echo json_encode($switchId); ?>;
             // Store the return URL in session storage before navigating to edit page
-            sessionStorage.setItem('returnUrl', `/switches/bvi/list?switchId=${switchId}`);
+            sessionStorage.setItem('returnUrl', `/switches/bvi/list/${switchId}`);
             window.location.href = `/switches/${switchId}/bvi/${bviId}/edit`;
         }
 
@@ -175,7 +175,7 @@ ob_start();
                                     confirmButtonColor: '#3B82F6'
                                 }).then(() => {
                                     // Redirect back to BVI list page after successful delete
-                                    window.location.href = `/switches/bvi/list?switchId=${switchId}`;
+                                    window.location.href = `/switches/bvi/list/${switchId}`;
                                 });
                             } else {
                                 Swal.fire({
