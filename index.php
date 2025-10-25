@@ -171,6 +171,28 @@ try {
     $router->delete('/api/dhcp/orphaned-subnets/{keaId}', [new DHCPController($dhcpModel, $auth), 'deleteOrphaned'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
+    // DHCPv6 Options Definitions API Routes
+    $optionsDefModel = new \App\Models\DHCPv6OptionsDefModel($db);
+    $router->get('/api/dhcp/optionsdef', [new \App\Controllers\Api\DHCPv6OptionsDefController($optionsDefModel, $auth), 'list'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->post('/api/dhcp/optionsdef', [new \App\Controllers\Api\DHCPv6OptionsDefController($optionsDefModel, $auth), 'create'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->put('/api/dhcp/optionsdef/{code}', [new \App\Controllers\Api\DHCPv6OptionsDefController($optionsDefModel, $auth), 'update'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/dhcp/optionsdef/{code}', [new \App\Controllers\Api\DHCPv6OptionsDefController($optionsDefModel, $auth), 'delete'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+
+    // DHCPv6 Options API Routes
+    $optionsModel = new \App\Models\DHCPv6OptionsModel($db);
+    $router->get('/api/dhcp/options', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'list'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->post('/api/dhcp/options', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'create'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->put('/api/dhcp/options/{code}', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'update'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/dhcp/options/{code}', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'delete'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+
     // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {
         $currentPage = 'ipv6';
