@@ -152,11 +152,13 @@ class BVIModel
     {
         try {
             // First, delete any associated DHCP subnet from cin_bvi_dhcp_core
+            // Use bvi_interface_id as the foreign key
             $dhcpStmt = $this->db->prepare("
                 DELETE FROM cin_bvi_dhcp_core 
-                WHERE id = ?
+                WHERE bvi_interface_id = ?
             ");
             $dhcpStmt->execute([$bviId]);
+            error_log("Deleted DHCP records for BVI ID: $bviId");
             
             // Then delete the BVI interface
             $stmt = $this->db->prepare("

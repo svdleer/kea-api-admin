@@ -118,13 +118,17 @@ class BVIController
             
             // Check if there's an associated DHCP subnet and delete it from Kea first
             try {
-                $stmt = $this->db->prepare("SELECT id FROM cin_bvi_dhcp_core WHERE id = ?");
+                // Find subnet by bvi_interface_id (the foreign key), not by id
+                $stmt = $this->db->prepare("SELECT id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
                 $stmt->execute([$bviId]);
                 $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
                 
                 if ($subnet) {
-                    error_log("Deleting DHCP subnet for BVI ID: $bviId");
+                    error_log("Found DHCP subnet with id {$subnet['id']} for BVI ID: $bviId - attempting to delete");
                     $this->dhcpModel->deleteSubnet($subnet['id']);
+                    error_log("Successfully deleted DHCP subnet");
+                } else {
+                    error_log("No DHCP subnet found for BVI ID: $bviId");
                 }
             } catch (\Exception $e) {
                 error_log("Warning: Could not delete DHCP subnet: " . $e->getMessage());
