@@ -172,7 +172,7 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // DHCPv6 Options Definitions API Routes
-    $optionsDefModel = new \App\Models\DHCPv6OptionsDefModel($db);
+    $optionsDefModel = new \App\Models\DHCPv6OptionsDefModel($database);
     $router->get('/api/dhcp/optionsdef', [new \App\Controllers\Api\DHCPv6OptionsDefController($optionsDefModel, $auth), 'list'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/dhcp/optionsdef', [new \App\Controllers\Api\DHCPv6OptionsDefController($optionsDefModel, $auth), 'create'])
@@ -183,7 +183,7 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // DHCPv6 Options API Routes
-    $optionsModel = new \App\Models\DHCPv6OptionsModel($db);
+    $optionsModel = new \App\Models\DHCPv6OptionsModel($database);
     $router->get('/api/dhcp/options', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'list'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/dhcp/options', [new \App\Controllers\Api\DHCPv6OptionsController($optionsModel, $optionsDefModel, $auth), 'create'])
