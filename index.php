@@ -158,6 +158,8 @@ try {
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
     // DHCP API Routes
+    $router->get('/api/dhcp/subnets', [new DHCPController($dhcpModel, $auth), 'getAllSubnets'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/dhcp/subnets/check-duplicate', [new DHCPController($dhcpModel, $auth), 'checkDuplicate'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/dhcp/subnets', [new DHCPController($dhcpModel, $auth), 'create'])
