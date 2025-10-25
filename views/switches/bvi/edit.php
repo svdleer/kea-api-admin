@@ -88,17 +88,21 @@ ob_start();
                 <input type="hidden" id="bviId" value="<?php echo htmlspecialchars($bviId); ?>">
 
                 <div class="form-group">
-                    <label for="interface_number" class="block text-sm font-medium text-gray-700 mb-2">
-                        Interface Number
-                        <span class="text-xs text-gray-500 ml-1">(Format: BVIxxx)</span>
+                    <label for="interface_number_display" class="block text-sm font-medium text-gray-700 mb-2">
+                        BVI Interface Number
+                        <span class="text-xs text-gray-500 ml-1">(Read-only)</span>
                     </label>
                     <input type="text" 
+                           id="interface_number_display" 
+                           class="w-full p-2 border rounded-lg bg-gray-100 cursor-not-allowed"
+                           value="BVI<?php echo 100 + intval($bvi['interface_number']); ?>"
+                           readonly
+                           disabled>
+                    <input type="hidden" 
                            id="interface_number" 
                            name="interface_number" 
-                           class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           value="<?php echo htmlspecialchars($bvi['interface_number']); ?>"
-                           required>
-                    <div class="validation-message mt-1 text-sm hidden"></div>
+                           value="<?php echo htmlspecialchars($bvi['interface_number']); ?>">
+                    <div class="validation-message mt-1 text-sm text-gray-500">Interface number cannot be changed</div>
                 </div>
 
                 <div class="form-group">
