@@ -64,19 +64,21 @@ ob_start();
             <input type="hidden" id="switchId" value="<?php echo htmlspecialchars($switchId); ?>">
             
             <div>
-                <label for="interface_number" class="block text-lg font-semibold mb-2">
+                <label for="interface_display" class="block text-lg font-semibold mb-2">
                     BVI Interface Number
-                    <span class="text-sm font-normal text-gray-600 ml-1">(0 = BVI100, 1 = BVI101, etc.)</span>
+                    <span class="text-sm font-normal text-gray-600 ml-1">(Auto-assigned)</span>
                 </label>
-                <input type="number" 
+                <input type="text" 
+                       id="interface_display" 
+                       class="w-full p-2 border rounded-lg bg-gray-100 cursor-not-allowed"
+                       value="BVI<?php echo 100 + intval($nextBVINumber); ?>"
+                       readonly
+                       disabled>
+                <input type="hidden" 
                        id="interface_number" 
                        name="interface_number" 
-                       min="0"
-                       class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       value="<?php echo htmlspecialchars($nextBVINumber); ?>"
-                       placeholder="0"
-                       required>
-                <div class="validation-message mt-1 text-sm"></div>
+                       value="<?php echo htmlspecialchars($nextBVINumber); ?>">
+                <div class="validation-message mt-1 text-sm text-green-600">✓ Next available interface</div>
             </div>
 
             <div>
@@ -143,44 +145,12 @@ $(document).ready(function() {
     }
 
     function validateForm() {
-        submitButton.prop('disabled', !(validations.interface_number && validations.ipv6));
+        // BVI interface is auto-assigned, so always valid
+        submitButton.prop('disabled', !validations.ipv6);
     }
 
-    // BVI Input Handler
-    let bviCheckTimeout;
-    bviInput.on('input', function() {
-        const input = $(this);
-        const interfaceNumber = parseInt(input.val());
-
-        if (isNaN(interfaceNumber) || interfaceNumber < 0) {
-            updateValidationUI(input, false, 'Interface number must be 0 or greater');
-            validations.interface_number = false;
-            validateForm();
-            return;
-        }
-
-        clearTimeout(bviCheckTimeout);
-        bviCheckTimeout = setTimeout(() => {
-            fetch(`/api/switches/${switchId}/bvi/check-exists?interface_number=${encodeURIComponent(interfaceNumber)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.exists) {
-                        updateValidationUI(input, false, 'This BVI interface already exists');
-                        validations.interface_number = false;
-                    } else {
-                        updateValidationUI(input, true, `Valid - Will display as BVI${100 + interfaceNumber}`);
-                        validations.interface_number = true;
-                    }
-                    validateForm();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    updateValidationUI(input, false, 'Error checking BVI interface');
-                    validations.interface_number = false;
-                    validateForm();
-                });
-        }, 500);
-    });
+    // BVI interface is auto-assigned and read-only, mark as valid
+    validations.interface_number = true;
 
     // IPv6 Input Handler
     let ipv6CheckTimeout;
