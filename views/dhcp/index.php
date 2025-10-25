@@ -224,6 +224,12 @@ require BASE_PATH . '/views/dhcp-menu.php';
         <p class="text-sm text-red-600 mb-4">
             These subnets exist in Kea but their associated BVI interfaces have been deleted. You should delete these orphaned subnets.
         </p>
+        <?php if (count($orphanedSubnets) === 0): ?>
+        <div class="bg-white p-4 rounded text-gray-600">
+            No orphaned subnets detected, but this section is showing because the array is not empty.
+            Debug: <?= htmlspecialchars(json_encode($orphanedSubnets)) ?>
+        </div>
+        <?php else: ?>
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -259,6 +265,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </tbody>
             </table>
         </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
