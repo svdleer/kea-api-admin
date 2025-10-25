@@ -14,26 +14,6 @@ if (!$auth->isLoggedIn()) {
 $currentPage = 'bvi';
 $title = 'BVI Interfaces Overview';
 
-// Get all switches and their BVI interfaces
-$db = Database::getInstance();
-$query = "SELECT 
-            s.id as switch_id,
-            s.hostname as switch_hostname,
-            bvi.id as bvi_id,
-            bvi.interface_number,
-            bvi.ipv6_address
-          FROM switches s
-          LEFT JOIN cin_switch_bvi_interfaces bvi ON s.id = bvi.switch_id
-          ORDER BY s.hostname, bvi.interface_number";
-
-$stmt = $db->query($query);
-$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Get list of switches for the create dropdown
-$switchQuery = "SELECT id, hostname FROM switches ORDER BY hostname";
-$switchStmt = $db->query($switchQuery);
-$switches = $switchStmt->fetchAll(PDO::FETCH_ASSOC);
-
 ob_start();
 ?>
 
@@ -49,8 +29,16 @@ ob_start();
         </button>
     </div>
 
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="flex justify-center py-8">
+        <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </div>
+
     <!-- BVI Interfaces Table -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div id="bviTable" class="hidden bg-white shadow-md rounded-lg overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -68,38 +56,15 @@ ob_start();
                     </th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <?php if (empty($data) || (count($data) === 1 && $data[0]['bvi_id'] === null)): ?>
-                    <tr>
-                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                            No BVI interfaces found. Create one to get started.
-                        </td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($data as $row): ?>
-                        <?php if ($row['bvi_id']): ?>
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($row['switch_hostname']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    BVI<?= 100 + intval($row['interface_number']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= htmlspecialchars($row['ipv6_address']) ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="/switches/<?= $row['switch_id'] ?>/bvi/<?= $row['bvi_id'] ?>/edit" 
-                                       class="text-blue-600 hover:text-blue-900">
-                                        Edit
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+            <tbody id="bviTableBody" class="bg-white divide-y divide-gray-200">
+                <!-- Data will be loaded via JavaScript -->
             </tbody>
         </table>
+    </div>
+
+    <!-- No data message -->
+    <div id="noDataMessage" class="hidden text-center py-8 bg-white shadow-md rounded-lg">
+        <p class="text-gray-500 text-lg">No BVI interfaces found. Create one to get started.</p>
     </div>
 </div>
 
@@ -116,11 +81,6 @@ ob_start();
                     <select id="switch_id" name="switch_id" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">-- Select a Switch --</option>
-                        <?php foreach ($switches as $switch): ?>
-                            <option value="<?= $switch['id'] ?>">
-                                <?= htmlspecialchars($switch['hostname']) ?>
-                            </option>
-                        <?php endforeach; ?>
                     </select>
                 </div>
                 
@@ -150,6 +110,115 @@ ob_start();
 </div>
 
 <script>
+// Load all data on page load
+$(document).ready(function() {
+    loadBviData();
+    loadSwitches();
+});
+
+async function loadBviData() {
+    try {
+        // Get all switches
+        const switchesResponse = await fetch('/api/switches');
+        const switchesData = await switchesResponse.json();
+        
+        if (!switchesData.success || !switchesData.data) {
+            throw new Error('Failed to load switches');
+        }
+        
+        const switches = switchesData.data;
+        const allBviInterfaces = [];
+        
+        // Get BVI interfaces for each switch
+        for (const switchItem of switches) {
+            try {
+                const bviResponse = await fetch(`/api/switches/${switchItem.id}/bvi`);
+                const bviData = await bviResponse.json();
+                
+                if (bviData.success && bviData.data && bviData.data.length > 0) {
+                    bviData.data.forEach(bvi => {
+                        allBviInterfaces.push({
+                            switch_id: switchItem.id,
+                            switch_hostname: switchItem.hostname,
+                            bvi_id: bvi.id,
+                            interface_number: bvi.interface_number,
+                            ipv6_address: bvi.ipv6_address
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error(`Error loading BVI for switch ${switchItem.id}:`, error);
+            }
+        }
+        
+        displayBviData(allBviInterfaces);
+        
+    } catch (error) {
+        console.error('Error loading BVI data:', error);
+        $('#loadingIndicator').hide();
+        alert('Error loading BVI interfaces. Please try again.');
+    }
+}
+
+function displayBviData(bviInterfaces) {
+    $('#loadingIndicator').hide();
+    
+    if (bviInterfaces.length === 0) {
+        $('#noDataMessage').show();
+        return;
+    }
+    
+    const tbody = $('#bviTableBody');
+    tbody.empty();
+    
+    bviInterfaces.forEach(bvi => {
+        const row = `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${escapeHtml(bvi.switch_hostname)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    BVI${100 + parseInt(bvi.interface_number)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${escapeHtml(bvi.ipv6_address)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <a href="/switches/${bvi.switch_id}/bvi/${bvi.bvi_id}/edit" 
+                       class="text-blue-600 hover:text-blue-900">
+                        Edit
+                    </a>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+    
+    $('#bviTable').show();
+}
+
+async function loadSwitches() {
+    try {
+        const response = await fetch('/api/switches');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            const select = $('#switch_id');
+            data.data.forEach(switchItem => {
+                select.append(`<option value="${switchItem.id}">${escapeHtml(switchItem.hostname)}</option>`);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading switches:', error);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function showCreateModal() {
     document.getElementById('createBviModal').classList.remove('hidden');
 }
