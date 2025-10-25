@@ -32,7 +32,11 @@ try {
     
     // Add DHCP subnets
     $dhcp = new DHCP($db);
+    error_log("====== DHCP View: About to call DHCPModel->getEnrichedSubnets() ======");
     $subnets = $subnetModel->getEnrichedSubnets();
+    error_log("getEnrichedSubnets returned " . count($subnets) . " subnets");
+    error_log("Subnets data: " . json_encode($subnets));
+    error_log("====== DHCP View: Returned from DHCPModel->getEnrichedSubnets() ======");
 
 
 
@@ -190,6 +194,8 @@ require BASE_PATH . '/views/dhcp-menu.php';
     }, $switches);
     $assignedBviIds = array_filter($assignedBviIds);
     
+    error_log("Assigned BVI IDs: " . json_encode($assignedBviIds));
+    
     $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds) {
         // A subnet is orphaned if:
         // 1. It has a bvi_interface_id that doesn't match any current BVI
@@ -204,6 +210,9 @@ require BASE_PATH . '/views/dhcp-menu.php';
             return true;
         }
     });
+    
+    error_log("Found " . count($orphanedSubnets) . " orphaned subnets");
+    error_log("Orphaned subnets: " . json_encode($orphanedSubnets));
     ?>
 
     <?php if (!empty($orphanedSubnets)): ?>
@@ -215,6 +224,12 @@ require BASE_PATH . '/views/dhcp-menu.php';
         <p class="text-sm text-red-600 mb-4">
             These subnets exist in Kea but their associated BVI interfaces have been deleted. You should delete these orphaned subnets.
         </p>
+        <?php if (count($orphanedSubnets) === 0): ?>
+        <div class="bg-white p-4 rounded text-gray-600">
+            No orphaned subnets detected, but this section is showing because the array is not empty.
+            Debug: <?= htmlspecialchars(json_encode($orphanedSubnets)) ?>
+        </div>
+        <?php else: ?>
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -240,7 +255,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button onclick="deleteSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
+                                <button onclick="deleteOrphanedSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')" ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                     Delete
                                 </button>
@@ -250,6 +265,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </tbody>
             </table>
         </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
@@ -999,6 +1015,69 @@ function showEditSubnetModal(subnetData, relay) {
                     Swal.fire({
                         title: 'Error!',
                         text: data.message || 'Failed to delete subnet.',
+                        icon: 'error',
+                        confirmButtonColor: '#3085d6'
+                    });
+                }
+            }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'An unexpected error occurred.',
+                icon: 'error',
+                confirmButtonColor: '#3085d6'
+            });
+        }
+    }
+
+    async function deleteOrphanedSubnet(keaSubnetId, subnetData) {
+        try {
+            const subnet = typeof subnetData === 'string' ? JSON.parse(subnetData) : subnetData;
+            const result = await Swal.fire({
+                title: 'Delete Orphaned Subnet?',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-3">You are about to delete orphaned subnet: <strong>${subnet}</strong></p>
+                        <p class="mb-3 text-red-600 font-semibold">⚠️ This will delete the subnet from Kea.</p>
+                        <p class="mb-3">Type <strong class="text-red-600">I AM SURE!</strong> to confirm:</p>
+                        <input type="text" id="delete-orphaned-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Delete Subnet',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const confirmation = document.getElementById('delete-orphaned-confirmation').value;
+                    if (confirmation !== 'I AM SURE!') {
+                        Swal.showValidationMessage('Please type "I AM SURE!" exactly to confirm');
+                        return false;
+                    }
+                    return true;
+                }
+            });
+
+            if (result.isConfirmed) {
+                const response = await fetch(`/api/dhcp/orphaned-subnets/${keaSubnetId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await Swal.fire({
+                        title: 'Success!',
+                        text: 'Orphaned subnet has been removed successfully from Kea.',
+                        icon: 'success',
+                        confirmButtonColor: '#3085d6'
+                    });
+                    window.location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.error || 'Failed to delete orphaned subnet.',
                         icon: 'error',
                         confirmButtonColor: '#3085d6'
                     });

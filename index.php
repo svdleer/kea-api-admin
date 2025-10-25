@@ -168,6 +168,8 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->delete('/api/dhcp/subnets/{id}', [new DHCPController($dhcpModel, $auth), 'delete'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/dhcp/orphaned-subnets/{keaId}', [new DHCPController($dhcpModel, $auth), 'deleteOrphaned'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {

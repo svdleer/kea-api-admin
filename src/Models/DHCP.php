@@ -735,3 +735,38 @@ class DHCP
     
 
 }
+
+    public function deleteOrphanedSubnetFromKea($keaSubnetId)
+    {
+        try {
+            $arguments = [
+                "remote" => [
+                    "type" => "mysql"
+                ],
+                "subnets" => [
+                    [
+                        "id" => intval($keaSubnetId)
+                    ]
+                ]
+            ];
+    
+            error_log("DHCP Model: Deleting orphaned subnet with Kea ID: $keaSubnetId");
+            
+            $response = $this->sendKeaCommand('remote-subnet6-del-by-id', $arguments);
+            error_log("DHCP Model: Kea response received: " . json_encode($response));
+    
+            if (isset($response[0]['result']) && $response[0]['result'] === 0 && 
+                isset($response[0]['arguments']['count']) && $response[0]['arguments']['count'] > 0) {
+                error_log("DHCP Model: Successfully deleted orphaned subnet from Kea");
+                $this->reloadKeaConfig();
+                return true;
+            } else {
+                throw new Exception("Failed to delete orphaned subnet: " . ($response[0]['text'] ?? 'Unknown error'));
+            }
+    
+        } catch (Exception $e) {
+            error_log("DHCP Model: Error deleting orphaned subnet: " . $e->getMessage());
+            throw $e;
+        }
+    }
+}

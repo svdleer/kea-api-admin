@@ -228,6 +228,28 @@ class DHCPController
         }
     }
 
+    public function deleteOrphaned($keaSubnetId)
+    {
+        try {
+            error_log("DHCPController: Attempting to delete orphaned subnet with Kea ID: $keaSubnetId");
+            
+            // Use a custom method in the DHCP model to delete the orphaned subnet
+            $result = $this->subnetModel->deleteOrphanedSubnetFromKea($keaSubnetId);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Orphaned subnet deleted successfully from Kea'
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Error in DHCPController::deleteOrphaned: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
     public function deleteLease()
     {
         try {
