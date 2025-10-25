@@ -140,7 +140,7 @@ ob_start();
                             <?php foreach ($bviInterfaces as $bvi): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php echo htmlspecialchars($bvi['interface_number']); ?>
+                                        BVI<?php echo 100 + intval($bvi['interface_number']); ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php echo htmlspecialchars($bvi['ipv6_address']); ?>
