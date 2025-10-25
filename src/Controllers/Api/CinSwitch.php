@@ -3,14 +3,17 @@
 namespace App\Controllers\Api;
 
 use PDO;
+use App\Models\DHCP;
 
 class CinSwitch
 {
     private $db;
+    private $dhcpModel;
 
     public function __construct($db)
     {
         $this->db = $db;
+        $this->dhcpModel = new DHCP($db);
     }
 
     public function getAll() {
@@ -250,17 +253,43 @@ class CinSwitch
         try {
             header('Content-Type: application/json');
 
+            // Get all BVI interfaces for this switch
+            $stmtGetBvi = $this->db->prepare("
+                SELECT id FROM cin_switch_bvi_interfaces 
+                WHERE switch_id = ?
+            ");
+            $stmtGetBvi->execute([$id]);
+            $bviInterfaces = $stmtGetBvi->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Delete DHCP subnets for each BVI using the DHCP API
+            foreach ($bviInterfaces as $bvi) {
+                try {
+                    // Check if there's a DHCP subnet for this BVI
+                    $stmt = $this->db->prepare("SELECT id FROM cin_bvi_dhcp_core WHERE id = ?");
+                    $stmt->execute([$bvi['id']]);
+                    $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    
+                    if ($subnet) {
+                        error_log("Deleting DHCP subnet for BVI {$bvi['id']} via API");
+                        $this->dhcpModel->deleteSubnet($subnet['id']);
+                    }
+                } catch (\Exception $e) {
+                    error_log("Warning: Could not delete DHCP subnet for BVI {$bvi['id']}: " . $e->getMessage());
+                    // Continue with other deletions
+                }
+            }
+
             $this->db->beginTransaction();
 
             try {
-                // First delete related BVI interfaces
+                // Delete BVI interfaces
                 $stmtBvi = $this->db->prepare("
                     DELETE FROM cin_switch_bvi_interfaces 
                     WHERE switch_id = ?
                 ");
                 $stmtBvi->execute([$id]);
 
-                // Then delete the switch
+                // Delete the switch
                 $stmtSwitch = $this->db->prepare("
                     DELETE FROM cin_switches 
                     WHERE id = ?
@@ -271,17 +300,18 @@ class CinSwitch
 
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Switch and related BVI interfaces deleted successfully'
+                    'message' => 'Switch, BVI interfaces, and DHCP subnets deleted successfully'
                 ]);
             } catch (\Exception $e) {
                 $this->db->rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
+            error_log("Error in CinSwitch::delete: " . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Database error'
+                'error' => 'Error deleting switch: ' . $e->getMessage()
             ]);
         }
     }

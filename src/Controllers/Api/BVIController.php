@@ -116,26 +116,27 @@ class BVIController
         try {
             header('Content-Type: application/json');
             
-            // Check if there's an associated DHCP subnet and delete it from Kea first
+            // Check if there's an associated DHCP subnet and delete it from Kea using the API
             try {
-                // Find subnet by bvi_interface_id (the foreign key), not by id
-                $stmt = $this->db->prepare("SELECT id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
+                // The cin_bvi_dhcp_core table uses the BVI ID as its primary key
+                $stmt = $this->db->prepare("SELECT id FROM cin_bvi_dhcp_core WHERE id = ?");
                 $stmt->execute([$bviId]);
                 $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
                 
                 if ($subnet) {
-                    error_log("Found DHCP subnet with id {$subnet['id']} for BVI ID: $bviId - attempting to delete");
+                    error_log("Found DHCP subnet with id {$subnet['id']} for BVI ID: $bviId - deleting via DHCP API");
+                    // Use the DHCP API to properly delete from Kea and database
                     $this->dhcpModel->deleteSubnet($subnet['id']);
-                    error_log("Successfully deleted DHCP subnet");
+                    error_log("Successfully deleted DHCP subnet via API");
                 } else {
                     error_log("No DHCP subnet found for BVI ID: $bviId");
                 }
             } catch (\Exception $e) {
-                error_log("Warning: Could not delete DHCP subnet: " . $e->getMessage());
+                error_log("Warning: Could not delete DHCP subnet via API: " . $e->getMessage());
                 // Continue with BVI deletion even if DHCP deletion fails
             }
             
-            // Delete the BVI interface
+            // Delete the BVI interface (BVIModel should NOT delete from cin_bvi_dhcp_core since we already did it via API)
             $result = $this->bviModel->deleteBviInterface($switchId, $bviId);
             
             if ($result) {
