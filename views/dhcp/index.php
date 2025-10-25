@@ -34,7 +34,8 @@ try {
     $dhcp = new DHCP($db);
     error_log("====== DHCP View: About to call DHCPModel->getEnrichedSubnets() ======");
     $subnets = $subnetModel->getEnrichedSubnets();
-    error_log("getEnrichedSubnets called, result: " . json_encode($subnets));
+    error_log("getEnrichedSubnets returned " . count($subnets) . " subnets");
+    error_log("Subnets data: " . json_encode($subnets));
     error_log("====== DHCP View: Returned from DHCPModel->getEnrichedSubnets() ======");
 
 
@@ -193,10 +194,15 @@ require BASE_PATH . '/views/dhcp-menu.php';
     }, $switches);
     $assignedBviIds = array_filter($assignedBviIds);
     
+    error_log("Assigned BVI IDs: " . json_encode($assignedBviIds));
+    
     $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds) {
         return isset($subnet['bvi_interface_id']) && 
                !in_array($subnet['bvi_interface_id'], $assignedBviIds);
     });
+    
+    error_log("Found " . count($orphanedSubnets) . " orphaned subnets");
+    error_log("Orphaned subnets: " . json_encode($orphanedSubnets));
     ?>
 
     <?php if (!empty($orphanedSubnets)): ?>
