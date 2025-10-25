@@ -1656,6 +1656,64 @@ function deleteLease(IPv6Address) {
     });
 }
 
+async function deleteStaticLease(ipAddress) {
+    const result = await Swal.fire({
+        title: 'Delete Static Lease?',
+        text: `Are you sure you want to delete the static lease for ${ipAddress}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/dhcp/leases', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'ip-address': ipAddress,
+                'subnet-id': 0  // Subnet ID might need to be passed or determined
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            await Swal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: 'The static lease has been deleted.',
+                confirmButtonColor: '#4f46e5'
+            });
+            
+            // Reload the static leases table
+            location.reload();
+        } else {
+            throw new Error(data.message || 'Failed to delete static lease');
+        }
+    } catch (error) {
+        console.error('Error deleting static lease:', error);
+        await Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.message || 'An error occurred while deleting the static lease.',
+            confirmButtonColor: '#dc2626'
+        });
+    }
+}
+
 </script>
 
 <?php
