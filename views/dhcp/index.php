@@ -185,6 +185,66 @@ require BASE_PATH . '/views/dhcp-menu.php';
             </table>
         </div>
     </div>
+
+    <?php
+    // Find orphaned subnets (subnets that don't have a matching BVI)
+    $assignedBviIds = array_map(function($switch) {
+        return $switch['bvi_interface_id'] ?? null;
+    }, $switches);
+    $assignedBviIds = array_filter($assignedBviIds);
+    
+    $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds) {
+        return isset($subnet['bvi_interface_id']) && 
+               !in_array($subnet['bvi_interface_id'], $assignedBviIds);
+    });
+    ?>
+
+    <?php if (!empty($orphanedSubnets)): ?>
+    <!-- Orphaned Subnets Section -->
+    <div class="mt-8 bg-red-50 border border-red-200 rounded-lg p-4">
+        <h2 class="text-lg font-semibold text-red-800 mb-4">
+            ⚠️ Orphaned Subnets (BVI Deleted)
+        </h2>
+        <p class="text-sm text-red-600 mb-4">
+            These subnets exist in Kea but their associated BVI interfaces have been deleted. You should delete these orphaned subnets.
+        </p>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subnet</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pools</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php foreach ($orphanedSubnets as $orphan): ?>
+                        <tr class="bg-red-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <?= htmlspecialchars($orphan['subnet'] ?? 'N/A') ?>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <?php if (!empty($orphan['pools'])): ?>
+                                    <?php foreach ($orphan['pools'] as $pool): ?>
+                                        <div><?= htmlspecialchars($pool['pool'] ?? 'N/A') ?></div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    No pools
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button onclick="deleteSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
     <!-- Create Modal -->
