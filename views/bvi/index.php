@@ -219,6 +219,12 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function isValidIPv6(ipv6) {
+    // IPv6 regex pattern
+    const ipv6Pattern = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+    return ipv6Pattern.test(ipv6);
+}
+
 function showCreateModal() {
     document.getElementById('createBviModal').classList.remove('hidden');
 }
@@ -229,15 +235,41 @@ function closeCreateModal() {
     document.getElementById('ipv6_error').classList.add('hidden');
 }
 
+// Real-time IPv6 validation
+$('#ipv6_address').on('input', function() {
+    const ipv6 = $(this).val().trim();
+    const errorElement = $('#ipv6_error');
+    
+    if (ipv6 === '') {
+        errorElement.addClass('hidden');
+        return;
+    }
+    
+    if (!isValidIPv6(ipv6)) {
+        errorElement.text('Invalid IPv6 address format');
+        errorElement.removeClass('hidden');
+    } else {
+        errorElement.addClass('hidden');
+    }
+});
+
 document.getElementById('createBviForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const switchId = document.getElementById('switch_id').value;
-    const ipv6Address = document.getElementById('ipv6_address').value;
+    const ipv6Address = document.getElementById('ipv6_address').value.trim();
     const createBtn = document.getElementById('createBtn');
+    const errorElement = document.getElementById('ipv6_error');
     
     if (!switchId) {
         alert('Please select a switch');
+        return;
+    }
+    
+    // Validate IPv6 address
+    if (!isValidIPv6(ipv6Address)) {
+        errorElement.textContent = 'Invalid IPv6 address format';
+        errorElement.classList.remove('hidden');
         return;
     }
     
