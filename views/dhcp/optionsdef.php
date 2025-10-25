@@ -365,14 +365,15 @@ function openEditDefModal(optionDef) {
                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" 
                                 required>
                             <option value="">Select Type</option>
-                            <option value="string" ${optionDef.type === 'string' ? 'selected' : ''}>String</option>
+                            <option value="binary" ${optionDef.type === 'binary' ? 'selected' : ''}>Binary</option>
+                            <option value="boolean" ${optionDef.type === 'boolean' ? 'selected' : ''}>Boolean</option>
                             <option value="uint8" ${optionDef.type === 'uint8' ? 'selected' : ''}>Uint8</option>
                             <option value="uint16" ${optionDef.type === 'uint16' ? 'selected' : ''}>Uint16</option>
                             <option value="uint32" ${optionDef.type === 'uint32' ? 'selected' : ''}>Uint32</option>
                             <option value="ipv6-address" ${optionDef.type === 'ipv6-address' ? 'selected' : ''}>IPv6 Address</option>
                             <option value="ipv6-prefix" ${optionDef.type === 'ipv6-prefix' ? 'selected' : ''}>IPv6 Prefix</option>
+                            <option value="string" ${optionDef.type === 'string' ? 'selected' : ''}>String</option>
                             <option value="fqdn" ${optionDef.type === 'fqdn' ? 'selected' : ''}>FQDN</option>
-                            <option value="binary" ${optionDef.type === 'binary' ? 'selected' : ''}>Binary</option>
                         </select>
                     </div>
                     <div class="mb-4">
