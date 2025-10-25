@@ -37,7 +37,10 @@ require BASE_PATH . '/views/dhcp-menu.php';
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">DHCPv6 Option Definitions</h1>
             <button onclick="openCreateDefModal()" 
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
                 Add Option
             </button>
         </div>
@@ -135,7 +138,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline">
+                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Save
                 </button>
             </div>
