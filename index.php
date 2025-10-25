@@ -241,7 +241,7 @@ try {
 
 
     // CIN Switch Routes - Read Only with Combined Auth
-    $cinSwitchController = new \App\Controllers\Api\CinSwitch($db);
+    $cinSwitchController = new \App\Controllers\Api\CinSwitch($database);
     $router->get('/api/switches', [$cinSwitchController, 'getAll'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->get('/api/switches/{id}', [$cinSwitchController, 'getById'])
