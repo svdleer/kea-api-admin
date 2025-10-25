@@ -151,6 +151,14 @@ class BVIModel
     public function deleteBviInterface($switchId, $bviId)
     {
         try {
+            // First, delete any associated DHCP subnet from cin_bvi_dhcp_core
+            $dhcpStmt = $this->db->prepare("
+                DELETE FROM cin_bvi_dhcp_core 
+                WHERE id = ?
+            ");
+            $dhcpStmt->execute([$bviId]);
+            
+            // Then delete the BVI interface
             $stmt = $this->db->prepare("
                 DELETE FROM cin_switch_bvi_interfaces 
                 WHERE id = ? AND switch_id = ?

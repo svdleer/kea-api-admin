@@ -3,17 +3,20 @@
 namespace App\Controllers\Api;
 
 use App\Models\BVIModel;
+use App\Models\DHCP;
 use App\Database\Database;
 
 class BVIController
 {
     private BVIModel $bviModel;
+    private DHCP $dhcpModel;
     private $db;
 
     public function __construct()
     {
         $this->db = Database::getInstance();
         $this->bviModel = new BVIModel($this->db);
+        $this->dhcpModel = new DHCP($this->db);
     }
 
     public function index($switchId)
@@ -112,10 +115,27 @@ class BVIController
     {
         try {
             header('Content-Type: application/json');
+            
+            // Check if there's an associated DHCP subnet and delete it from Kea first
+            try {
+                $stmt = $this->db->prepare("SELECT id FROM cin_bvi_dhcp_core WHERE id = ?");
+                $stmt->execute([$bviId]);
+                $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if ($subnet) {
+                    error_log("Deleting DHCP subnet for BVI ID: $bviId");
+                    $this->dhcpModel->deleteSubnet($subnet['id']);
+                }
+            } catch (\Exception $e) {
+                error_log("Warning: Could not delete DHCP subnet: " . $e->getMessage());
+                // Continue with BVI deletion even if DHCP deletion fails
+            }
+            
+            // Delete the BVI interface
             $result = $this->bviModel->deleteBviInterface($switchId, $bviId);
             
             if ($result) {
-                echo json_encode(['success' => true, 'message' => 'BVI interface deleted successfully']);
+                echo json_encode(['success' => true, 'message' => 'BVI interface and associated DHCP subnet deleted successfully']);
             } else {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'BVI interface not found']);
