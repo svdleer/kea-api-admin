@@ -35,60 +35,6 @@ try {
 ob_start();
 ?>
 
-
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
-        <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <!-- Header -->
-            <div class="px-4 py-6 sm:px-0 flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-800">CIN Switches</h2>
-                <a href="/switches/add" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                    Add New Switch
-                </a>
-            </div>
-
-            <?php if ($message): ?>
-            <div class="mb-4 px-4 py-3 rounded relative bg-green-100 border border-green-400 text-green-700">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
-            <?php endif; ?>
-
-            <?php if ($error): ?>
-            <div class="mb-4 px-4 py-3 rounded relative bg-red-100 border border-red-400 text-red-700">
-                <?php echo htmlspecialchars($error); ?>
-            </div>
-                        <?php endif; ?>
-
-            <!-- Search Box -->
-            <div class="mb-4 px-4 sm:px-0">
-                <div class="max-w-md">
-                    <div class="relative">
-                        <input type="text" 
-                               id="searchInput"
-                               placeholder="Search by hostname..." 
-                               onkeyup="performSearch(this.value)"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 pl-10">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Switches Table -->
-            <div class="mt-4">
-                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostname</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BVI Count</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        
 <!-- Main Content -->
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <!-- Page Header -->
