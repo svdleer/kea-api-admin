@@ -236,6 +236,7 @@ function closeCreateModal() {
 }
 
 // Real-time IPv6 validation
+let ipv6CheckTimeout;
 $('#ipv6_address').on('input', function() {
     const ipv6 = $(this).val().trim();
     const errorElement = $('#ipv6_error');
@@ -248,9 +249,48 @@ $('#ipv6_address').on('input', function() {
     if (!isValidIPv6(ipv6)) {
         errorElement.text('Invalid IPv6 address format');
         errorElement.removeClass('hidden');
+        return;
     } else {
         errorElement.addClass('hidden');
     }
+    
+    // Check if IPv6 already exists (debounced)
+    clearTimeout(ipv6CheckTimeout);
+    ipv6CheckTimeout = setTimeout(async () => {
+        try {
+            // Get all switches and check all BVI interfaces
+            const switchesResponse = await fetch('/api/switches');
+            const switchesData = await switchesResponse.json();
+            
+            if (switchesData.success && switchesData.data) {
+                let addressExists = false;
+                
+                for (const switchItem of switchesData.data) {
+                    const bviResponse = await fetch(`/api/switches/${switchItem.id}/bvi`);
+                    const bviData = await bviResponse.json();
+                    
+                    if (bviData.success && bviData.data) {
+                        const match = bviData.data.find(bvi => 
+                            bvi.ipv6_address.toLowerCase() === ipv6.toLowerCase()
+                        );
+                        
+                        if (match) {
+                            addressExists = true;
+                            errorElement.text(`Warning: This IPv6 address already exists on ${switchItem.hostname} BVI${100 + parseInt(match.interface_number)}`);
+                            errorElement.removeClass('hidden');
+                            break;
+                        }
+                    }
+                }
+                
+                if (!addressExists) {
+                    errorElement.addClass('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Error checking IPv6 address:', error);
+        }
+    }, 500);
 });
 
 document.getElementById('createBviForm').addEventListener('submit', async function(e) {
@@ -271,6 +311,33 @@ document.getElementById('createBviForm').addEventListener('submit', async functi
         errorElement.textContent = 'Invalid IPv6 address format';
         errorElement.classList.remove('hidden');
         return;
+    }
+    
+    // Check if IPv6 address already exists
+    try {
+        const switchesResponse = await fetch('/api/switches');
+        const switchesData = await switchesResponse.json();
+        
+        if (switchesData.success && switchesData.data) {
+            for (const switchItem of switchesData.data) {
+                const bviResponse = await fetch(`/api/switches/${switchItem.id}/bvi`);
+                const bviData = await bviResponse.json();
+                
+                if (bviData.success && bviData.data) {
+                    const match = bviData.data.find(bvi => 
+                        bvi.ipv6_address.toLowerCase() === ipv6Address.toLowerCase()
+                    );
+                    
+                    if (match) {
+                        errorElement.textContent = `This IPv6 address already exists on ${switchItem.hostname} BVI${100 + parseInt(match.interface_number)}`;
+                        errorElement.classList.remove('hidden');
+                        return;
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking IPv6 address:', error);
     }
     
     createBtn.disabled = true;
