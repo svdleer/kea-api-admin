@@ -111,18 +111,19 @@ class BVIController
     public function delete($switchId, $bviId)
     {
         try {
+            header('Content-Type: application/json');
             $result = $this->bviModel->deleteBviInterface($switchId, $bviId);
             
             if ($result) {
-                echo json_encode(['success' => true,'message' => 'BVI interface deleted successfully']);
+                echo json_encode(['success' => true, 'message' => 'BVI interface deleted successfully']);
             } else {
                 http_response_code(404);
-                echo json_encode(['error' => 'BVI interface not found']);
+                echo json_encode(['success' => false, 'error' => 'BVI interface not found']);
             }
         } catch (\Exception $e) {
             error_log("Error in BVIController::delete: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Internal server error']);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
     public function checkBVIExists($switchId) 
