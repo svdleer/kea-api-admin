@@ -734,8 +734,6 @@ class DHCP
         
     
 
-}
-
     public function deleteOrphanedSubnetFromKea($keaSubnetId)
     {
         try {
