@@ -326,6 +326,12 @@ try {
     // Sync route
     $router->post('/api/radius/sync', [$radiusController, 'syncBviInterfaces'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    
+    // Global secret management
+    $router->get('/api/radius/global-secret', [$radiusController, 'getGlobalSecret'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->put('/api/radius/global-secret', [$radiusController, 'updateGlobalSecret'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
     $router->get('/dashboard', function() {

@@ -199,6 +199,76 @@ class RadiusController
     }
 
     /**
+     * Get global secret configuration
+     * GET /api/radius/global-secret
+     */
+    public function getGlobalSecret()
+    {
+        try {
+            $globalSecret = $this->radiusModel->getCurrentGlobalSecret();
+            
+            $this->jsonResponse([
+                'success' => true,
+                'has_global_secret' => !empty($globalSecret),
+                'secret' => $globalSecret ?: null
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update global secret and apply to all clients
+     * PUT /api/radius/global-secret
+     */
+    public function updateGlobalSecret()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (!isset($data['secret']) || empty($data['secret'])) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Secret is required'
+                ], 400);
+                return;
+            }
+
+            $secret = $data['secret'];
+            $applyToAll = $data['apply_to_all'] ?? true;
+
+            // Update config file
+            $configFile = BASE_PATH . '/config/radius.php';
+            $config = file_exists($configFile) ? require $configFile : [];
+            $config['global_secret'] = $secret;
+            
+            $configContent = "<?php\n\nreturn " . var_export($config, true) . ";\n";
+            file_put_contents($configFile, $configContent);
+
+            $updatedCount = 0;
+            if ($applyToAll) {
+                $updatedCount = $this->radiusModel->applyGlobalSecretToAll($secret);
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => $applyToAll 
+                    ? "Global secret updated and applied to $updatedCount client(s)"
+                    : "Global secret updated (not applied to existing clients)",
+                'updated_count' => $updatedCount
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper function to send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)

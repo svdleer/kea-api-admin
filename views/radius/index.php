@@ -54,6 +54,30 @@ ob_start();
         </div>
     </div>
 
+    <!-- Global Secret Configuration -->
+    <div class="mb-6 bg-white shadow-md rounded-lg p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Global Shared Secret</h2>
+                <p class="text-sm text-gray-600 mt-1">Configure one secret for all RADIUS clients (recommended for easier management)</p>
+            </div>
+            <button onclick="editGlobalSecret()" 
+                    class="inline-flex items-center px-3 py-2 border border-indigo-600 rounded-md text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
+                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                Configure
+            </button>
+        </div>
+        <div id="globalSecretStatus" class="flex items-center">
+            <div class="animate-pulse flex space-x-2">
+                <div class="h-2 w-2 bg-gray-400 rounded-full"></div>
+                <div class="h-2 w-2 bg-gray-400 rounded-full"></div>
+                <div class="h-2 w-2 bg-gray-400 rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Search Box -->
     <div class="mb-6">
         <div class="relative max-w-md">
@@ -112,6 +136,72 @@ ob_start();
     <!-- No data message -->
     <div id="noDataMessage" class="hidden text-center py-8 bg-white shadow-md rounded-lg">
         <p class="text-gray-500 text-lg">No RADIUS clients found. Click "Sync BVI Interfaces" to create them automatically.</p>
+    </div>
+</div>
+
+<!-- Global Secret Modal -->
+<div id="globalSecretModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Configure Global Shared Secret</h3>
+            <form id="globalSecretForm">
+                <div class="mb-4">
+                    <label for="global_secret" class="block text-sm font-medium text-gray-700 mb-2">
+                        Global Shared Secret
+                        <span class="text-xs text-gray-500">(used for all 802.1X clients)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="global_secret" name="secret" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm pr-20">
+                        <button type="button" onclick="toggleSecretVisibility('global_secret')"
+                                class="absolute right-12 top-2 text-gray-500 hover:text-gray-700">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                        <button type="button" onclick="generateRandomSecret('global_secret')"
+                                class="absolute right-2 top-2 text-indigo-600 hover:text-indigo-800 text-xs font-medium">
+                            Generate
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">This secret will be used for all RADIUS clients</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="apply_to_all" checked
+                               class="form-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300">
+                        <span class="ml-2 text-sm text-gray-700">Apply to all existing RADIUS clients</span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-6">Update the secret for all currently configured clients</p>
+                </div>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                    <div class="flex">
+                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <strong>Important:</strong> After changing the global secret, you must update all your network switches with the new secret for 802.1X to work.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeGlobalSecretModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveGlobalSecretBtn"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                        Save Global Secret
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -198,7 +288,41 @@ ob_start();
 // Load all data on page load
 $(document).ready(function() {
     loadRadiusClients();
+    loadGlobalSecretStatus();
 });
+
+async function loadGlobalSecretStatus() {
+    try {
+        const response = await fetch('/api/radius/global-secret');
+        const data = await response.json();
+        
+        const statusDiv = $('#globalSecretStatus');
+        if (data.success) {
+            if (data.has_global_secret) {
+                statusDiv.html(`
+                    <div class="flex items-center space-x-2">
+                        <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm text-green-700 font-medium">Global secret configured</span>
+                        <code class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">${'•'.repeat(32)}</code>
+                    </div>
+                `);
+            } else {
+                statusDiv.html(`
+                    <div class="flex items-center space-x-2">
+                        <svg class="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm text-yellow-700">No global secret configured - each client has individual secrets</span>
+                    </div>
+                `);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading global secret status:', error);
+    }
+}
 
 async function loadRadiusClients() {
     try {
@@ -509,6 +633,98 @@ function performSearch(searchTerm) {
 document.getElementById('editSecretModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeEditModal();
+    }
+});
+
+// Global Secret Management
+function editGlobalSecret() {
+    document.getElementById('globalSecretModal').classList.remove('hidden');
+    // Load current secret if exists
+    fetch('/api/radius/global-secret')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.has_global_secret) {
+                document.getElementById('global_secret').value = data.secret || '';
+            }
+        });
+}
+
+function closeGlobalSecretModal() {
+    document.getElementById('globalSecretModal').classList.add('hidden');
+    document.getElementById('globalSecretForm').reset();
+}
+
+document.getElementById('globalSecretForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const secret = document.getElementById('global_secret').value;
+    const applyToAll = document.getElementById('apply_to_all').checked;
+    const saveBtn = document.getElementById('saveGlobalSecretBtn');
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    try {
+        const response = await fetch('/api/radius/global-secret', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                secret: secret,
+                apply_to_all: applyToAll
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await Swal.fire({
+                title: 'Success!',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-3">${result.message}</p>
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3">
+                            <p class="text-sm text-yellow-700">
+                                <strong>Next steps:</strong><br>
+                                1. Copy the secret to your clipboard<br>
+                                2. Update all your network switches with this secret<br>
+                                3. Restart 802.1X authentication on affected switches
+                            </p>
+                        </div>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonColor: '#6366f1'
+            });
+            closeGlobalSecretModal();
+            loadGlobalSecretStatus();
+            loadRadiusClients();
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: result.message || 'Failed to update global secret',
+                icon: 'error',
+                confirmButtonColor: '#6366f1'
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'An error occurred while updating',
+            icon: 'error',
+            confirmButtonColor: '#6366f1'
+        });
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Global Secret';
+    }
+});
+
+document.getElementById('globalSecretModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeGlobalSecretModal();
     }
 });
 </script>

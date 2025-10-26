@@ -15,6 +15,20 @@ class RadiusClient
     }
 
     /**
+     * Get global RADIUS secret from configuration
+     */
+    private function getGlobalSecret()
+    {
+        $configFile = BASE_PATH . '/config/radius.php';
+        if (file_exists($configFile)) {
+            $config = require $configFile;
+            $globalSecret = $config['global_secret'] ?? '';
+            return !empty($globalSecret) ? $globalSecret : null;
+        }
+        return null;
+    }
+
+    /**
      * Get all RADIUS clients
      */
     public function getAllClients()
@@ -94,9 +108,14 @@ class RadiusClient
                 return $existing['id'];
             }
 
-            // Generate default secret if not provided
+            // Use global secret if configured, otherwise use provided or generate new
             if ($secret === null) {
-                $secret = bin2hex(random_bytes(16));
+                $globalSecret = $this->getGlobalSecret();
+                if ($globalSecret) {
+                    $secret = $globalSecret;
+                } else {
+                    $secret = bin2hex(random_bytes(16));
+                }
             }
 
             // Generate shortname if not provided
@@ -267,5 +286,30 @@ class RadiusClient
             error_log("Error syncing BVI interfaces: " . $e->getMessage());
             throw new \Exception("Failed to sync BVI interfaces");
         }
+    }
+
+    /**
+     * Apply global secret to all RADIUS clients
+     */
+    public function applyGlobalSecretToAll($globalSecret)
+    {
+        try {
+            $query = "UPDATE nas SET secret = ? WHERE bvi_interface_id IS NOT NULL";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$globalSecret]);
+
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            error_log("Error applying global secret: " . $e->getMessage());
+            throw new \Exception("Failed to apply global secret to all clients");
+        }
+    }
+
+    /**
+     * Get current global secret from config
+     */
+    public function getCurrentGlobalSecret()
+    {
+        return $this->getGlobalSecret();
     }
 }
