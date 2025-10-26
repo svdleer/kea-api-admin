@@ -358,7 +358,7 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Admin Tools - Backup/Import/Export Routes (Admin Only)
-    $adminController = new \App\Controllers\Api\AdminController($db);
+    $adminController = new \App\Controllers\Api\AdminController($database);
     
     $router->get('/api/admin/export/kea-config', [$adminController, 'exportKeaConfig'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
