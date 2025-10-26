@@ -189,6 +189,17 @@ class AdminController
                 ];
             }
             
+            // Check which subnets already exist in Kea
+            $dhcpModel = new \App\Models\DHCP($this->db);
+            $existingSubnets = $dhcpModel->getAllSubnetsfromKEA();
+            $existingSubnetIds = array_column($existingSubnets, 'id');
+            
+            // Mark subnets that already exist
+            foreach ($subnets as &$subnet) {
+                $subnet['exists'] = in_array($subnet['id'], $existingSubnetIds);
+            }
+            unset($subnet); // Break reference
+            
             $this->jsonResponse([
                 'success' => true,
                 'subnets' => $subnets,

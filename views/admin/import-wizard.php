@@ -212,19 +212,27 @@ function displaySubnets(subnets) {
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                ${subnets.map((subnet, index) => `
-                    <tr>
+                ${subnets.map((subnet, index) => {
+                    const exists = subnet.exists || false;
+                    const defaultAction = exists ? 'skip' : 'create';
+                    const checkboxChecked = exists ? '' : 'checked';
+                    const rowClass = exists ? 'bg-gray-50' : '';
+                    return `
+                    <tr class="${rowClass}">
                         <td class="px-4 py-4">
-                            <input type="checkbox" class="subnet-checkbox" data-index="${index}" checked>
+                            <input type="checkbox" class="subnet-checkbox" data-index="${index}" ${checkboxChecked}>
                         </td>
-                        <td class="px-4 py-4 text-sm font-medium text-gray-900">${subnet.subnet}</td>
+                        <td class="px-4 py-4 text-sm font-medium text-gray-900">
+                            ${subnet.subnet}
+                            ${exists ? '<span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Already exists</span>' : ''}
+                        </td>
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.pool || 'N/A'}</td>
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.relay || 'N/A'}</td>
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.ccap_core || 'N/A'}</td>
                         <td class="px-4 py-4">
                             <select class="subnet-action text-sm border-gray-300 rounded-md" data-index="${index}">
-                                <option value="create" selected>Create New CIN + BVI</option>
-                                <option value="skip">Skip (Create Subnet Only)</option>
+                                <option value="create" ${defaultAction === 'create' ? 'selected' : ''}>Create New CIN + BVI</option>
+                                <option value="skip" ${defaultAction === 'skip' ? 'selected' : ''}>Skip (Already imported)</option>
                                 <option value="link">Link to Existing BVI</option>
                             </select>
                             <div class="mt-2 hidden" id="bvi-select-${index}">
@@ -233,7 +241,7 @@ function displaySubnets(subnets) {
                                     <!-- Will be populated -->
                                 </select>
                             </div>
-                            <div class="mt-2" id="cin-input-${index}">
+                            <div class="mt-2 ${defaultAction === 'skip' ? 'hidden' : ''}" id="cin-input-${index}">
                                 <input type="text" placeholder="CIN Switch Name (e.g., ASD-GT0004-AR151)" 
                                        class="cin-name text-sm border-gray-300 rounded-md w-full" data-index="${index}">
                                 <input type="text" placeholder="BVI IPv6 Address (e.g., ${subnet.relay || '2001:b88:8005:f006::1'})" 
@@ -243,7 +251,7 @@ function displaySubnets(subnets) {
                             </div>
                         </td>
                     </tr>
-                `).join('')}
+                `}).join('')}
             </tbody>
         </table>
     `;
