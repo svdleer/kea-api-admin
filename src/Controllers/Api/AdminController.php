@@ -42,31 +42,70 @@ class AdminController
 
         $file = $_FILES['config'];
         $tmpPath = $file['tmp_name'];
+        
+        // Log file details
+        error_log("Import file: " . $file['name'] . " (" . $file['size'] . " bytes)");
+        error_log("Temp path: " . $tmpPath);
+
+        // Read file content to check if it's valid
+        $content = file_get_contents($tmpPath);
+        error_log("File content length: " . strlen($content));
+        error_log("First 200 chars: " . substr($content, 0, 200));
 
         // Call the import script
         $scriptPath = BASE_PATH . '/scripts/import_kea_config.php';
         $output = [];
         $returnCode = 0;
 
-        exec("php $scriptPath $tmpPath 2>&1", $output, $returnCode);
+        $command = "php $scriptPath " . escapeshellarg($tmpPath) . " 2>&1";
+        error_log("Executing: $command");
+        
+        exec($command, $output, $returnCode);
+        
+        error_log("Return code: $returnCode");
+        error_log("Output lines: " . count($output));
 
         if ($returnCode === 0) {
             // Parse output for statistics
+            $outputText = implode("\n", $output);
+            
+            // Try to extract stats from output
+            preg_match('/Subnets:\s*(\d+)\s*imported,\s*(\d+)\s*skipped/', $outputText, $subnetMatches);
+            preg_match('/Reservations:\s*(\d+)\s*imported,\s*(\d+)\s*skipped/', $outputText, $resMatches);
+            preg_match('/Options:\s*(\d+)\s*imported,\s*(\d+)\s*skipped/', $outputText, $optMatches);
+            
             $this->jsonResponse([
                 'success' => true,
                 'message' => 'Configuration imported successfully',
                 'stats' => [
-                    'subnets' => ['imported' => 0, 'skipped' => 0],
-                    'reservations' => ['imported' => 0, 'skipped' => 0],
-                    'options' => ['imported' => 0, 'skipped' => 0]
+                    'subnets' => [
+                        'imported' => isset($subnetMatches[1]) ? (int)$subnetMatches[1] : 0,
+                        'skipped' => isset($subnetMatches[2]) ? (int)$subnetMatches[2] : 0
+                    ],
+                    'reservations' => [
+                        'imported' => isset($resMatches[1]) ? (int)$resMatches[1] : 0,
+                        'skipped' => isset($resMatches[2]) ? (int)$resMatches[2] : 0
+                    ],
+                    'options' => [
+                        'imported' => isset($optMatches[1]) ? (int)$optMatches[1] : 0,
+                        'skipped' => isset($optMatches[2]) ? (int)$optMatches[2] : 0
+                    ]
                 ],
-                'output' => implode("\n", $output)
+                'output' => $outputText
             ]);
         } else {
+            $outputText = implode("\n", $output);
+            error_log("Import failed: " . $outputText);
+            
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Import failed',
-                'output' => implode("\n", $output)
+                'message' => 'Import failed - see details below',
+                'error' => $outputText,
+                'details' => [
+                    'filename' => $file['name'],
+                    'size' => $file['size'],
+                    'returnCode' => $returnCode
+                ]
             ], 500);
         }
     }

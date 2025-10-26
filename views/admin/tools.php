@@ -284,16 +284,33 @@ async function importKeaConfig() {
                     html: `
                         <p class="mb-2">${result.message}</p>
                         <div class="text-sm text-left bg-gray-50 p-3 rounded">
-                            <p>Subnets: ${result.stats.subnets.imported} imported, ${result.stats.subnets.skipped} skipped</p>
-                            <p>Reservations: ${result.stats.reservations.imported} imported, ${result.stats.reservations.skipped} skipped</p>
-                            <p>Options: ${result.stats.options.imported} imported, ${result.stats.options.skipped} skipped</p>
+                            <p><strong>Subnets:</strong> ${result.stats.subnets.imported} imported, ${result.stats.subnets.skipped} skipped</p>
+                            <p><strong>Reservations:</strong> ${result.stats.reservations.imported} imported, ${result.stats.reservations.skipped} skipped</p>
+                            <p><strong>Options:</strong> ${result.stats.options.imported} imported, ${result.stats.options.skipped} skipped</p>
                         </div>
                     `,
                     icon: 'success',
                     confirmButtonColor: '#3B82F6'
                 });
             } else {
-                Swal.fire('Error', result.message, 'error');
+                Swal.fire({
+                    title: 'Import Failed',
+                    html: `
+                        <p class="mb-2 text-red-600">${result.message}</p>
+                        <div class="text-xs text-left bg-gray-50 p-3 rounded overflow-auto max-h-64">
+                            <pre class="whitespace-pre-wrap">${result.error || result.output || 'Unknown error'}</pre>
+                        </div>
+                        ${result.details ? `
+                            <div class="text-xs text-left mt-2 text-gray-600">
+                                <p>File: ${result.details.filename}</p>
+                                <p>Size: ${result.details.size} bytes</p>
+                            </div>
+                        ` : ''}
+                    `,
+                    icon: 'error',
+                    width: '600px',
+                    confirmButtonColor: '#DC2626'
+                });
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to import configuration', 'error');
