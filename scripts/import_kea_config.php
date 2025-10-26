@@ -1,0 +1,423 @@
+#!/usr/bin/env php
+<?php
+/**
+ * KEA DHCPv6 Configuration Import Script
+ * 
+ * This script imports DHCPv6 configuration from kea-dhcp6.conf into the database:
+ * - Subnets with pools and options
+ * - Host reservations (static leases)
+ * - Option definitions
+ * - Global options
+ * 
+ * Usage:
+ *   php scripts/import_kea_config.php [config-file]
+ * 
+ * Example:
+ *   php scripts/import_kea_config.php /etc/kea/kea-dhcp6.conf
+ */
+
+// Set up paths
+define('BASE_PATH', dirname(__DIR__));
+require_once BASE_PATH . '/vendor/autoload.php';
+
+use App\Database\Database;
+
+// Colors for output
+class Colors {
+    const RESET = "\033[0m";
+    const RED = "\033[31m";
+    const GREEN = "\033[32m";
+    const YELLOW = "\033[33m";
+    const BLUE = "\033[34m";
+    const CYAN = "\033[36m";
+    const BOLD = "\033[1m";
+}
+
+class KeaConfigImporter {
+    private $db;
+    private $stats = [
+        'subnets' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
+        'reservations' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
+        'options' => ['imported' => 0, 'skipped' => 0, 'errors' => 0]
+    ];
+
+    public function __construct() {
+        $this->db = Database::getInstance();
+    }
+
+    /**
+     * Main import function
+     */
+    public function import($configFile) {
+        $this->printHeader();
+
+        if (!file_exists($configFile)) {
+            $this->error("Configuration file not found: $configFile");
+            return false;
+        }
+
+        $this->info("Reading configuration from: $configFile");
+
+        // Read and parse JSON config
+        $configJson = file_get_contents($configFile);
+        
+        // Remove comments (lines starting with # or //)
+        $configJson = preg_replace('/^\s*#.*$/m', '', $configJson);
+        $configJson = preg_replace('/^\s*\/\/.*$/m', '', $configJson);
+        
+        $config = json_decode($configJson, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->error("Failed to parse configuration file: " . json_last_error_msg());
+            $this->warning("Note: Kea config files may contain comments. Make sure to remove them or use a proper parser.");
+            return false;
+        }
+
+        if (!isset($config['Dhcp6'])) {
+            $this->error("Invalid configuration: 'Dhcp6' section not found");
+            return false;
+        }
+
+        $dhcp6Config = $config['Dhcp6'];
+
+        // Import option definitions first
+        if (isset($dhcp6Config['option-def'])) {
+            $this->info("\n" . Colors::CYAN . "Importing Option Definitions..." . Colors::RESET);
+            $this->importOptionDefinitions($dhcp6Config['option-def']);
+        }
+
+        // Import global options
+        if (isset($dhcp6Config['option-data'])) {
+            $this->info("\n" . Colors::CYAN . "Importing Global Options..." . Colors::RESET);
+            $this->importOptions($dhcp6Config['option-data'], null);
+        }
+
+        // Import subnets
+        if (isset($dhcp6Config['subnet6'])) {
+            $this->info("\n" . Colors::CYAN . "Importing Subnets..." . Colors::RESET);
+            foreach ($dhcp6Config['subnet6'] as $subnet) {
+                $this->importSubnet($subnet);
+            }
+        }
+
+        // Import host reservations from reservations file if configured
+        if (isset($dhcp6Config['hosts-database'])) {
+            $this->info("\n" . Colors::CYAN . "Host reservations database configured" . Colors::RESET);
+            $this->info("Reservations will be read from Kea's database");
+        }
+
+        $this->printSummary();
+        return true;
+    }
+
+    /**
+     * Import option definitions
+     */
+    private function importOptionDefinitions($optionDefs) {
+        foreach ($optionDefs as $optionDef) {
+            try {
+                $code = $optionDef['code'];
+                $name = $optionDef['name'];
+                $type = $optionDef['type'];
+                $space = $optionDef['space'] ?? 'dhcp6';
+
+                // Check if already exists
+                $stmt = $this->db->prepare("SELECT code FROM dhcp6_option_def WHERE code = ? AND space = ?");
+                $stmt->execute([$code, $space]);
+                
+                if ($stmt->fetch()) {
+                    $this->stats['options']['skipped']++;
+                    $this->warning("  Option definition $code ($name) already exists, skipping");
+                    continue;
+                }
+
+                // Insert option definition
+                $stmt = $this->db->prepare(
+                    "INSERT INTO dhcp6_option_def (code, name, type, space, array, record_types, encapsulate) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"
+                );
+
+                $stmt->execute([
+                    $code,
+                    $name,
+                    $type,
+                    $space,
+                    $optionDef['array'] ?? false,
+                    isset($optionDef['record-types']) ? implode(',', $optionDef['record-types']) : null,
+                    $optionDef['encapsulate'] ?? null
+                ]);
+
+                $this->stats['options']['imported']++;
+                $this->success("  ✓ Imported option definition: $name (code $code)");
+
+            } catch (Exception $e) {
+                $this->stats['options']['errors']++;
+                $this->error("  ✗ Failed to import option definition: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Import options (global or per subnet)
+     */
+    private function importOptions($options, $subnetId = null) {
+        foreach ($options as $option) {
+            try {
+                $code = $option['code'];
+                $data = $option['data'];
+                $name = $option['name'] ?? "option-$code";
+
+                // Check if already exists
+                $query = $subnetId 
+                    ? "SELECT code FROM dhcp6_options WHERE code = ? AND subnet_id = ?"
+                    : "SELECT code FROM dhcp6_options WHERE code = ? AND subnet_id IS NULL";
+                
+                $stmt = $this->db->prepare($query);
+                $params = $subnetId ? [$code, $subnetId] : [$code];
+                $stmt->execute($params);
+                
+                if ($stmt->fetch()) {
+                    $this->stats['options']['skipped']++;
+                    continue;
+                }
+
+                // Insert option
+                $stmt = $this->db->prepare(
+                    "INSERT INTO dhcp6_options (code, name, data, space, subnet_id) 
+                     VALUES (?, ?, ?, ?, ?)"
+                );
+
+                $stmt->execute([
+                    $code,
+                    $name,
+                    $data,
+                    $option['space'] ?? 'dhcp6',
+                    $subnetId
+                ]);
+
+                $this->stats['options']['imported']++;
+
+            } catch (Exception $e) {
+                $this->stats['options']['errors']++;
+                $this->error("  ✗ Failed to import option: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Import subnet with pools and reservations
+     */
+    private function importSubnet($subnet) {
+        try {
+            $subnetPrefix = $subnet['subnet'];
+            $subnetId = $subnet['id'];
+
+            $this->info("\n  Processing subnet: $subnetPrefix (ID: $subnetId)");
+
+            // Check if subnet already exists in database
+            $stmt = $this->db->prepare("SELECT id FROM ipv6_subnets WHERE subnet = ?");
+            $stmt->execute([$subnetPrefix]);
+            
+            if ($stmt->fetch()) {
+                $this->stats['subnets']['skipped']++;
+                $this->warning("    Subnet already exists in database, skipping");
+                return;
+            }
+
+            // Extract pools
+            $pools = [];
+            if (isset($subnet['pools'])) {
+                foreach ($subnet['pools'] as $pool) {
+                    $pools[] = $pool['pool'];
+                }
+            }
+
+            // Insert subnet into database
+            $stmt = $this->db->prepare(
+                "INSERT INTO ipv6_subnets 
+                (subnet, pools, interface, valid_lifetime, preferred_lifetime, 
+                 rapid_commit, description, bvi_interface_id) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+
+            $stmt->execute([
+                $subnetPrefix,
+                !empty($pools) ? json_encode($pools) : null,
+                $subnet['interface'] ?? null,
+                $subnet['valid-lifetime'] ?? 7200,
+                $subnet['preferred-lifetime'] ?? 3600,
+                $subnet['rapid-commit'] ?? false,
+                "Imported from Kea config",
+                null // Will need to be linked manually to BVI interface
+            ]);
+
+            $dbSubnetId = $this->db->lastInsertId();
+
+            $this->stats['subnets']['imported']++;
+            $this->success("    ✓ Imported subnet: $subnetPrefix");
+            
+            if (!empty($pools)) {
+                $this->info("      Pools: " . implode(', ', $pools));
+            }
+
+            // Import subnet-specific options
+            if (isset($subnet['option-data'])) {
+                $this->importOptions($subnet['option-data'], $dbSubnetId);
+            }
+
+            // Import reservations if present in subnet
+            if (isset($subnet['reservations'])) {
+                $this->info("    Importing reservations...");
+                foreach ($subnet['reservations'] as $reservation) {
+                    $this->importReservation($reservation, $subnetId, $subnetPrefix);
+                }
+            }
+
+        } catch (Exception $e) {
+            $this->stats['subnets']['errors']++;
+            $this->error("    ✗ Failed to import subnet: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Import host reservation
+     */
+    private function importReservation($reservation, $subnetId, $subnetPrefix) {
+        try {
+            $duid = $reservation['duid'] ?? $reservation['hw-address'] ?? null;
+            $ipAddresses = $reservation['ip-addresses'] ?? [];
+            $hostname = $reservation['hostname'] ?? null;
+
+            if (!$duid || empty($ipAddresses)) {
+                $this->warning("      Skipping invalid reservation (missing DUID or IP)");
+                return;
+            }
+
+            foreach ($ipAddresses as $ipAddress) {
+                // Check if reservation already exists
+                $stmt = $this->db->prepare(
+                    "SELECT dhcp6_iaid FROM hosts WHERE dhcp6_subnet_id = ? AND ipv6_address = ?"
+                );
+                $stmt->execute([$subnetId, inet_pton($ipAddress)]);
+                
+                if ($stmt->fetch()) {
+                    $this->stats['reservations']['skipped']++;
+                    continue;
+                }
+
+                // Insert reservation (using Kea's hosts table structure)
+                $stmt = $this->db->prepare(
+                    "INSERT INTO hosts 
+                    (dhcp_identifier, dhcp_identifier_type, dhcp6_subnet_id, ipv6_address, hostname) 
+                    VALUES (?, 0, ?, ?, ?)"
+                );
+
+                $stmt->execute([
+                    hex2bin(str_replace(':', '', $duid)),
+                    $subnetId,
+                    inet_pton($ipAddress),
+                    $hostname
+                ]);
+
+                $this->stats['reservations']['imported']++;
+                $this->success("      ✓ Imported reservation: $ipAddress ($hostname)");
+            }
+
+        } catch (Exception $e) {
+            $this->stats['reservations']['errors']++;
+            $this->error("      ✗ Failed to import reservation: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print header
+     */
+    private function printHeader() {
+        echo Colors::BOLD . Colors::CYAN;
+        echo "\n";
+        echo "╔═══════════════════════════════════════════════════════════╗\n";
+        echo "║      KEA DHCPv6 Configuration Import Script               ║\n";
+        echo "║      Import subnets, pools, and reservations              ║\n";
+        echo "╚═══════════════════════════════════════════════════════════╝\n";
+        echo Colors::RESET . "\n";
+    }
+
+    /**
+     * Print summary
+     */
+    private function printSummary() {
+        echo "\n" . Colors::BOLD . Colors::CYAN;
+        echo "╔═══════════════════════════════════════════════════════════╗\n";
+        echo "║                    Import Summary                         ║\n";
+        echo "╚═══════════════════════════════════════════════════════════╝\n";
+        echo Colors::RESET;
+
+        $this->printStatLine("Subnets", $this->stats['subnets']);
+        $this->printStatLine("Reservations", $this->stats['reservations']);
+        $this->printStatLine("Options", $this->stats['options']);
+
+        $totalImported = $this->stats['subnets']['imported'] + 
+                        $this->stats['reservations']['imported'] + 
+                        $this->stats['options']['imported'];
+        
+        $totalErrors = $this->stats['subnets']['errors'] + 
+                      $this->stats['reservations']['errors'] + 
+                      $this->stats['options']['errors'];
+
+        echo "\n" . Colors::BOLD;
+        echo "Total Imported: " . Colors::GREEN . $totalImported . Colors::RESET . "\n";
+        
+        if ($totalErrors > 0) {
+            echo Colors::BOLD . "Total Errors: " . Colors::RED . $totalErrors . Colors::RESET . "\n";
+        }
+        
+        echo "\n";
+    }
+
+    /**
+     * Print statistics line
+     */
+    private function printStatLine($label, $stats) {
+        echo Colors::BOLD . str_pad($label . ":", 20) . Colors::RESET;
+        echo Colors::GREEN . $stats['imported'] . " imported" . Colors::RESET . ", ";
+        echo Colors::YELLOW . $stats['skipped'] . " skipped" . Colors::RESET;
+        
+        if ($stats['errors'] > 0) {
+            echo ", " . Colors::RED . $stats['errors'] . " errors" . Colors::RESET;
+        }
+        
+        echo "\n";
+    }
+
+    /**
+     * Output functions
+     */
+    private function success($message) {
+        echo Colors::GREEN . $message . Colors::RESET . "\n";
+    }
+
+    private function info($message) {
+        echo Colors::BLUE . $message . Colors::RESET . "\n";
+    }
+
+    private function warning($message) {
+        echo Colors::YELLOW . $message . Colors::RESET . "\n";
+    }
+
+    private function error($message) {
+        echo Colors::RED . $message . Colors::RESET . "\n";
+    }
+}
+
+// Main execution
+if (php_sapi_name() !== 'cli') {
+    die("This script can only be run from the command line.\n");
+}
+
+// Get config file from arguments
+$configFile = $argv[1] ?? '/etc/kea/kea-dhcp6.conf';
+
+$importer = new KeaConfigImporter();
+$success = $importer->import($configFile);
+
+exit($success ? 0 : 1);
