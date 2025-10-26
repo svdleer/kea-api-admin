@@ -69,39 +69,71 @@ class RadiusServerConfig
     public function saveServer($data, $order)
     {
         try {
-            // Encrypt password
+            error_log("RadiusServerConfig::saveServer called with order=$order, data=" . json_encode($data));
+            
+            // Encrypt password only if provided
             $encryptedPassword = !empty($data['password']) ? $this->encrypt($data['password']) : '';
             
-            // Check if server exists
-            $existing = $this->getServerByOrder($order);
+            // Check if server exists (use raw query to avoid decryption issues)
+            $query = "SELECT id FROM radius_server_config WHERE display_order = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$order]);
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($existing) {
-                // Update existing
-                $query = "UPDATE radius_server_config 
-                          SET name = ?, enabled = ?, host = ?, port = ?, 
-                              database = ?, username = ?, password = ?, charset = ?
-                          WHERE display_order = ?";
+                error_log("RadiusServerConfig: Updating existing server at order $order");
                 
-                $stmt = $this->db->prepare($query);
-                return $stmt->execute([
-                    $data['name'],
-                    $data['enabled'] ? 1 : 0,
-                    $data['host'],
-                    $data['port'],
-                    $data['database'],
-                    $data['username'],
-                    $encryptedPassword,
-                    $data['charset'] ?? 'utf8mb4',
-                    $order
-                ]);
+                // If password is empty, don't update it (keep existing)
+                if (!empty($data['password'])) {
+                    $query = "UPDATE radius_server_config 
+                              SET name = ?, enabled = ?, host = ?, port = ?, 
+                                  database = ?, username = ?, password = ?, charset = ?
+                              WHERE display_order = ?";
+                    
+                    $stmt = $this->db->prepare($query);
+                    $result = $stmt->execute([
+                        $data['name'],
+                        $data['enabled'] ? 1 : 0,
+                        $data['host'],
+                        $data['port'],
+                        $data['database'],
+                        $data['username'],
+                        $encryptedPassword,
+                        $data['charset'] ?? 'utf8mb4',
+                        $order
+                    ]);
+                } else {
+                    // Update without changing password
+                    $query = "UPDATE radius_server_config 
+                              SET name = ?, enabled = ?, host = ?, port = ?, 
+                                  database = ?, username = ?, charset = ?
+                              WHERE display_order = ?";
+                    
+                    $stmt = $this->db->prepare($query);
+                    $result = $stmt->execute([
+                        $data['name'],
+                        $data['enabled'] ? 1 : 0,
+                        $data['host'],
+                        $data['port'],
+                        $data['database'],
+                        $data['username'],
+                        $data['charset'] ?? 'utf8mb4',
+                        $order
+                    ]);
+                }
+                
+                error_log("RadiusServerConfig: Update result = " . ($result ? 'success' : 'failed'));
+                return $result;
             } else {
+                error_log("RadiusServerConfig: Inserting new server at order $order");
+                
                 // Insert new
                 $query = "INSERT INTO radius_server_config 
                           (name, enabled, host, port, database, username, password, charset, display_order) 
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $this->db->prepare($query);
-                return $stmt->execute([
+                $result = $stmt->execute([
                     $data['name'],
                     $data['enabled'] ? 1 : 0,
                     $data['host'],
@@ -112,9 +144,13 @@ class RadiusServerConfig
                     $data['charset'] ?? 'utf8mb4',
                     $order
                 ]);
+                
+                error_log("RadiusServerConfig: Insert result = " . ($result ? 'success' : 'failed'));
+                return $result;
             }
         } catch (PDOException $e) {
             error_log("Error saving RADIUS server: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return false;
         }
     }

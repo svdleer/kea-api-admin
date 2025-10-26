@@ -344,7 +344,10 @@ class RadiusController
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             
+            error_log("RadiusController::updateServerConfig received data: " . json_encode($data));
+            
             if (!isset($data['index']) || !isset($data['server'])) {
+                error_log("RadiusController: Missing index or server data");
                 $this->jsonResponse([
                     'success' => false,
                     'message' => 'Missing index or server data'
@@ -358,17 +361,21 @@ class RadiusController
             $success = $configModel->saveServer($data['server'], $data['index']);
             
             if ($success) {
+                error_log("RadiusController: Server configuration saved successfully");
                 $this->jsonResponse([
                     'success' => true,
                     'message' => 'Server configuration saved successfully'
                 ]);
             } else {
+                error_log("RadiusController: Failed to save server configuration");
                 $this->jsonResponse([
                     'success' => false,
                     'message' => 'Failed to save server configuration'
                 ], 500);
             }
         } catch (\Exception $e) {
+            error_log("RadiusController: Exception - " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             $this->jsonResponse([
                 'success' => false,
                 'message' => $e->getMessage()
