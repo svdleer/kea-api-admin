@@ -143,6 +143,12 @@ try {
         require BASE_PATH . '/views/radius/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // RADIUS Settings (Admin Only)
+    $router->get('/radius/settings', function() use ($auth) {
+        $currentPage = 'radius-settings';
+        require BASE_PATH . '/views/radius/settings.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // Prefixes Routes
     $router->get('/prefixes', function() use ($auth) {
         $currentPage = 'prefixes';
@@ -337,6 +343,12 @@ try {
     $router->get('/api/radius/servers/status', [$radiusController, 'getServersStatus'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/radius/servers/sync', [$radiusController, 'forceSyncServers'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->get('/api/radius/servers/config', [$radiusController, 'getServersConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->put('/api/radius/servers/config', [$radiusController, 'updateServerConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/radius/servers/test', [$radiusController, 'testServerConnection'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware

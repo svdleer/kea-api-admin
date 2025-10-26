@@ -311,6 +311,128 @@ class RadiusController
             ], 500);
         }
     }
+    
+    /**
+     * Get RADIUS servers configuration
+     * GET /api/radius/servers/config
+     */
+    public function getServersConfig()
+    {
+        try {
+            $servers = $this->radiusModel->getConfiguredServers();
+            
+            $this->jsonResponse([
+                'success' => true,
+                'servers' => $servers
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Update RADIUS server configuration
+     * PUT /api/radius/servers/config
+     */
+    public function updateServerConfig()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($data['index']) || !isset($data['server'])) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Missing index or server data'
+                ], 400);
+                return;
+            }
+            
+            $configFile = BASE_PATH . '/config/radius.php';
+            $config = file_exists($configFile) ? require $configFile : [];
+            
+            if (!isset($config['servers'])) {
+                $config['servers'] = [];
+            }
+            
+            $config['servers'][$data['index']] = $data['server'];
+            
+            $configContent = "<?php\n\nreturn " . var_export($config, true) . ";\n";
+            file_put_contents($configFile, $configContent);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Server configuration updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Test RADIUS server connection
+     * POST /api/radius/servers/test
+     */
+    public function testServerConnection()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($data['server'])) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Missing server configuration'
+                ], 400);
+                return;
+            }
+            
+            $server = $data['server'];
+            
+            // Test the connection
+            require_once BASE_PATH . '/src/Helpers/RadiusDatabaseSync.php';
+            
+            $startTime = microtime(true);
+            try {
+                $dsn = sprintf(
+                    'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+                    $server['host'],
+                    $server['port'],
+                    $server['database']
+                );
+                
+                $conn = new \PDO($dsn, $server['username'], $server['password'], [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                ]);
+                
+                $stmt = $conn->query('SELECT COUNT(*) as count FROM nas');
+                $result = $stmt->fetch();
+                $responseTime = round((microtime(true) - $startTime) * 1000, 2);
+                
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Connection successful',
+                    'client_count' => $result['count'],
+                    'response_time' => $responseTime
+                ]);
+            } catch (\PDOException $e) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     /**
      * Helper function to send JSON response
