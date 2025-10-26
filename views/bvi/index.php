@@ -32,6 +32,22 @@ ob_start();
         </button>
     </div>
 
+    <!-- Search Box -->
+    <div class="mb-6">
+        <div class="relative max-w-md">
+            <input type="text" 
+                   id="searchInput"
+                   placeholder="Search by switch name, BVI interface, or IPv6 address..." 
+                   onkeyup="performSearch(this.value)"
+                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading indicator -->
     <div id="loadingIndicator" class="flex justify-center py-8">
         <svg class="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -198,9 +214,13 @@ function displayBviData(bviInterfaces) {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <a href="/switches/${bvi.switch_id}/bvi/${bvi.bvi_id}/edit" 
-                       class="text-blue-600 hover:text-blue-900">
+                       class="text-indigo-600 hover:text-indigo-900 mr-4">
                         Edit
                     </a>
+                    <button onclick="deleteBvi(${bvi.switch_id}, ${bvi.bvi_id}, 'BVI${100 + parseInt(bvi.interface_number)}', '${escapeHtml(bvi.switch_hostname)}')"
+                            class="text-red-600 hover:text-red-900">
+                        Delete
+                    </button>
                 </td>
             </tr>
         `;
@@ -397,6 +417,86 @@ document.getElementById('createBviModal').addEventListener('click', function(e) 
         closeCreateModal();
     }
 });
+
+// Search functionality
+function performSearch(searchTerm) {
+    const rows = document.querySelectorAll("#bviTableBody tr");
+    const searchTermLower = searchTerm.toLowerCase();
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTermLower) ? "" : "none";
+    });
+}
+
+// Delete BVI interface
+async function deleteBvi(switchId, bviId, interfaceNumber, switchHostname) {
+    const result = await Swal.fire({
+        title: 'Delete BVI Interface?',
+        html: `
+            <div class="text-left">
+                <p class="mb-3">You are about to delete <strong>${interfaceNumber}</strong> on <strong>${switchHostname}</strong></p>
+                <p class="mb-3 text-red-600 font-semibold">⚠️ This will also delete:</p>
+                <ul class="list-disc list-inside mb-3 text-sm">
+                    <li>Associated DHCP subnet configuration</li>
+                    <li>All DHCP leases and reservations</li>
+                </ul>
+                <p class="mb-3">Type <strong class="text-red-600">I AM SURE!</strong> to confirm:</p>
+                <input type="text" id="delete-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Delete BVI',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const confirmation = document.getElementById('delete-confirmation').value;
+            if (confirmation !== 'I AM SURE!') {
+                Swal.showValidationMessage('Please type "I AM SURE!" exactly to confirm');
+                return false;
+            }
+            return true;
+        }
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/api/switches/${switchId}/bvi/${bviId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: `BVI interface ${interfaceNumber} and all associated data have been deleted successfully.`,
+                    icon: 'success',
+                    confirmButtonColor: '#6366f1'
+                });
+                // Reload the page to refresh the list
+                window.location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message || 'Error deleting BVI interface',
+                    icon: 'error',
+                    confirmButtonColor: '#6366f1'
+                });
+            }
+        } catch (error) {
+            console.error('Error deleting BVI:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred while deleting the BVI interface',
+                icon: 'error',
+                confirmButtonColor: '#6366f1'
+            });
+        }
+    }
+}
 </script>
 
 <?php
