@@ -312,14 +312,24 @@ async function testConnection(serverType) {
         const result = await response.json();
 
         if (result.success) {
+            let html = `
+                <p>Successfully connected to ${config.host}</p>
+                <p class="text-sm text-gray-600 mt-2">Database: ${config.database}</p>
+                ${result.client_count !== undefined ? `<p class="text-sm text-gray-600">RADIUS clients: ${result.client_count}</p>` : ''}
+                ${result.response_time ? `<p class="text-sm text-gray-600">Response time: ${result.response_time}ms</p>` : ''}
+            `;
+            
+            if (result.table_created) {
+                html += `<div class="bg-green-50 border-l-4 border-green-400 p-3 mt-3">
+                    <p class="text-sm text-green-700">
+                        <strong>✓ Table Created:</strong> The 'nas' table was automatically created in the database.
+                    </p>
+                </div>`;
+            }
+            
             Swal.fire({
                 title: 'Connection Successful!',
-                html: `
-                    <p>Successfully connected to ${config.host}</p>
-                    <p class="text-sm text-gray-600 mt-2">Database: ${config.database}</p>
-                    ${result.client_count !== undefined ? `<p class="text-sm text-gray-600">RADIUS clients: ${result.client_count}</p>` : ''}
-                    ${result.response_time ? `<p class="text-sm text-gray-600">Response time: ${result.response_time}ms</p>` : ''}
-                `,
+                html: html,
                 icon: 'success',
                 confirmButtonColor: '#6366f1'
             });

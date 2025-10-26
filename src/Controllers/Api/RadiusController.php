@@ -393,9 +393,6 @@ class RadiusController
             
             $server = $data['server'];
             
-            // Test the connection
-            require_once BASE_PATH . '/src/Helpers/RadiusDatabaseSync.php';
-            
             $startTime = microtime(true);
             try {
                 $dsn = sprintf(
@@ -410,15 +407,53 @@ class RadiusController
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 ]);
                 
+                // Check if nas table exists
+                $stmt = $conn->query("SHOW TABLES LIKE 'nas'");
+                $tableExists = $stmt->rowCount() > 0;
+                
+                if (!$tableExists) {
+                    // Create the nas table
+                    $createTableSQL = "
+                        CREATE TABLE `nas` (
+                            `id` int(10) NOT NULL AUTO_INCREMENT,
+                            `nasname` varchar(128) NOT NULL,
+                            `shortname` varchar(32) DEFAULT NULL,
+                            `type` varchar(30) DEFAULT 'other',
+                            `ports` int(5) DEFAULT NULL,
+                            `secret` varchar(60) NOT NULL DEFAULT 'secret',
+                            `server` varchar(64) DEFAULT NULL,
+                            `community` varchar(50) DEFAULT NULL,
+                            `description` varchar(200) DEFAULT 'RADIUS Client',
+                            `bvi_interface_id` int(11) DEFAULT NULL,
+                            `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                            `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            PRIMARY KEY (`id`),
+                            UNIQUE KEY `nasname` (`nasname`),
+                            KEY `bvi_interface_id` (`bvi_interface_id`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                    ";
+                    
+                    $conn->exec($createTableSQL);
+                    $tableCreated = true;
+                } else {
+                    $tableCreated = false;
+                }
+                
                 $stmt = $conn->query('SELECT COUNT(*) as count FROM nas');
                 $result = $stmt->fetch();
                 $responseTime = round((microtime(true) - $startTime) * 1000, 2);
                 
+                $message = 'Connection successful';
+                if ($tableCreated) {
+                    $message .= ' (nas table created automatically)';
+                }
+                
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Connection successful',
+                    'message' => $message,
                     'client_count' => $result['count'],
-                    'response_time' => $responseTime
+                    'response_time' => $responseTime,
+                    'table_created' => $tableCreated
                 ]);
             } catch (\PDOException $e) {
                 $this->jsonResponse([

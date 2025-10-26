@@ -44,11 +44,57 @@ class RadiusDatabaseSync
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
 
+            // Check if nas table exists, create if not
+            $this->ensureTableExists($connection);
+
             $this->connections[$key] = $connection;
             return $connection;
         } catch (PDOException $e) {
             error_log("Failed to connect to RADIUS server {$serverConfig['name']}: " . $e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Ensure nas table exists, create if not
+     */
+    private function ensureTableExists($connection)
+    {
+        try {
+            // Check if table exists
+            $stmt = $connection->query("SHOW TABLES LIKE 'nas'");
+            $tableExists = $stmt->rowCount() > 0;
+
+            if (!$tableExists) {
+                error_log("Table 'nas' not found, creating it...");
+                
+                // Create the nas table
+                $createTableSQL = "
+                    CREATE TABLE `nas` (
+                        `id` int(10) NOT NULL AUTO_INCREMENT,
+                        `nasname` varchar(128) NOT NULL,
+                        `shortname` varchar(32) DEFAULT NULL,
+                        `type` varchar(30) DEFAULT 'other',
+                        `ports` int(5) DEFAULT NULL,
+                        `secret` varchar(60) NOT NULL DEFAULT 'secret',
+                        `server` varchar(64) DEFAULT NULL,
+                        `community` varchar(50) DEFAULT NULL,
+                        `description` varchar(200) DEFAULT 'RADIUS Client',
+                        `bvi_interface_id` int(11) DEFAULT NULL,
+                        `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                        `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`),
+                        UNIQUE KEY `nasname` (`nasname`),
+                        KEY `bvi_interface_id` (`bvi_interface_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+                ";
+                
+                $connection->exec($createTableSQL);
+                error_log("Table 'nas' created successfully");
+            }
+        } catch (PDOException $e) {
+            error_log("Error checking/creating nas table: " . $e->getMessage());
+            // Don't throw, let it continue - table might exist but we can't detect it
         }
     }
 
