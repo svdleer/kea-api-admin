@@ -285,6 +285,9 @@ ob_start();
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+// Global variables
+let hasGlobalSecret = false;
+
 // Load all data on page load
 $(document).ready(function() {
     loadRadiusClients();
@@ -298,6 +301,8 @@ async function loadGlobalSecretStatus() {
         
         const statusDiv = $('#globalSecretStatus');
         if (data.success) {
+            hasGlobalSecret = data.has_global_secret;
+            
             if (data.has_global_secret) {
                 statusDiv.html(`
                     <div class="flex items-center space-x-2">
@@ -306,6 +311,7 @@ async function loadGlobalSecretStatus() {
                         </svg>
                         <span class="text-sm text-green-700 font-medium">Global secret configured</span>
                         <code class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">${'•'.repeat(32)}</code>
+                        <span class="text-xs text-gray-500">(Individual secrets are disabled)</span>
                     </div>
                 `);
             } else {
@@ -317,6 +323,11 @@ async function loadGlobalSecretStatus() {
                         <span class="text-sm text-yellow-700">No global secret configured - each client has individual secrets</span>
                     </div>
                 `);
+            }
+            
+            // Reload clients to update button states
+            if (document.getElementById('radiusTableBody').children.length > 0) {
+                loadRadiusClients();
             }
         }
     } catch (error) {
@@ -388,16 +399,22 @@ function displayRadiusClients(clients) {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onclick='editClient(${JSON.stringify(client)})' 
-                            class="text-indigo-600 hover:text-indigo-900 mr-4">
-                        Edit Secret
-                    </button>
+                    ${hasGlobalSecret ? `
+                        <span class="text-gray-400 cursor-not-allowed" title="Individual secrets are disabled when global secret is configured">
+                            Edit Secret (Disabled)
+                        </span>
+                    ` : `
+                        <button onclick='editClient(${JSON.stringify(client)})' 
+                                class="text-indigo-600 hover:text-indigo-900 mr-4">
+                            Edit Secret
+                        </button>
+                    `}
                     ${!client.bvi_interface_id ? `
                     <button onclick="deleteClient(${client.id}, '${escapeHtml(client.shortname)}')"
                             class="text-red-600 hover:text-red-900">
                         Delete
                     </button>
-                    ` : '<span class="text-gray-400 text-xs">(Auto-managed)</span>'}
+                    ` : `<span class="text-gray-400 text-xs">(Auto-managed)</span>`}
                 </td>
             </tr>
         `;
