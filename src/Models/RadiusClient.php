@@ -20,6 +20,14 @@ class RadiusClient
     }
 
     /**
+     * Get database connection
+     */
+    public function getDatabase()
+    {
+        return $this->db;
+    }
+
+    /**
      * Get global RADIUS secret from configuration
      */
     private function getGlobalSecret()
@@ -382,13 +390,5 @@ class RadiusClient
             error_log("Failed to force sync clients: " . $e->getMessage());
             throw $e;
         }
-    }
-    
-    /**
-     * Get configured RADIUS servers
-     */
-    public function getConfiguredServers()
-    {
-        return $this->radiusSync->getServers();
     }
 }

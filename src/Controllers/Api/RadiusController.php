@@ -319,7 +319,9 @@ class RadiusController
     public function getServersConfig()
     {
         try {
-            $servers = $this->radiusModel->getConfiguredServers();
+            require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+            $configModel = new \App\Models\RadiusServerConfig($this->radiusModel->getDatabase());
+            $servers = $configModel->getAllServers();
             
             $this->jsonResponse([
                 'success' => true,
@@ -350,22 +352,22 @@ class RadiusController
                 return;
             }
             
-            $configFile = BASE_PATH . '/config/radius.php';
-            $config = file_exists($configFile) ? require $configFile : [];
+            require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+            $configModel = new \App\Models\RadiusServerConfig($this->radiusModel->getDatabase());
             
-            if (!isset($config['servers'])) {
-                $config['servers'] = [];
+            $success = $configModel->saveServer($data['server'], $data['index']);
+            
+            if ($success) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Server configuration saved successfully'
+                ]);
+            } else {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Failed to save server configuration'
+                ], 500);
             }
-            
-            $config['servers'][$data['index']] = $data['server'];
-            
-            $configContent = "<?php\n\nreturn " . var_export($config, true) . ";\n";
-            file_put_contents($configFile, $configContent);
-            
-            $this->jsonResponse([
-                'success' => true,
-                'message' => 'Server configuration updated successfully'
-            ]);
         } catch (\Exception $e) {
             $this->jsonResponse([
                 'success' => false,

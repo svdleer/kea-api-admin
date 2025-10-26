@@ -9,8 +9,34 @@ class RadiusDatabaseSync
 {
     private $servers = [];
     private $connections = [];
+    private $db;
 
-    public function __construct()
+    public function __construct($db = null)
+    {
+        $this->db = $db ?: \App\Database\Database::getInstance();
+        $this->loadServersFromDatabase();
+    }
+
+    /**
+     * Load server configurations from database
+     */
+    private function loadServersFromDatabase()
+    {
+        try {
+            require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+            $configModel = new \App\Models\RadiusServerConfig($this->db);
+            $this->servers = $configModel->getServersForSync();
+        } catch (\Exception $e) {
+            error_log("Error loading RADIUS servers from database: " . $e->getMessage());
+            // Fall back to config file if database fails
+            $this->loadServersFromConfig();
+        }
+    }
+
+    /**
+     * Fall back to loading from config file
+     */
+    private function loadServersFromConfig()
     {
         $configFile = BASE_PATH . '/config/radius.php';
         if (file_exists($configFile)) {
