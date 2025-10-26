@@ -137,6 +137,12 @@ try {
         require BASE_PATH . '/views/bvi/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // RADIUS Clients (802.1X) Management
+    $router->get('/radius', function() use ($auth) {
+        $currentPage = 'radius';
+        require BASE_PATH . '/views/radius/index.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // Prefixes Routes
     $router->get('/prefixes', function() use ($auth) {
         $currentPage = 'prefixes';
@@ -297,6 +303,29 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->get('/api/switches/{switchId}/bvi/{bviId}', [\App\Controllers\Api\BVIController::class, 'show'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+
+    // RADIUS Client Routes (for 802.1X authentication)
+    require_once BASE_PATH . '/src/Controllers/Api/RadiusController.php';
+    require_once BASE_PATH . '/src/Models/RadiusClient.php';
+    $radiusController = new \App\Controllers\Api\RadiusController(new \App\Models\RadiusClient($database), $auth);
+    
+    // Read routes
+    $router->get('/api/radius/clients', [$radiusController, 'getAllClients'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/radius/clients/{id}', [$radiusController, 'getClientById'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    
+    // Write routes
+    $router->post('/api/radius/clients', [$radiusController, 'createClient'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->put('/api/radius/clients/{id}', [$radiusController, 'updateClient'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->delete('/api/radius/clients/{id}', [$radiusController, 'deleteClient'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    
+    // Sync route
+    $router->post('/api/radius/sync', [$radiusController, 'syncBviInterfaces'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
     $router->get('/dashboard', function() {

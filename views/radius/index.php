@@ -1,0 +1,519 @@
+<?php
+require_once BASE_PATH . '/vendor/autoload.php';
+
+use App\Auth\Authentication;
+use App\Database\Database;
+
+// Check if user is logged in
+$auth = new Authentication(Database::getInstance());
+if (!$auth->isLoggedIn()) {
+    header('Location: /');
+    exit;
+}
+
+$currentPage = 'radius';
+$title = 'RADIUS Clients (802.1X)';
+
+ob_start();
+?>
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">RADIUS Clients for 802.1X</h1>
+                <p class="text-gray-600 mt-1">Manage RADIUS clients for network access control using BVI interface addresses</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="syncAllBvi()" 
+                        class="inline-flex items-center px-4 py-2 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Sync BVI Interfaces
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>802.1X Integration:</strong> RADIUS clients are automatically created from BVI interface IPv6 addresses. 
+                    Each BVI interface acts as a NAS (Network Access Server) for 802.1X authentication on switches.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Box -->
+    <div class="mb-6">
+        <div class="relative max-w-md">
+            <input type="text" 
+                   id="searchInput"
+                   placeholder="Search by switch, BVI, or IP address..." 
+                   onkeyup="performSearch(this.value)"
+                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="flex justify-center py-8">
+        <svg class="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </div>
+
+    <!-- RADIUS Clients Table -->
+    <div id="radiusTable" class="hidden bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Switch / BVI
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        NAS IP (IPv6)
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Short Name
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Shared Secret
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="radiusTableBody" class="bg-white divide-y divide-gray-200">
+                <!-- Data will be loaded via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- No data message -->
+    <div id="noDataMessage" class="hidden text-center py-8 bg-white shadow-md rounded-lg">
+        <p class="text-gray-500 text-lg">No RADIUS clients found. Click "Sync BVI Interfaces" to create them automatically.</p>
+    </div>
+</div>
+
+<!-- Edit Secret Modal -->
+<div id="editSecretModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Edit RADIUS Client</h3>
+            <form id="editSecretForm">
+                <input type="hidden" id="edit_client_id">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Switch / BVI Interface
+                    </label>
+                    <input type="text" id="edit_switch_info" readonly
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        NAS IP Address (IPv6)
+                    </label>
+                    <input type="text" id="edit_nasname" readonly
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed font-mono text-sm">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="edit_shortname" class="block text-sm font-medium text-gray-700 mb-2">
+                        Short Name
+                    </label>
+                    <input type="text" id="edit_shortname" name="shortname" required
+                           maxlength="32"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="mb-4">
+                    <label for="edit_secret" class="block text-sm font-medium text-gray-700 mb-2">
+                        Shared Secret
+                        <span class="text-xs text-gray-500">(used for 802.1X authentication)</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="edit_secret" name="secret" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm pr-20">
+                        <button type="button" onclick="toggleSecretVisibility('edit_secret')"
+                                class="absolute right-12 top-2 text-gray-500 hover:text-gray-700">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                        <button type="button" onclick="generateRandomSecret('edit_secret')"
+                                class="absolute right-2 top-2 text-indigo-600 hover:text-indigo-800 text-xs font-medium">
+                            Generate
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="edit_description" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                    </label>
+                    <textarea id="edit_description" name="description" rows="2"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeEditModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveBtn"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+// Load all data on page load
+$(document).ready(function() {
+    loadRadiusClients();
+});
+
+async function loadRadiusClients() {
+    try {
+        console.log('Loading RADIUS clients...');
+        const response = await fetch('/api/radius/clients');
+        const data = await response.json();
+        
+        console.log('RADIUS clients loaded:', data);
+        
+        if (!data.success || !data.clients) {
+            throw new Error('Failed to load RADIUS clients');
+        }
+        
+        displayRadiusClients(data.clients);
+        
+    } catch (error) {
+        console.error('Error loading RADIUS clients:', error);
+        $('#loadingIndicator').hide();
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to load RADIUS clients. Please try again.',
+            icon: 'error',
+            confirmButtonColor: '#6366f1'
+        });
+    }
+}
+
+function displayRadiusClients(clients) {
+    $('#loadingIndicator').hide();
+    
+    if (clients.length === 0) {
+        $('#noDataMessage').show();
+        return;
+    }
+    
+    const tbody = $('#radiusTableBody');
+    tbody.empty();
+    
+    clients.forEach(client => {
+        const switchInfo = client.switch_hostname 
+            ? `${escapeHtml(client.switch_hostname)} / BVI${100 + parseInt(client.interface_number || 0)}`
+            : 'Standalone Client';
+        
+        const maskedSecret = '•'.repeat(16);
+        
+        const row = `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${switchInfo}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                    ${escapeHtml(client.nasname)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${escapeHtml(client.shortname || 'N/A')}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                    ${maskedSecret}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        ${escapeHtml(client.type || 'other')}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onclick='editClient(${JSON.stringify(client)})' 
+                            class="text-indigo-600 hover:text-indigo-900 mr-4">
+                        Edit Secret
+                    </button>
+                    ${!client.bvi_interface_id ? `
+                    <button onclick="deleteClient(${client.id}, '${escapeHtml(client.shortname)}')"
+                            class="text-red-600 hover:text-red-900">
+                        Delete
+                    </button>
+                    ` : '<span class="text-gray-400 text-xs">(Auto-managed)</span>'}
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+    
+    $('#radiusTable').show();
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function editClient(client) {
+    document.getElementById('edit_client_id').value = client.id;
+    
+    const switchInfo = client.switch_hostname 
+        ? `${client.switch_hostname} / BVI${100 + parseInt(client.interface_number || 0)}`
+        : 'Standalone Client';
+    
+    document.getElementById('edit_switch_info').value = switchInfo;
+    document.getElementById('edit_nasname').value = client.nasname;
+    document.getElementById('edit_shortname').value = client.shortname || '';
+    document.getElementById('edit_secret').value = client.secret || '';
+    document.getElementById('edit_description').value = client.description || '';
+    
+    document.getElementById('editSecretModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+    document.getElementById('editSecretModal').classList.add('hidden');
+    document.getElementById('editSecretForm').reset();
+}
+
+function toggleSecretVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function generateRandomSecret(inputId) {
+    const secret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    document.getElementById(inputId).value = secret;
+}
+
+document.getElementById('editSecretForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const clientId = document.getElementById('edit_client_id').value;
+    const saveBtn = document.getElementById('saveBtn');
+    
+    const data = {
+        shortname: document.getElementById('edit_shortname').value,
+        secret: document.getElementById('edit_secret').value,
+        description: document.getElementById('edit_description').value
+    };
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    try {
+        const response = await fetch(`/api/radius/clients/${clientId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await Swal.fire({
+                title: 'Success!',
+                text: 'RADIUS client updated successfully. Make sure to update your network device configuration with the new secret.',
+                icon: 'success',
+                confirmButtonColor: '#6366f1'
+            });
+            closeEditModal();
+            loadRadiusClients();
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: result.message || 'Failed to update RADIUS client',
+                icon: 'error',
+                confirmButtonColor: '#6366f1'
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'An error occurred while updating',
+            icon: 'error',
+            confirmButtonColor: '#6366f1'
+        });
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+    }
+});
+
+async function deleteClient(clientId, shortname) {
+    const result = await Swal.fire({
+        title: 'Delete RADIUS Client?',
+        html: `
+            <div class="text-left">
+                <p class="mb-3">You are about to delete RADIUS client <strong>${shortname}</strong></p>
+                <p class="mb-3 text-red-600">⚠️ Warning:</p>
+                <ul class="list-disc list-inside mb-3 text-sm">
+                    <li>802.1X authentication will fail for this network device</li>
+                    <li>Network access will be denied until reconfigured</li>
+                </ul>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/api/radius/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: 'RADIUS client has been deleted.',
+                    icon: 'success',
+                    confirmButtonColor: '#6366f1'
+                });
+                loadRadiusClients();
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message || 'Error deleting RADIUS client',
+                    icon: 'error',
+                    confirmButtonColor: '#6366f1'
+                });
+            }
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred while deleting',
+                icon: 'error',
+                confirmButtonColor: '#6366f1'
+            });
+        }
+    }
+}
+
+async function syncAllBvi() {
+    const result = await Swal.fire({
+        title: 'Sync BVI Interfaces?',
+        text: 'This will create RADIUS clients for any BVI interfaces that don\'t have one yet.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, sync now',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Syncing...',
+                text: 'Creating RADIUS clients from BVI interfaces',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/radius/sync', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Sync Complete!',
+                    text: data.message,
+                    icon: 'success',
+                    confirmButtonColor: '#6366f1'
+                });
+                loadRadiusClients();
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to sync BVI interfaces',
+                    icon: 'error',
+                    confirmButtonColor: '#6366f1'
+                });
+            }
+        } catch (error) {
+            console.error('Error syncing:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred during sync',
+                icon: 'error',
+                confirmButtonColor: '#6366f1'
+            });
+        }
+    }
+}
+
+// Search functionality
+function performSearch(searchTerm) {
+    const rows = document.querySelectorAll("#radiusTableBody tr");
+    const searchTermLower = searchTerm.toLowerCase();
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTermLower) ? "" : "none";
+    });
+}
+
+// Close modal when clicking outside
+document.getElementById('editSecretModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditModal();
+    }
+});
+</script>
+
+<?php
+$content = ob_get_clean();
+require_once BASE_PATH . '/views/layout.php';
+?>

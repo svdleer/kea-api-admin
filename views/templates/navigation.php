@@ -16,6 +16,8 @@
                         
                         <a href="/ipv6" class="<?php echo $currentPage === 'ipv6' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">IPv6 Subnets</a>
                         
+                        <a href="/radius" class="<?php echo $currentPage === 'radius' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">RADIUS (802.1X)</a>
+                        
                         <?php if ($auth->isAdmin()): ?>
                         <a href="/api-keys" class="<?php echo $currentPage === 'api-keys' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">API Keys</a>
                         <a href="/admin" class="<?php echo $currentPage === 'admin' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Admin</a>
