@@ -5,6 +5,7 @@ use Exception;
 
 class DHCPv6LeaseModel extends KEAModel
 {
+    private const CACHE_TTL = 60; // Cache for 60 seconds
     private array $cache = [];
 
     public function __construct()
@@ -70,10 +71,31 @@ class DHCPv6LeaseModel extends KEAModel
                 throw new Exception('Malformed response from KEA API');
             }
 
-            if ($result[0]['result'] !== 0) {
+            // Kea result codes:
+            // 0 = success
+            // 3 = empty (no results found) - this is NOT an error
+            // Other codes = actual errors
+            $resultCode = $result[0]['result'];
+            if ($resultCode !== 0 && $resultCode !== 3) {
                 $errorMessage = $result[0]['text'] ?? 'Invalid response from KEA API';
                 error_log("API error response: {$errorMessage}");
                 throw new Exception($errorMessage);
+            }
+
+            // Handle empty result (result code 3)
+            if ($resultCode === 3) {
+                error_log("No leases found (result code 3) - returning empty array");
+                $emptyResult = [
+                    'leases' => [],
+                    'pagination' => [
+                        'from' => $from,
+                        'limit' => $limit,
+                        'total' => 0,
+                        'hasMore' => false
+                    ]
+                ];
+                $this->setCachedLeases($cacheKey, $emptyResult);
+                return $emptyResult;
             }
 
             // Extract and validate data
