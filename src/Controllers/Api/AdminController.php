@@ -306,10 +306,31 @@ class AdminController
                     if (!empty($config['cin_name'])) {
                         // CIN name provided - create CIN switch and link it
                         
-                        // Create new CIN switch
-                        $switchId = $cinSwitchModel->createSwitch([
-                            'hostname' => $config['cin_name']
-                        ]);
+                        // Check if CIN switch already exists by hostname
+                        $checkStmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ? LIMIT 1");
+                        $checkStmt->execute([$config['cin_name']]);
+                        $existingSwitch = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+                        
+                        if ($existingSwitch) {
+                            // Switch already exists - check if it has BVI100
+                            $bviCheckStmt = $this->db->prepare("
+                                SELECT id FROM cin_switch_bvi_interfaces 
+                                WHERE switch_id = ? AND interface_number = 100
+                            ");
+                            $bviCheckStmt->execute([$existingSwitch['id']]);
+                            $existingBVI = $bviCheckStmt->fetch(\PDO::FETCH_ASSOC);
+                            
+                            if ($existingBVI) {
+                                throw new \Exception("CIN switch '{$config['cin_name']}' with BVI100 already exists. Use 'Skip' action to create subnet only, or 'Link to Existing BVI' to link to existing BVI.");
+                            }
+                            
+                            $switchId = $existingSwitch['id'];
+                        } else {
+                            // Create new CIN switch
+                            $switchId = $cinSwitchModel->createSwitch([
+                                'hostname' => $config['cin_name']
+                            ]);
+                        }
                         
                         // Create BVI100 interface
                         $cinSwitchModel->createBviInterface($switchId, [
