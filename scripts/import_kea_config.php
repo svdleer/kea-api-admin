@@ -49,13 +49,19 @@ class KeaConfigImporter {
         // Get API configuration
         $this->apiBaseUrl = $_ENV['API_BASE_URL'] ?? 'http://localhost';
         
-        // Get admin API key from database
-        $stmt = $this->db->prepare("SELECT api_key FROM api_keys WHERE is_admin = 1 LIMIT 1");
+        // Get admin API key from database (API key belonging to an admin user)
+        $stmt = $this->db->prepare("
+            SELECT ak.api_key 
+            FROM api_keys ak
+            JOIN users u ON ak.user_id = u.id
+            WHERE u.is_admin = 1 AND ak.active = 1
+            LIMIT 1
+        ");
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$result) {
-            throw new Exception("No admin API key found in database. Please create an admin API key first.");
+            throw new Exception("No admin API key found. Please create an API key for an admin user first.");
         }
         
         $this->apiKey = $result['api_key'];
