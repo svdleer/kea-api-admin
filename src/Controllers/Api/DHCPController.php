@@ -250,6 +250,116 @@ class DHCPController
         }
     }
 
+    public function linkOrphanedSubnet()
+    {
+        try {
+            // Get JSON input
+            $rawData = file_get_contents("php://input");
+            $data = json_decode($rawData, true);
+
+            if (!isset($data['kea_subnet_id']) || !isset($data['bvi_interface_id'])) {
+                throw new \Exception('Missing required fields: kea_subnet_id and bvi_interface_id');
+            }
+
+            $keaSubnetId = $data['kea_subnet_id'];
+            $bviInterfaceId = $data['bvi_interface_id'];
+
+            error_log("DHCPController: Linking orphaned subnet (Kea ID: $keaSubnetId) to BVI interface ID: $bviInterfaceId");
+
+            // Get database connection
+            $db = Database::getInstance();
+
+            // Get BVI interface details
+            $stmt = $db->prepare("
+                SELECT b.*, s.name as switch_name
+                FROM cin_switch_bvi_interfaces b
+                JOIN cin_switches s ON b.switch_id = s.id
+                WHERE b.id = ?
+            ");
+            $stmt->execute([$bviInterfaceId]);
+            $bvi = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$bvi) {
+                throw new \Exception('BVI interface not found');
+            }
+
+            // Get subnet details from Kea
+            $subnets = $this->subnetModel->getAllSubnetsfromKEA();
+            $subnet = null;
+            foreach ($subnets as $s) {
+                if ($s['id'] == $keaSubnetId) {
+                    $subnet = $s;
+                    break;
+                }
+            }
+
+            if (!$subnet) {
+                throw new \Exception('Subnet not found in Kea');
+            }
+
+            // Extract pool information
+            $poolStart = null;
+            $poolEnd = null;
+            if (!empty($subnet['pools'])) {
+                $firstPool = $subnet['pools'][0]['pool'];
+                // Parse "start - end" format
+                if (preg_match('/^(.+?)\s*-\s*(.+?)$/', $firstPool, $matches)) {
+                    $poolStart = trim($matches[1]);
+                    $poolEnd = trim($matches[2]);
+                }
+            }
+
+            // Get CCAP core from options
+            $ccapCore = null;
+            if (!empty($subnet['option-data'])) {
+                foreach ($subnet['option-data'] as $option) {
+                    if (($option['name'] ?? '') === 'ccap-core') {
+                        $ccapCore = $option['data'];
+                        break;
+                    }
+                }
+            }
+
+            // Insert/update the link in cin_bvi_dhcp_core table
+            $sql = "REPLACE INTO cin_bvi_dhcp_core (
+                        id,
+                        switch_id,
+                        kea_subnet_id,
+                        interface_number,
+                        ipv6_address,
+                        start_address,
+                        end_address,
+                        ccap_core
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                $bvi['id'],
+                $bvi['switch_id'],
+                $keaSubnetId,
+                $bvi['interface_number'],
+                $bvi['ipv6_address'],
+                $poolStart,
+                $poolEnd,
+                $ccapCore
+            ]);
+
+            error_log("DHCPController: Successfully linked subnet to BVI interface");
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Subnet linked to BVI interface successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error in DHCPController::linkOrphanedSubnet: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     public function deleteLease()
     {
         try {

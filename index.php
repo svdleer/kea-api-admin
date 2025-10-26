@@ -107,10 +107,15 @@ try {
     });
     
     // Admin Tools Routes
-    $router->get('/admin/tools', function() use ($auth) {
-        $currentPage = 'admin-tools';
+        $router->get('/admin/tools', function() use ($auth) {
+        $title = 'Admin Tools';
         require BASE_PATH . '/views/admin/tools.php';
-    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+    })->middleware(new \App\Middleware\AuthMiddleware($auth, true));
+
+    $router->get('/admin/import-wizard', function() use ($auth) {
+        $title = 'Kea Configuration Import Wizard';
+        require BASE_PATH . '/views/admin/import-wizard.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth, true));
     
     $router->get('/api/users', [new UserController($userModel, $auth), 'list'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
@@ -193,7 +198,9 @@ try {
     $router->delete('/api/dhcp/subnets/{id}', [new DHCPController($dhcpModel, $auth), 'delete'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->delete('/api/dhcp/orphaned-subnets/{keaId}', [new DHCPController($dhcpModel, $auth), 'deleteOrphaned'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, false));
+    $router->post('/api/dhcp/link-orphaned-subnet', [new DHCPController($dhcpModel, $auth), 'linkOrphanedSubnet'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, false));
 
     // DHCPv6 Options Definitions API Routes
     $optionsDefModel = new \App\Models\DHCPv6OptionsDefModel($database);
@@ -363,6 +370,10 @@ try {
     $router->get('/api/admin/export/kea-config', [$adminController, 'exportKeaConfig'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/admin/import/kea-config', [$adminController, 'importKeaConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/admin/import/kea-config/preview', [$adminController, 'previewKeaConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/admin/import/kea-config/execute', [$adminController, 'executeKeaImport'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->get('/api/admin/backup/kea-database', [$adminController, 'backupKeaDatabase'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));

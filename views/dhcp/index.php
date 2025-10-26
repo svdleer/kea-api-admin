@@ -262,7 +262,11 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                     No pools
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                <button onclick="linkOrphanedSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars($orphan['subnet'], ENT_QUOTES, 'UTF-8') ?>')"
+                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    Link to BVI
+                                </button>
                                 <button onclick="deleteOrphanedSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars(json_encode($orphan['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                     Delete
@@ -1034,6 +1038,100 @@ function showEditSubnetModal(subnetData, relay) {
                 text: 'An unexpected error occurred.',
                 icon: 'error',
                 confirmButtonColor: '#3085d6'
+            });
+        }
+    }
+
+    async function linkOrphanedSubnet(keaSubnetId, subnetPrefix) {
+        try {
+            // Get all BVI interfaces to show in dropdown
+            const bviResponse = await fetch('/api/switches/bvi-interfaces');
+            const bviData = await bviResponse.json();
+            
+            if (!bviData.success || !bviData.data || bviData.data.length === 0) {
+                Swal.fire({
+                    title: 'No BVI Interfaces',
+                    text: 'No BVI interfaces found. Please create BVI interfaces first.',
+                    icon: 'warning'
+                });
+                return;
+            }
+
+            // Create dropdown options
+            const options = {};
+            bviData.data.forEach(bvi => {
+                const label = `${bvi.switch_name} - BVI ${bvi.interface_number} (${bvi.ipv6_address})`;
+                options[bvi.id] = label;
+            });
+
+            const { value: bviId } = await Swal.fire({
+                title: 'Link Subnet to BVI Interface',
+                html: `
+                    <div class="text-left mb-4">
+                        <p class="mb-2">Subnet: <strong>${subnetPrefix}</strong></p>
+                        <p class="mb-3 text-sm text-gray-600">Select the BVI interface to link this subnet to:</p>
+                    </div>
+                `,
+                input: 'select',
+                inputOptions: options,
+                inputPlaceholder: 'Select a BVI interface',
+                showCancelButton: true,
+                confirmButtonColor: '#3B82F6',
+                confirmButtonText: 'Link Subnet',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'You must select a BVI interface!';
+                    }
+                }
+            });
+
+            if (bviId) {
+                // Show loading
+                Swal.fire({
+                    title: 'Linking Subnet...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Link the subnet via API
+                const response = await fetch(`/api/dhcp/link-orphaned-subnet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        kea_subnet_id: keaSubnetId,
+                        bvi_interface_id: bviId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await Swal.fire({
+                        title: 'Success!',
+                        text: 'Subnet has been linked to BVI interface successfully.',
+                        icon: 'success',
+                        confirmButtonColor: '#10B981'
+                    });
+                    window.location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message || 'Failed to link subnet',
+                        icon: 'error'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while linking the subnet',
+                icon: 'error'
             });
         }
     }

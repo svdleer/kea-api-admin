@@ -117,6 +117,215 @@ class AdminController
     }
 
     /**
+     * Preview Kea configuration import
+     * POST /api/admin/import/kea-config/preview
+     */
+    public function previewKeaConfig()
+    {
+        if (!isset($_FILES['config'])) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No file uploaded'
+            ], 400);
+            return;
+        }
+
+        try {
+            $file = $_FILES['config'];
+            $content = file_get_contents($file['tmp_name']);
+            
+            // Parse JSON (remove comments first)
+            $configJson = preg_replace('/\/\*.*?\*\//s', '', $content);
+            $configJson = preg_replace('/^\s*#.*$/m', '', $configJson);
+            $configJson = preg_replace('/^\s*\/\/.*$/m', '', $configJson);
+            $configJson = preg_replace('/#.*$/m', '', $configJson);
+            $configJson = preg_replace('/,(\s*[}\]])/', '$1', $configJson);
+            $configJson = preg_replace('/.*Lines \d+-\d+ omitted.*\n?/', '', $configJson);
+            
+            $config = json_decode($configJson, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception("Invalid JSON: " . json_last_error_msg());
+            }
+            
+            if (!isset($config['Dhcp6']['subnet6'])) {
+                throw new \Exception("No subnets found in configuration");
+            }
+            
+            $subnets = [];
+            foreach ($config['Dhcp6']['subnet6'] as $subnet) {
+                // Extract pool
+                $pool = null;
+                if (isset($subnet['pools']) && !empty($subnet['pools'])) {
+                    $pool = $subnet['pools'][0]['pool'];
+                }
+                
+                // Extract relay
+                $relay = null;
+                if (isset($subnet['relay']['ip-addresses']) && !empty($subnet['relay']['ip-addresses'])) {
+                    $relay = $subnet['relay']['ip-addresses'][0];
+                }
+                
+                // Extract CCAP core
+                $ccapCore = null;
+                if (isset($subnet['option-data'])) {
+                    foreach ($subnet['option-data'] as $option) {
+                        if (($option['name'] ?? null) === 'ccap-core' || ($option['code'] ?? null) == 61) {
+                            $ccapCore = $option['data'];
+                            break;
+                        }
+                    }
+                }
+                
+                $subnets[] = [
+                    'id' => $subnet['id'],
+                    'subnet' => $subnet['subnet'],
+                    'pool' => $pool,
+                    'relay' => $relay,
+                    'ccap_core' => $ccapCore,
+                    'valid_lifetime' => $subnet['valid-lifetime'] ?? 7200,
+                    'preferred_lifetime' => $subnet['preferred-lifetime'] ?? 3600,
+                    'reservations_count' => isset($subnet['reservations']) ? count($subnet['reservations']) : 0
+                ];
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'subnets' => $subnets,
+                'total' => count($subnets)
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Execute Kea configuration import with user selections
+     * POST /api/admin/import/kea-config/execute
+     */
+    public function executeKeaImport()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($input['subnets']) || empty($input['subnets'])) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No subnets provided'
+            ], 400);
+            return;
+        }
+        
+        $imported = 0;
+        $skipped = 0;
+        $errors = 0;
+        $details = [];
+        
+        $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
+        
+        foreach ($input['subnets'] as $config) {
+            try {
+                $subnet = $config['subnet'];
+                $action = $config['action'];
+                
+                if ($action === 'skip') {
+                    $skipped++;
+                    continue;
+                }
+                
+                // Create subnet in Kea
+                $keaSubnet = [
+                    "subnet" => $subnet['subnet'],
+                    "id" => $subnet['id'],
+                    "shared-network-name" => null,
+                    "pools" => []
+                ];
+                
+                // Add pool if available
+                if ($subnet['pool']) {
+                    $keaSubnet['pools'][] = ["pool" => $subnet['pool']];
+                }
+                
+                // Add relay if available
+                if ($subnet['relay']) {
+                    $keaSubnet['relay'] = ["ip-addresses" => [$subnet['relay']]];
+                }
+                
+                // Add CCAP core option if available
+                if ($subnet['ccap_core']) {
+                    $keaSubnet['option-data'] = [[
+                        "name" => "ccap-core",
+                        "code" => 61,
+                        "space" => "vendor-4491",
+                        "csv-format" => true,
+                        "data" => $subnet['ccap_core'],
+                        "always-send" => true
+                    ]];
+                }
+                
+                // Add lifetimes
+                $keaSubnet['valid-lifetime'] = $subnet['valid_lifetime'];
+                $keaSubnet['preferred-lifetime'] = $subnet['preferred_lifetime'];
+                
+                // Send to Kea
+                $data = [
+                    "command" => 'remote-subnet6-set',
+                    "service" => ['dhcp6'],
+                    "arguments" => [
+                        "remote" => ["type" => "mysql"],
+                        "server-tags" => ["all"],
+                        "subnets" => [$keaSubnet]
+                    ]
+                ];
+                
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                $keaResponse = json_decode($response, true);
+                
+                if ($keaResponse && isset($keaResponse[0]['result']) && $keaResponse[0]['result'] === 0) {
+                    // Handle different actions
+                    if ($action === 'create') {
+                        // Create new CIN switch and BVI
+                        // TODO: Implement CIN/BVI creation
+                        $details[] = "Created subnet {$subnet['subnet']} with new CIN/BVI (not yet implemented)";
+                    } elseif ($action === 'link') {
+                        // Link to existing BVI
+                        // TODO: Implement BVI linking
+                        $details[] = "Created subnet {$subnet['subnet']} (BVI linking not yet implemented)";
+                    }
+                    
+                    $imported++;
+                } else {
+                    throw new \Exception("Kea API error: " . json_encode($keaResponse));
+                }
+                
+            } catch (\Exception $e) {
+                $errors++;
+                $details[] = "Error with {$subnet['subnet']}: " . $e->getMessage();
+            }
+        }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'details' => $details
+        ]);
+    }
+
+    /**
      * Backup Kea database
      * GET /api/admin/backup/kea-database
      */
