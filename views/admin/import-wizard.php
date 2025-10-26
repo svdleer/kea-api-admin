@@ -214,10 +214,11 @@ function displaySubnets(subnets) {
                                 </select>
                             </div>
                             <div class="mt-2 hidden" id="cin-input-${index}">
-                                <input type="text" placeholder="CIN Switch Name" 
+                                <input type="text" placeholder="CIN Switch Name (e.g., ASD-GT0004-CCAP202)" 
                                        class="cin-name text-sm border-gray-300 rounded-md w-full" data-index="${index}">
-                                <input type="text" placeholder="BVI Interface #" 
-                                       class="bvi-number text-sm border-gray-300 rounded-md w-full mt-1" data-index="${index}">
+                                <input type="text" placeholder="Switch IP Address" 
+                                       class="cin-ip text-sm border-gray-300 rounded-md w-full mt-1" data-index="${index}">
+                                <p class="text-xs text-gray-500 mt-1">Will create CIN switch with BVI100 interface</p>
                             </div>
                         </td>
                     </tr>
@@ -283,7 +284,8 @@ async function executeImport() {
         
         if (action === 'create') {
             importConfig.cin_name = document.querySelector(`.cin-name[data-index="${index}"]`).value;
-            importConfig.bvi_number = document.querySelector(`.bvi-number[data-index="${index}"]`).value;
+            importConfig.cin_ip = document.querySelector(`.cin-ip[data-index="${index}"]`).value;
+            importConfig.bvi_number = 100; // Always BVI100
         } else if (action === 'link') {
             importConfig.bvi_id = document.querySelector(`#bvi-select-${index} select`).value;
         }
