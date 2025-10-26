@@ -382,6 +382,10 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->delete('/api/admin/backup/delete/{filename}', [$adminController, 'deleteBackup'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/admin/restore/kea-database', [$adminController, 'restoreKeaDatabase'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/admin/restore/server-backup/{filename}', [$adminController, 'restoreFromServerBackup'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
     $router->get('/dashboard', function() {

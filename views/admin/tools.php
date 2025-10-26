@@ -304,14 +304,48 @@ async function importKeaConfig() {
 async function backupKeaDatabase() {
     Swal.fire({
         title: 'Backup Kea Database',
-        text: 'Create a backup of the configuration database',
+        text: 'Create a backup of the configuration database (saved on server)',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#10B981',
         confirmButtonText: 'Create Backup'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            window.location.href = '/api/admin/backup/kea-database';
+            try {
+                Swal.fire({
+                    title: 'Creating Backup...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const response = await fetch('/api/admin/backup/kea-database');
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Backup Created!',
+                        html: `
+                            <p class="mb-2">${data.message}</p>
+                            <div class="text-sm text-left bg-gray-50 p-3 rounded">
+                                <p><strong>File:</strong> ${data.filename}</p>
+                                <p><strong>Size:</strong> ${data.size}</p>
+                                <p class="mt-2 text-gray-600">Backup saved on server. Keeping last 7 backups.</p>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonColor: '#10B981'
+                    }).then(() => {
+                        loadRecentBackups();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to create backup', 'error');
+            }
         }
     });
 }
@@ -347,7 +381,40 @@ async function restoreKeaDatabase() {
 }
 
 async function backupKeaLeases() {
-    window.location.href = '/api/admin/backup/kea-leases';
+    try {
+        Swal.fire({
+            title: 'Creating Backup...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch('/api/admin/backup/kea-leases');
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                title: 'Backup Created!',
+                html: `
+                    <p class="mb-2">${data.message}</p>
+                    <div class="text-sm text-left bg-gray-50 p-3 rounded">
+                        <p><strong>File:</strong> ${data.filename}</p>
+                        <p><strong>Size:</strong> ${data.size}</p>
+                        <p class="mt-2 text-gray-600">Backup saved on server. Keeping last 7 backups.</p>
+                    </div>
+                `,
+                icon: 'success'
+            }).then(() => {
+                loadRecentBackups();
+            });
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to create backup', 'error');
+    }
 }
 
 async function exportKeaLeases() {
@@ -395,14 +462,48 @@ async function backupRadiusDatabase(type) {
     
     Swal.fire({
         title: `Backup RADIUS ${serverName}`,
-        text: `Create backup of ${serverName} FreeRADIUS database`,
+        text: `Create backup of ${serverName} FreeRADIUS database (saved on server)`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#EAB308',
         confirmButtonText: 'Create Backup'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            window.location.href = `/api/admin/backup/radius-database/${type}`;
+            try {
+                Swal.fire({
+                    title: 'Creating Backup...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const response = await fetch(`/api/admin/backup/radius-database/${type}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Backup Created!',
+                        html: `
+                            <p class="mb-2">${data.message}</p>
+                            <div class="text-sm text-left bg-gray-50 p-3 rounded">
+                                <p><strong>File:</strong> ${data.filename}</p>
+                                <p><strong>Size:</strong> ${data.size}</p>
+                                <p class="mt-2 text-gray-600">Backup saved on server. Keeping last 7 backups per type.</p>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonColor: '#EAB308'
+                    }).then(() => {
+                        loadRecentBackups();
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to create backup', 'error');
+            }
         }
     });
 }
@@ -464,6 +565,7 @@ function displayBackups(backups) {
         html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.size}</td>`;
         html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.date}</td>`;
         html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
+        html += `<button onclick="restoreBackup('${backup.filename}')" class="text-green-600 hover:text-green-900 mr-3">Restore</button>`;
         html += `<a href="/api/admin/backup/download/${backup.filename}" class="text-indigo-600 hover:text-indigo-900 mr-3">Download</a>`;
         html += `<button onclick="deleteBackup('${backup.filename}')" class="text-red-600 hover:text-red-900">Delete</button>`;
         html += `</td></tr>`;
@@ -471,6 +573,58 @@ function displayBackups(backups) {
 
     html += '</tbody></table></div>';
     $('#recentBackups').html(html);
+}
+
+async function restoreBackup(filename) {
+    const result = await Swal.fire({
+        title: 'Restore Backup?',
+        html: `
+            <p class="text-red-600 font-bold mb-2">⚠️ WARNING ⚠️</p>
+            <p class="mb-2">This will OVERWRITE the current database!</p>
+            <p class="text-sm text-gray-600">Restore from: <strong>${filename}</strong></p>
+            <p class="text-sm text-gray-600 mt-2">It is recommended to create a backup of the current database before restoring.</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, Restore!',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Restoring...',
+                text: 'Please wait, this may take a moment',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch(`/api/admin/restore/server-backup/${filename}`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    title: 'Restored!',
+                    text: data.message,
+                    icon: 'success'
+                }).then(() => {
+                    // Reload page to reflect changes
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to restore backup', 'error');
+        }
+    }
 }
 
 async function deleteBackup(filename) {

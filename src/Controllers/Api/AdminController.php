@@ -104,12 +104,16 @@ class AdminController
         exec($command, $output, $returnCode);
 
         if ($returnCode === 0 && file_exists($filepath)) {
-            // Download the file
-            header('Content-Type: application/sql');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . filesize($filepath));
-            readfile($filepath);
-            exit;
+            // Clean up old backups (keep last 7)
+            $this->cleanupOldBackups('kea-db', 7);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Backup created successfully on server',
+                'filename' => $filename,
+                'size' => $this->formatFileSize(filesize($filepath)),
+                'path' => '/backups/' . $filename
+            ]);
         } else {
             $this->jsonResponse([
                 'success' => false,
@@ -149,11 +153,16 @@ class AdminController
         exec($command, $output, $returnCode);
 
         if ($returnCode === 0 && file_exists($filepath)) {
-            header('Content-Type: application/sql');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . filesize($filepath));
-            readfile($filepath);
-            exit;
+            // Clean up old backups (keep last 7)
+            $this->cleanupOldBackups('kea-leases', 7);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Leases backup created successfully on server',
+                'filename' => $filename,
+                'size' => $this->formatFileSize(filesize($filepath)),
+                'path' => '/backups/' . $filename
+            ]);
         } else {
             $this->jsonResponse([
                 'success' => false,
@@ -269,11 +278,16 @@ class AdminController
         exec($command, $output, $returnCode);
 
         if ($returnCode === 0 && file_exists($filepath)) {
-            header('Content-Type: application/sql');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . filesize($filepath));
-            readfile($filepath);
-            exit;
+            // Clean up old backups (keep last 7 per type)
+            $this->cleanupOldBackups('radius-' . $type, 7);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => ucfirst($type) . ' RADIUS backup created successfully on server',
+                'filename' => $filename,
+                'size' => $this->formatFileSize(filesize($filepath)),
+                'path' => '/backups/' . $filename
+            ]);
         } else {
             $this->jsonResponse([
                 'success' => false,
@@ -418,6 +432,172 @@ class AdminController
             return number_format($bytes / 1024, 2) . ' KB';
         } else {
             return $bytes . ' bytes';
+        }
+    }
+
+    /**
+     * Helper: Clean up old backups, keeping only the last N backups of a specific type
+     */
+    private function cleanupOldBackups($prefix, $keepCount = 7)
+    {
+        $backupsDir = BASE_PATH . '/backups';
+        
+        if (!file_exists($backupsDir)) {
+            return;
+        }
+
+        // Get all backup files matching the prefix
+        $files = [];
+        foreach (scandir($backupsDir) as $file) {
+            if ($file === '.' || $file === '..' || $file === '.gitkeep' || $file === '.gitignore') {
+                continue;
+            }
+            
+            if (strpos($file, $prefix) === 0) {
+                $filepath = $backupsDir . '/' . $file;
+                if (is_file($filepath)) {
+                    $files[] = [
+                        'name' => $file,
+                        'path' => $filepath,
+                        'time' => filemtime($filepath)
+                    ];
+                }
+            }
+        }
+
+        // Sort by modification time (newest first)
+        usort($files, function($a, $b) {
+            return $b['time'] - $a['time'];
+        });
+
+        // Delete files beyond the keep count
+        for ($i = $keepCount; $i < count($files); $i++) {
+            unlink($files[$i]['path']);
+            error_log("Deleted old backup: " . $files[$i]['name']);
+        }
+    }
+
+    /**
+     * Restore Kea database from backup
+     * POST /api/admin/restore/kea-database
+     */
+    public function restoreKeaDatabase()
+    {
+        if (!isset($_FILES['backup'])) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No backup file uploaded'
+            ], 400);
+            return;
+        }
+
+        $file = $_FILES['backup'];
+        $tmpPath = $file['tmp_name'];
+
+        // Get database credentials
+        $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
+        $dbName = $_ENV['DB_NAME'] ?? 'kea_db';
+        $dbUser = $_ENV['DB_USER'] ?? 'kea_db_user';
+        $dbPass = $_ENV['DB_PASSWORD'] ?? '';
+
+        // Execute mysql restore
+        $command = sprintf(
+            "mysql -h %s -u %s -p'%s' %s < %s 2>&1",
+            escapeshellarg($dbHost),
+            escapeshellarg($dbUser),
+            $dbPass,
+            escapeshellarg($dbName),
+            escapeshellarg($tmpPath)
+        );
+
+        exec($command, $output, $returnCode);
+
+        if ($returnCode === 0) {
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Database restored successfully'
+            ]);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Restore failed: ' . implode("\n", $output)
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore from existing backup file on server
+     * POST /api/admin/restore/kea-database/{filename}
+     */
+    public function restoreFromServerBackup($filename)
+    {
+        $filepath = BASE_PATH . '/backups/' . basename($filename);
+
+        if (!file_exists($filepath)) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Backup file not found'
+            ], 404);
+            return;
+        }
+
+        // Determine database type from filename
+        if (strpos($filename, 'kea-db') !== false) {
+            $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
+            $dbName = $_ENV['DB_NAME'] ?? 'kea_db';
+            $dbUser = $_ENV['DB_USER'] ?? 'kea_db_user';
+            $dbPass = $_ENV['DB_PASSWORD'] ?? '';
+        } elseif (strpos($filename, 'radius') !== false) {
+            // Get RADIUS server config
+            require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+            $configModel = new \App\Models\RadiusServerConfig($this->db);
+            
+            $type = strpos($filename, 'primary') !== false ? 'primary' : 'secondary';
+            $serverIndex = ($type === 'primary') ? 0 : 1;
+            $server = $configModel->getServerByOrder($serverIndex);
+
+            if (!$server) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'RADIUS server not configured'
+                ], 404);
+                return;
+            }
+
+            $dbHost = $server['host'];
+            $dbName = $server['database'];
+            $dbUser = $server['username'];
+            $dbPass = $server['password'];
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Unknown backup type'
+            ], 400);
+            return;
+        }
+
+        // Execute mysql restore
+        $command = sprintf(
+            "mysql -h %s -u %s -p'%s' %s < %s 2>&1",
+            escapeshellarg($dbHost),
+            escapeshellarg($dbUser),
+            $dbPass,
+            escapeshellarg($dbName),
+            escapeshellarg($filepath)
+        );
+
+        exec($command, $output, $returnCode);
+
+        if ($returnCode === 0) {
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Database restored successfully from ' . $filename
+            ]);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Restore failed: ' . implode("\n", $output)
+            ], 500);
         }
     }
 
