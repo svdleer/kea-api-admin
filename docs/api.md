@@ -134,6 +134,40 @@ Session-based authentication using cookies. Used automatically when logged in th
 - `DELETE /api/ipv6/subnets/{subnetId}` - Delete IPv6 subnet (requires write access)
 - `GET /api/ipv6/bvi/{bviId}/subnets` - Get subnets by BVI interface
 
+### RADIUS Clients (802.1X Authentication)
+
+#### RADIUS Client Management
+- `GET /api/radius/clients` - List all RADIUS clients
+- `GET /api/radius/clients/{id}` - Get specific RADIUS client
+- `POST /api/radius/clients` - Create RADIUS client (requires write access)
+- `PUT /api/radius/clients/{id}` - Update RADIUS client (requires write access)
+- `DELETE /api/radius/clients/{id}` - Delete RADIUS client (requires write access)
+
+#### Global Secret Management
+- `GET /api/radius/global-secret` - Get global shared secret status
+- `PUT /api/radius/global-secret` - Set/update global shared secret (admin only, requires write access)
+  - Body: `{"secret": "your-secret", "apply_to_all": true}`
+
+#### BVI Interface Synchronization
+- `POST /api/radius/sync` - Sync BVI interfaces to RADIUS clients (requires write access)
+
+#### FreeRADIUS Server Management
+- `GET /api/radius/servers/status` - Get status of all configured FreeRADIUS servers
+- `POST /api/radius/servers/sync` - Force sync all clients to RADIUS servers (requires write access)
+- `GET /api/radius/servers/config` - Get RADIUS server configurations (admin only)
+- `PUT /api/radius/servers/config` - Update RADIUS server configuration (admin only, requires write access)
+  - Body: `{"index": 0, "server": {...}}`
+- `POST /api/radius/servers/test` - Test RADIUS server connection (admin only, requires write access)
+  - Body: `{"server": {"host": "...", "port": 3306, "database": "radius", "username": "...", "password": "..."}}`
+
+#### RADIUS Features
+- **Automatic Sync**: RADIUS clients automatically created/updated/deleted when BVI interfaces change
+- **Multi-Server Support**: Sync to multiple FreeRADIUS databases simultaneously
+- **Global Secrets**: Configure one shared secret for all clients or individual secrets
+- **Encrypted Storage**: Server passwords encrypted with AES-256-CBC
+- **Health Monitoring**: Real-time status of all RADIUS database connections
+- **Auto Table Creation**: Automatically creates `nas` table in RADIUS databases if missing
+
 ## Response Format
 
 ### Success Response
@@ -208,6 +242,70 @@ curl -X POST https://your-domain.com/api/dhcp/static \
     "ipAddress": "2001:db8::100",
     "subnetId": 1,
     "options": []
+  }'
+```
+
+### Example: List RADIUS Clients
+
+```bash
+curl -X GET https://your-domain.com/api/radius/clients \
+  -H "X-API-Key: your-api-key"
+```
+
+### Example: Set Global RADIUS Secret
+
+```bash
+curl -X PUT https://your-domain.com/api/radius/global-secret \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "secret": "my-secure-radius-secret-32chars",
+    "apply_to_all": true
+  }'
+```
+
+### Example: Check FreeRADIUS Server Status
+
+```bash
+curl -X GET https://your-domain.com/api/radius/servers/status \
+  -H "X-API-Key: your-api-key"
+```
+
+### Example: Configure RADIUS Server
+
+```bash
+curl -X PUT https://your-domain.com/api/radius/servers/config \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "index": 0,
+    "server": {
+      "name": "FreeRADIUS Primary",
+      "enabled": true,
+      "host": "192.168.1.10",
+      "port": 3306,
+      "database": "radius",
+      "username": "radius_user",
+      "password": "secure_password",
+      "charset": "utf8mb4"
+    }
+  }'
+```
+
+### Example: Test RADIUS Server Connection
+
+```bash
+curl -X POST https://your-domain.com/api/radius/servers/test \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server": {
+      "host": "192.168.1.10",
+      "port": 3306,
+      "database": "radius",
+      "username": "radius_user",
+      "password": "test_password"
+    }
   }'
 ```
 

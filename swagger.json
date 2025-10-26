@@ -45,7 +45,8 @@
     {"name": "DHCPv6 Options Definitions", "description": "DHCPv6 custom option definitions"},
     {"name": "DHCPv6 Options", "description": "DHCPv6 option configuration"},
     {"name": "DHCPv6 Leases", "description": "Lease and reservation management"},
-    {"name": "IPv6 Subnets", "description": "IPv6 subnet management (Kea)"}
+    {"name": "IPv6 Subnets", "description": "IPv6 subnet management (Kea)"},
+    {"name": "RADIUS (802.1X)", "description": "RADIUS client and server management for 802.1X authentication"}
   ],
   "paths": {
     "/keys": {
@@ -165,6 +166,35 @@
     },
     "/ipv6/bvi/{bviId}/subnets": {
       "get": {"summary": "Get subnets by BVI", "tags": ["IPv6 Subnets"]}
+    },
+    "/radius/clients": {
+      "get": {"summary": "List all RADIUS clients", "tags": ["RADIUS (802.1X)"], "description": "Get all RADIUS clients configured for 802.1X authentication"},
+      "post": {"summary": "Create RADIUS client", "tags": ["RADIUS (802.1X)"], "description": "Create a new RADIUS client (NAS)"}
+    },
+    "/radius/clients/{id}": {
+      "get": {"summary": "Get RADIUS client", "tags": ["RADIUS (802.1X)"]},
+      "put": {"summary": "Update RADIUS client", "tags": ["RADIUS (802.1X)"], "description": "Update RADIUS client secret and details"},
+      "delete": {"summary": "Delete RADIUS client", "tags": ["RADIUS (802.1X)"]}
+    },
+    "/radius/global-secret": {
+      "get": {"summary": "Get global secret status", "tags": ["RADIUS (802.1X)"], "description": "Check if global shared secret is configured"},
+      "put": {"summary": "Set global secret", "tags": ["RADIUS (802.1X)"], "description": "Configure global shared secret for all RADIUS clients"}
+    },
+    "/radius/sync": {
+      "post": {"summary": "Sync BVI interfaces", "tags": ["RADIUS (802.1X)"], "description": "Synchronize BVI interfaces to RADIUS clients"}
+    },
+    "/radius/servers/status": {
+      "get": {"summary": "Get FreeRADIUS servers status", "tags": ["RADIUS (802.1X)"], "description": "Health check for all configured FreeRADIUS database servers"}
+    },
+    "/radius/servers/sync": {
+      "post": {"summary": "Force sync to servers", "tags": ["RADIUS (802.1X)"], "description": "Force sync all RADIUS clients to all FreeRADIUS databases"}
+    },
+    "/radius/servers/config": {
+      "get": {"summary": "Get RADIUS server configs", "tags": ["RADIUS (802.1X)"], "description": "Get all FreeRADIUS server database configurations (Admin only)"},
+      "put": {"summary": "Update server config", "tags": ["RADIUS (802.1X)"], "description": "Update FreeRADIUS server database configuration (Admin only)"}
+    },
+    "/radius/servers/test": {
+      "post": {"summary": "Test server connection", "tags": ["RADIUS (802.1X)"], "description": "Test connection to FreeRADIUS database server (Admin only)"}
     }
   }
 }
