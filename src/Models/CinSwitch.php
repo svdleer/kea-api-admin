@@ -38,11 +38,32 @@ class CinSwitch
                 (hostname, created_at) 
                 VALUES (?, NOW())
             ");
-            $stmt->execute([$data['hostname']]);
-            return $this->db->lastInsertId();
+            $result = $stmt->execute([$data['hostname']]);
+            
+            if (!$result) {
+                $errorInfo = $stmt->errorInfo();
+                error_log("createSwitch execute failed: " . json_encode($errorInfo));
+                throw new \RuntimeException('Failed to execute INSERT: ' . $errorInfo[2]);
+            }
+            
+            $lastId = $this->db->lastInsertId();
+            error_log("createSwitch: execute result=" . var_export($result, true) . ", lastInsertId=" . var_export($lastId, true) . ", rowCount=" . $stmt->rowCount());
+            
+            if (!$lastId || $lastId == '0') {
+                // lastInsertId() returned 0, try to get the ID another way
+                $checkStmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ? ORDER BY id DESC LIMIT 1");
+                $checkStmt->execute([$data['hostname']]);
+                $row = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+                if ($row && $row['id']) {
+                    error_log("createSwitch: Retrieved ID via SELECT: " . $row['id']);
+                    return $row['id'];
+                }
+            }
+            
+            return $lastId;
         } catch (\PDOException $e) {
             error_log("Database error in createSwitch(): " . $e->getMessage());
-            throw new \RuntimeException('Error creating switch');
+            throw new \RuntimeException('Error creating switch: ' . $e->getMessage());
         }
     }
 
