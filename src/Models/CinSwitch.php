@@ -281,11 +281,28 @@ public function createBviInterface($switchId, $data)
             (switch_id, interface_number, ipv6_address) 
             VALUES (?, ?, ?)
         ");
-        return $stmt->execute([
+        $result = $stmt->execute([
             $switchId,
             $data['interface_number'],
             $data['ipv6_address']
         ]);
+
+        if ($result) {
+            $bviId = $this->db->lastInsertId();
+            
+            // Auto-create RADIUS client for this BVI interface
+            try {
+                require_once BASE_PATH . '/src/Models/RadiusClient.php';
+                $radiusClient = new \App\Models\RadiusClient($this->db);
+                $radiusClient->createFromBvi($bviId, $data['ipv6_address']);
+                error_log("RADIUS client auto-created for BVI interface ID: $bviId");
+            } catch (\Exception $e) {
+                error_log("Failed to auto-create RADIUS client: " . $e->getMessage());
+                // Don't fail the BVI creation if RADIUS sync fails
+            }
+        }
+
+        return $result;
     } catch (\PDOException $e) {
         error_log("Error creating BVI interface: " . $e->getMessage());
         throw $e;
@@ -301,12 +318,27 @@ public function updateBviInterface($switchId, $bviId, $data)
                 ipv6_address = ? 
             WHERE switch_id = ? AND id = ?
         ");
-        return $stmt->execute([
+        $result = $stmt->execute([
             $data['interface_number'],
             $data['ipv6_address'],
             $switchId,
             $bviId
         ]);
+
+        if ($result) {
+            // Auto-update RADIUS client IP address if it changed
+            try {
+                require_once BASE_PATH . '/src/Models/RadiusClient.php';
+                $radiusClient = new \App\Models\RadiusClient($this->db);
+                $radiusClient->updateClientIpByBviId($bviId, $data['ipv6_address']);
+                error_log("RADIUS client auto-updated for BVI interface ID: $bviId");
+            } catch (\Exception $e) {
+                error_log("Failed to auto-update RADIUS client: " . $e->getMessage());
+                // Don't fail the BVI update if RADIUS sync fails
+            }
+        }
+
+        return $result;
     } catch (\PDOException $e) {
         error_log("Error updating BVI interface: " . $e->getMessage());
         throw $e;

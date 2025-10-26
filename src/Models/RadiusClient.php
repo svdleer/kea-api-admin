@@ -1,0 +1,271 @@
+<?php
+
+namespace App\Models;
+
+use PDO;
+use PDOException;
+
+class RadiusClient
+{
+    private $db;
+
+    public function __construct($db)
+    {
+        $this->db = $db;
+    }
+
+    /**
+     * Get all RADIUS clients
+     */
+    public function getAllClients()
+    {
+        try {
+            $query = "SELECT n.*, 
+                             b.interface_number, 
+                             s.hostname as switch_hostname,
+                             s.id as switch_id
+                      FROM nas n
+                      LEFT JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
+                      LEFT JOIN cin_switches s ON b.switch_id = s.id
+                      ORDER BY n.created_at DESC";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting all RADIUS clients: " . $e->getMessage());
+            throw new \Exception("Failed to retrieve RADIUS clients");
+        }
+    }
+
+    /**
+     * Get RADIUS client by ID
+     */
+    public function getClientById($id)
+    {
+        try {
+            $query = "SELECT n.*, 
+                             b.interface_number, 
+                             s.hostname as switch_hostname,
+                             s.id as switch_id
+                      FROM nas n
+                      LEFT JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
+                      LEFT JOIN cin_switches s ON b.switch_id = s.id
+                      WHERE n.id = ?";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$id]);
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting RADIUS client by ID: " . $e->getMessage());
+            throw new \Exception("Failed to retrieve RADIUS client");
+        }
+    }
+
+    /**
+     * Get RADIUS client by BVI interface ID
+     */
+    public function getClientByBviId($bviInterfaceId)
+    {
+        try {
+            $query = "SELECT * FROM nas WHERE bvi_interface_id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$bviInterfaceId]);
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting RADIUS client by BVI ID: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Create RADIUS client from BVI interface
+     */
+    public function createFromBvi($bviInterfaceId, $ipv6Address, $secret = null, $shortname = null)
+    {
+        try {
+            // Check if client already exists for this BVI
+            $existing = $this->getClientByBviId($bviInterfaceId);
+            if ($existing) {
+                error_log("RADIUS client already exists for BVI interface ID: $bviInterfaceId");
+                return $existing['id'];
+            }
+
+            // Generate default secret if not provided
+            if ($secret === null) {
+                $secret = bin2hex(random_bytes(16));
+            }
+
+            // Generate shortname if not provided
+            if ($shortname === null) {
+                $shortname = 'BVI-' . substr($ipv6Address, 0, 20);
+            }
+
+            $query = "INSERT INTO nas 
+                      (nasname, shortname, type, secret, description, bvi_interface_id) 
+                      VALUES (?, ?, ?, ?, ?, ?)";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([
+                $ipv6Address,
+                $shortname,
+                'other',
+                $secret,
+                'Auto-generated from BVI Interface',
+                $bviInterfaceId
+            ]);
+
+            return $this->db->lastInsertId();
+        } catch (PDOException $e) {
+            error_log("Error creating RADIUS client: " . $e->getMessage());
+            throw new \Exception("Failed to create RADIUS client: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update RADIUS client
+     */
+    public function updateClient($id, $data)
+    {
+        try {
+            $allowedFields = ['nasname', 'shortname', 'type', 'ports', 'secret', 'server', 'community', 'description'];
+            $updates = [];
+            $params = [];
+
+            foreach ($allowedFields as $field) {
+                if (isset($data[$field])) {
+                    $updates[] = "$field = ?";
+                    $params[] = $data[$field];
+                }
+            }
+
+            if (empty($updates)) {
+                throw new \Exception("No valid fields to update");
+            }
+
+            $params[] = $id;
+            $query = "UPDATE nas SET " . implode(', ', $updates) . " WHERE id = ?";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error updating RADIUS client: " . $e->getMessage());
+            throw new \Exception("Failed to update RADIUS client");
+        }
+    }
+
+    /**
+     * Update RADIUS client IP address when BVI interface IP changes
+     */
+    public function updateClientIpByBviId($bviInterfaceId, $newIpv6Address)
+    {
+        try {
+            $query = "UPDATE nas SET nasname = ? WHERE bvi_interface_id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$newIpv6Address, $bviInterfaceId]);
+
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error updating RADIUS client IP: " . $e->getMessage());
+            throw new \Exception("Failed to update RADIUS client IP address");
+        }
+    }
+
+    /**
+     * Delete RADIUS client
+     */
+    public function deleteClient($id)
+    {
+        try {
+            $query = "DELETE FROM nas WHERE id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$id]);
+
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error deleting RADIUS client: " . $e->getMessage());
+            throw new \Exception("Failed to delete RADIUS client");
+        }
+    }
+
+    /**
+     * Delete RADIUS client by BVI interface ID
+     * (This is automatically handled by CASCADE delete, but included for explicit control)
+     */
+    public function deleteClientByBviId($bviInterfaceId)
+    {
+        try {
+            $query = "DELETE FROM nas WHERE bvi_interface_id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$bviInterfaceId]);
+
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error deleting RADIUS client by BVI ID: " . $e->getMessage());
+            throw new \Exception("Failed to delete RADIUS client");
+        }
+    }
+
+    /**
+     * Check if nasname (IP address) exists
+     */
+    public function nasnameExists($nasname, $excludeId = null)
+    {
+        try {
+            $query = "SELECT COUNT(*) as count FROM nas WHERE nasname = ?";
+            $params = [$nasname];
+
+            if ($excludeId !== null) {
+                $query .= " AND id != ?";
+                $params[] = $excludeId;
+            }
+
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result['count'] > 0;
+        } catch (PDOException $e) {
+            error_log("Error checking nasname existence: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Sync all BVI interfaces to RADIUS clients
+     * Creates RADIUS clients for BVI interfaces that don't have one
+     */
+    public function syncAllBviInterfaces()
+    {
+        try {
+            $query = "SELECT b.id, b.ipv6_address 
+                      FROM cin_switch_bvi_interfaces b
+                      LEFT JOIN nas n ON b.id = n.bvi_interface_id
+                      WHERE n.id IS NULL";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $missingBvis = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $synced = 0;
+            foreach ($missingBvis as $bvi) {
+                try {
+                    $this->createFromBvi($bvi['id'], $bvi['ipv6_address']);
+                    $synced++;
+                } catch (\Exception $e) {
+                    error_log("Failed to sync BVI {$bvi['id']}: " . $e->getMessage());
+                }
+            }
+
+            return $synced;
+        } catch (PDOException $e) {
+            error_log("Error syncing BVI interfaces: " . $e->getMessage());
+            throw new \Exception("Failed to sync BVI interfaces");
+        }
+    }
+}

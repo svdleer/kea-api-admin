@@ -1,0 +1,211 @@
+<?php
+
+namespace App\Controllers\Api;
+
+use App\Models\RadiusClient;
+use App\Auth\Authentication;
+
+class RadiusController
+{
+    private $radiusModel;
+    private $auth;
+
+    public function __construct(RadiusClient $radiusModel, Authentication $auth)
+    {
+        $this->radiusModel = $radiusModel;
+        $this->auth = $auth;
+    }
+
+    /**
+     * Get all RADIUS clients
+     * GET /api/radius/clients
+     */
+    public function getAllClients()
+    {
+        try {
+            $clients = $this->radiusModel->getAllClients();
+            
+            $this->jsonResponse([
+                'success' => true,
+                'clients' => $clients
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get RADIUS client by ID
+     * GET /api/radius/clients/{id}
+     */
+    public function getClientById($id)
+    {
+        try {
+            $client = $this->radiusModel->getClientById($id);
+            
+            if (!$client) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'RADIUS client not found'
+                ], 404);
+                return;
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'client' => $client
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create RADIUS client from BVI interface
+     * POST /api/radius/clients
+     */
+    public function createClient()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (!isset($data['bvi_interface_id']) || !isset($data['ipv6_address'])) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Missing required fields: bvi_interface_id, ipv6_address'
+                ], 400);
+                return;
+            }
+
+            $clientId = $this->radiusModel->createFromBvi(
+                $data['bvi_interface_id'],
+                $data['ipv6_address'],
+                $data['secret'] ?? null,
+                $data['shortname'] ?? null
+            );
+
+            $client = $this->radiusModel->getClientById($clientId);
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'RADIUS client created successfully',
+                'client' => $client
+            ], 201);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update RADIUS client
+     * PUT /api/radius/clients/{id}
+     */
+    public function updateClient($id)
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            if (empty($data)) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No data provided'
+                ], 400);
+                return;
+            }
+
+            $updated = $this->radiusModel->updateClient($id, $data);
+
+            if (!$updated) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'RADIUS client not found or no changes made'
+                ], 404);
+                return;
+            }
+
+            $client = $this->radiusModel->getClientById($id);
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'RADIUS client updated successfully',
+                'client' => $client
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete RADIUS client
+     * DELETE /api/radius/clients/{id}
+     */
+    public function deleteClient($id)
+    {
+        try {
+            $deleted = $this->radiusModel->deleteClient($id);
+
+            if (!$deleted) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'RADIUS client not found'
+                ], 404);
+                return;
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'RADIUS client deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Sync all BVI interfaces to RADIUS clients
+     * POST /api/radius/sync
+     */
+    public function syncBviInterfaces()
+    {
+        try {
+            $synced = $this->radiusModel->syncAllBviInterfaces();
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => "$synced BVI interface(s) synced to RADIUS clients",
+                'synced_count' => $synced
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper function to send JSON response
+     */
+    private function jsonResponse($data, $statusCode = 200)
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+}
