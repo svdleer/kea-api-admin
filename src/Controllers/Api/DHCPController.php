@@ -429,14 +429,19 @@ class DHCPController
                 error_log("DHCPController: Using existing CIN switch '$cinName' with ID: $switchId");
             } else {
                 // Create new CIN switch in OUR database (not Kea)
-                $switchId = $cinSwitchModel->createSwitch([
-                    'hostname' => $cinName
-                ]);
-                error_log("DHCPController: Created new CIN switch '$cinName' with ID: $switchId");
+                try {
+                    $switchId = $cinSwitchModel->createSwitch([
+                        'hostname' => $cinName
+                    ]);
+                    error_log("DHCPController: Created new CIN switch '$cinName' with ID: $switchId");
+                } catch (\Exception $e) {
+                    error_log("DHCPController: Failed to create CIN switch: " . $e->getMessage());
+                    throw new \Exception("Failed to create CIN switch: " . $e->getMessage());
+                }
             }
             
             if (!$switchId || $switchId == 0) {
-                throw new \Exception("Failed to create or find CIN switch");
+                throw new \Exception("Invalid switch ID returned: " . var_export($switchId, true));
             }
 
             // Create BVI100 interface in OUR database (not Kea)
