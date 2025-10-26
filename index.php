@@ -200,7 +200,9 @@ try {
     $router->delete('/api/dhcp/orphaned-subnets/{keaId}', [new DHCPController($dhcpModel, $auth), 'deleteOrphaned'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, false));
     $router->post('/api/dhcp/link-orphaned-subnet', [new DHCPController($dhcpModel, $auth), 'linkOrphanedSubnet'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, false));
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/dhcp/create-cin-and-link', [new DHCPController($dhcpModel, $auth), 'createCINAndLink'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // DHCPv6 Options Definitions API Routes
     $optionsDefModel = new \App\Models\DHCPv6OptionsDefModel($database);

@@ -1044,95 +1044,238 @@ function showEditSubnetModal(subnetData, relay) {
 
     async function linkOrphanedSubnet(keaSubnetId, subnetPrefix) {
         try {
-            // Get all BVI interfaces to show in dropdown
-            const bviResponse = await fetch('/api/switches/bvi-interfaces');
-            const bviData = await bviResponse.json();
-            
-            if (!bviData.success || !bviData.data || bviData.data.length === 0) {
-                Swal.fire({
-                    title: 'No BVI Interfaces',
-                    text: 'No BVI interfaces found. Please create BVI interfaces first.',
-                    icon: 'warning'
-                });
-                return;
-            }
-
-            // Create dropdown options
-            const options = {};
-            bviData.data.forEach(bvi => {
-                const label = `${bvi.switch_name} - BVI ${bvi.interface_number} (${bvi.ipv6_address})`;
-                options[bvi.id] = label;
-            });
-
-            const { value: bviId } = await Swal.fire({
-                title: 'Link Subnet to BVI Interface',
+            // First, ask user what they want to do
+            const { value: action } = await Swal.fire({
+                title: 'Link Orphaned Subnet',
                 html: `
-                    <div class="text-left mb-4">
-                        <p class="mb-2">Subnet: <strong>${subnetPrefix}</strong></p>
-                        <p class="mb-3 text-sm text-gray-600">Select the BVI interface to link this subnet to:</p>
+                    <div class="text-left">
+                        <p class="mb-3">Subnet: <strong>${subnetPrefix}</strong></p>
+                        <p class="text-sm text-gray-600 mb-4">Choose how to link this subnet:</p>
                     </div>
                 `,
-                input: 'select',
-                inputOptions: options,
-                inputPlaceholder: 'Select a BVI interface',
-                showCancelButton: true,
-                confirmButtonColor: '#3B82F6',
-                confirmButtonText: 'Link Subnet',
+                input: 'radio',
+                inputOptions: {
+                    'link': 'Link to existing BVI interface',
+                    'create': 'Create new CIN switch + BVI100'
+                },
                 inputValidator: (value) => {
                     if (!value) {
-                        return 'You must select a BVI interface!';
+                        return 'You must choose an option!';
                     }
-                }
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#3B82F6',
+                confirmButtonText: 'Continue'
             });
 
-            if (bviId) {
-                // Show loading
-                Swal.fire({
-                    title: 'Linking Subnet...',
-                    text: 'Please wait',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+            if (!action) return;
 
-                // Link the subnet via API
-                const response = await fetch(`/api/dhcp/link-orphaned-subnet`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        kea_subnet_id: keaSubnetId,
-                        bvi_interface_id: bviId
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    await Swal.fire({
-                        title: 'Success!',
-                        text: 'Subnet has been linked to BVI interface successfully.',
-                        icon: 'success',
-                        confirmButtonColor: '#10B981'
-                    });
-                    window.location.reload();
-                } else {
-                    Swal.fire({
-                        title: 'Error',
-                        text: data.message || 'Failed to link subnet',
-                        icon: 'error'
-                    });
-                }
+            if (action === 'link') {
+                // Link to existing BVI
+                await linkToExistingBVI(keaSubnetId, subnetPrefix);
+            } else if (action === 'create') {
+                // Create new CIN + BVI
+                await createNewCINAndBVI(keaSubnetId, subnetPrefix);
             }
+
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error linking orphaned subnet:', error);
             Swal.fire({
                 title: 'Error',
-                text: 'An error occurred while linking the subnet',
+                text: error.message || 'An unexpected error occurred',
                 icon: 'error'
             });
+        }
+    }
+
+    async function linkToExistingBVI(keaSubnetId, subnetPrefix) {
+        // Get all BVI interfaces to show in dropdown
+        const bviResponse = await fetch('/api/switches/bvi-interfaces');
+        const bviData = await bviResponse.json();
+        
+        if (!bviData.success || !bviData.data || !Array.isArray(bviData.data) || bviData.data.length === 0) {
+            Swal.fire({
+                title: 'No BVI Interfaces',
+                text: 'No BVI interfaces found. Please create a CIN switch with BVI interface first, or use "Create new CIN switch + BVI100" option.',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        // Create dropdown options
+        const options = {};
+        bviData.data.forEach(bvi => {
+            const label = `${bvi.switch_name} - BVI ${bvi.interface_number} (${bvi.ipv6_address})`;
+            options[bvi.id] = label;
+        });
+
+        const { value: bviId } = await Swal.fire({
+            title: 'Link to Existing BVI',
+            html: `
+                <div class="text-left mb-4">
+                    <p class="mb-2">Subnet: <strong>${subnetPrefix}</strong></p>
+                    <p class="mb-3 text-sm text-gray-600">Select the BVI interface to link this subnet to:</p>
+                </div>
+            `,
+            input: 'select',
+            inputOptions: options,
+            inputPlaceholder: 'Select a BVI interface',
+            showCancelButton: true,
+            confirmButtonColor: '#3B82F6',
+            confirmButtonText: 'Link Subnet',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'You must select a BVI interface!';
+                }
+            }
+        });
+
+        if (bviId) {
+            // Show loading
+            Swal.fire({
+                title: 'Linking Subnet...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Link the subnet via API
+            const response = await fetch(`/api/dhcp/link-orphaned-subnet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    kea_subnet_id: keaSubnetId,
+                    bvi_interface_id: bviId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Success!',
+                    text: 'Subnet has been linked to BVI interface successfully.',
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                });
+                window.location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to link subnet',
+                    icon: 'error'
+                });
+            }
+        }
+    }
+
+    async function createNewCINAndBVI(keaSubnetId, subnetPrefix) {
+        const { value: formData } = await Swal.fire({
+            title: 'Create New CIN + BVI100',
+            html: `
+                <div class="text-left">
+                    <p class="mb-3">Subnet: <strong>${subnetPrefix}</strong></p>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CIN Switch Name</label>
+                        <input id="cin-name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                               placeholder="e.g., ASD-GT0004-CCAP202">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">BVI100 IPv6 Address</label>
+                        <input id="bvi-ipv6" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md" 
+                               placeholder="e.g., 2001:b88:8005:f007::1">
+                        <p class="text-xs text-gray-500 mt-1">Usually the relay/gateway address from the subnet</p>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-3 rounded mt-3">
+                        <p class="text-xs text-gray-600">
+                            <strong>Note:</strong> This will create a new CIN switch with BVI100 interface and link the subnet to it.
+                        </p>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonColor: '#3B82F6',
+            confirmButtonText: 'Create & Link',
+            width: '600px',
+            preConfirm: () => {
+                const cinName = document.getElementById('cin-name').value;
+                const bviIpv6 = document.getElementById('bvi-ipv6').value;
+                
+                if (!cinName) {
+                    Swal.showValidationMessage('Please enter a CIN switch name');
+                    return false;
+                }
+                
+                if (!bviIpv6) {
+                    Swal.showValidationMessage('Please enter a BVI100 IPv6 address');
+                    return false;
+                }
+                
+                // Basic IPv6 validation
+                if (!/^[0-9a-f:]+$/i.test(bviIpv6)) {
+                    Swal.showValidationMessage('Invalid IPv6 address format');
+                    return false;
+                }
+                
+                return { cinName, bviIpv6 };
+            }
+        });
+
+        if (formData) {
+            // Show loading
+            Swal.fire({
+                title: 'Creating CIN + BVI100...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Create CIN + BVI and link subnet via API
+            const response = await fetch(`/api/dhcp/create-cin-and-link`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    kea_subnet_id: keaSubnetId,
+                    cin_name: formData.cinName,
+                    bvi_ipv6: formData.bviIpv6
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Success!',
+                    html: `
+                        <p class="mb-2">CIN switch and BVI100 created successfully!</p>
+                        <div class="text-sm text-left bg-gray-50 p-3 rounded mt-3">
+                            <p><strong>CIN Switch:</strong> ${formData.cinName}</p>
+                            <p><strong>BVI100:</strong> ${formData.bviIpv6}</p>
+                            <p><strong>Subnet:</strong> ${subnetPrefix}</p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                });
+                window.location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to create CIN + BVI',
+                    icon: 'error'
+                });
+            }
         }
     }
 
@@ -1240,6 +1383,8 @@ function showEditSubnetModal(subnetData, relay) {
     window.deleteSubnet = deleteSubnet;
     window.deleteOrphanedSubnet = deleteOrphanedSubnet;
     window.linkOrphanedSubnet = linkOrphanedSubnet;
+    window.linkToExistingBVI = linkToExistingBVI;
+    window.createNewCINAndBVI = createNewCINAndBVI;
     window.performSearch = performSearch;
 });
 </script>

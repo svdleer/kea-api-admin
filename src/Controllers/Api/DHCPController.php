@@ -360,6 +360,118 @@ class DHCPController
         }
     }
 
+    public function createCINAndLink()
+    {
+        try {
+            // Get JSON input
+            $rawData = file_get_contents("php://input");
+            $data = json_decode($rawData, true);
+
+            if (!isset($data['kea_subnet_id']) || !isset($data['cin_name']) || !isset($data['bvi_ipv6'])) {
+                throw new \Exception('Missing required fields: kea_subnet_id, cin_name, and bvi_ipv6');
+            }
+
+            $keaSubnetId = $data['kea_subnet_id'];
+            $cinName = $data['cin_name'];
+            $bviIpv6 = $data['bvi_ipv6'];
+
+            error_log("DHCPController: Creating CIN '$cinName' with BVI100 and linking to subnet ID: $keaSubnetId");
+
+            // Get database connection
+            $db = Database::getInstance();
+            $cinSwitchModel = new \App\Models\CinSwitch($db);
+
+            // Create new CIN switch
+            $switchId = $cinSwitchModel->createSwitch([
+                'hostname' => $cinName
+            ]);
+
+            // Create BVI100 interface
+            $cinSwitchModel->createBviInterface($switchId, [
+                'interface_number' => 100,
+                'ipv6_address' => $bviIpv6
+            ]);
+
+            // Get subnet details from Kea
+            $subnets = $this->subnetModel->getAllSubnetsfromKEA();
+            $subnet = null;
+            foreach ($subnets as $s) {
+                if ($s['id'] == $keaSubnetId) {
+                    $subnet = $s;
+                    break;
+                }
+            }
+
+            if (!$subnet) {
+                throw new \Exception('Subnet not found in Kea');
+            }
+
+            // Extract pool information
+            $poolStart = null;
+            $poolEnd = null;
+            if (!empty($subnet['pools'])) {
+                $firstPool = $subnet['pools'][0]['pool'];
+                // Parse "start - end" format
+                if (preg_match('/^(.+?)\s*-\s*(.+?)$/', $firstPool, $matches)) {
+                    $poolStart = trim($matches[1]);
+                    $poolEnd = trim($matches[2]);
+                }
+            }
+
+            // Get CCAP core from options
+            $ccapCore = null;
+            if (!empty($subnet['option-data'])) {
+                foreach ($subnet['option-data'] as $option) {
+                    if (($option['name'] ?? '') === 'ccap-core') {
+                        $ccapCore = $option['data'];
+                        break;
+                    }
+                }
+            }
+
+            // Link subnet to BVI in cin_bvi_dhcp_core table
+            $sql = "INSERT INTO cin_bvi_dhcp_core (
+                        switch_id,
+                        kea_subnet_id,
+                        interface_number,
+                        ipv6_address,
+                        start_address,
+                        end_address,
+                        ccap_core
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                $switchId,
+                $keaSubnetId,
+                100,
+                $bviIpv6,
+                $poolStart,
+                $poolEnd,
+                $ccapCore
+            ]);
+
+            error_log("DHCPController: Successfully created CIN + BVI100 and linked subnet");
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'CIN switch with BVI100 created and subnet linked successfully',
+                'data' => [
+                    'switch_id' => $switchId,
+                    'cin_name' => $cinName,
+                    'bvi_ipv6' => $bviIpv6
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Error in DHCPController::createCINAndLink: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     public function deleteLease()
     {
         try {
