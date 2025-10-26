@@ -392,12 +392,22 @@ function displayResults(result) {
 
 function showStep(step) {
     // Hide all steps
-    document.getElementById('step-1').classList.add('hidden');
-    document.getElementById('step-2').classList.add('hidden');
-    document.getElementById('step-3').classList.add('hidden');
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const step3 = document.getElementById('step-3');
+    
+    if (step1) step1.classList.add('hidden');
+    if (step2) step2.classList.add('hidden');
+    if (step3) step3.classList.add('hidden');
     
     // Show selected step
-    document.getElementById(`step-${step}`).classList.remove('hidden');
+    const targetStep = document.getElementById(`step-${step}`);
+    if (targetStep) {
+        targetStep.classList.remove('hidden');
+    } else {
+        console.error(`Step ${step} element not found`);
+        return;
+    }
     
     // Update step indicators
     updateStepIndicator(1, step >= 1);
@@ -407,16 +417,32 @@ function showStep(step) {
 
 function updateStepIndicator(stepNum, active) {
     const indicator = document.getElementById(`step-${stepNum}-indicator`);
+    if (!indicator) {
+        console.warn(`Step indicator ${stepNum} not found`);
+        return;
+    }
+    
+    const indicatorDiv = indicator.querySelector('div');
+    if (!indicatorDiv) {
+        console.warn(`Step indicator ${stepNum} div not found`);
+        return;
+    }
+    
     if (active) {
         indicator.classList.remove('text-gray-400');
         indicator.classList.add('text-blue-600');
-        indicator.querySelector('div').classList.remove('border-gray-300', 'bg-white');
-        indicator.querySelector('div').classList.add('border-blue-600', 'bg-blue-50');
+        indicatorDiv.classList.remove('border-gray-300', 'bg-white');
+        indicatorDiv.classList.add('border-blue-600', 'bg-blue-50');
     }
 }
 
 function updateProgress(barNum, percent) {
-    document.getElementById(`progress-bar-${barNum}`).style.width = percent + '%';
+    const progressBar = document.getElementById(`progress-bar-${barNum}`);
+    if (progressBar) {
+        progressBar.style.width = percent + '%';
+    } else {
+        console.warn(`Progress bar ${barNum} not found`);
+    }
 }
 </script>
 
