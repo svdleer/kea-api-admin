@@ -381,18 +381,7 @@ class DHCPController
             $db = Database::getInstance();
             $cinSwitchModel = new \App\Models\CinSwitch($db);
 
-            // Create new CIN switch
-            $switchId = $cinSwitchModel->createSwitch([
-                'hostname' => $cinName
-            ]);
-
-            // Create BVI100 interface
-            $cinSwitchModel->createBviInterface($switchId, [
-                'interface_number' => 100,
-                'ipv6_address' => $bviIpv6
-            ]);
-
-            // Get subnet details from Kea
+            // Get subnet details from Kea (read-only, via API)
             $subnets = $this->subnetModel->getAllSubnetsfromKEA();
             $subnet = null;
             foreach ($subnets as $s) {
@@ -406,7 +395,7 @@ class DHCPController
                 throw new \Exception('Subnet not found in Kea');
             }
 
-            // Extract pool information
+            // Extract pool information from subnet data (already retrieved from Kea API)
             $poolStart = null;
             $poolEnd = null;
             if (!empty($subnet['pools'])) {
@@ -418,7 +407,7 @@ class DHCPController
                 }
             }
 
-            // Get CCAP core from options
+            // Get CCAP core from options (already retrieved from Kea API)
             $ccapCore = null;
             if (!empty($subnet['option-data'])) {
                 foreach ($subnet['option-data'] as $option) {
@@ -429,8 +418,21 @@ class DHCPController
                 }
             }
 
-            // Link subnet to BVI in cin_bvi_dhcp_core table
+            // Create new CIN switch in OUR database (not Kea)
+            $switchId = $cinSwitchModel->createSwitch([
+                'hostname' => $cinName
+            ]);
+
+            // Create BVI100 interface in OUR database (not Kea)
+            $bviInterfaceId = $cinSwitchModel->createBviInterface($switchId, [
+                'interface_number' => 100,
+                'ipv6_address' => $bviIpv6
+            ]);
+
+            // Link subnet to BVI in OUR database (cin_bvi_dhcp_core table - not Kea)
+            // This is OUR mapping table that links Kea subnets to our BVI interfaces
             $sql = "INSERT INTO cin_bvi_dhcp_core (
+                        id,
                         switch_id,
                         kea_subnet_id,
                         interface_number,
@@ -438,10 +440,11 @@ class DHCPController
                         start_address,
                         end_address,
                         ccap_core
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $db->prepare($sql);
             $stmt->execute([
+                $bviInterfaceId, // Use BVI interface ID as primary key
                 $switchId,
                 $keaSubnetId,
                 100,
@@ -451,7 +454,7 @@ class DHCPController
                 $ccapCore
             ]);
 
-            error_log("DHCPController: Successfully created CIN + BVI100 and linked subnet");
+            error_log("DHCPController: Successfully created CIN + BVI100 and linked subnet (no Kea DB writes)");
 
             header('Content-Type: application/json');
             echo json_encode([

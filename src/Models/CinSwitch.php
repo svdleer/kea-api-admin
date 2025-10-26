@@ -300,9 +300,11 @@ public function createBviInterface($switchId, $data)
                 error_log("Failed to auto-create RADIUS client: " . $e->getMessage());
                 // Don't fail the BVI creation if RADIUS sync fails
             }
+            
+            return $bviId; // Return the BVI interface ID
         }
 
-        return $result;
+        return false;
     } catch (\PDOException $e) {
         error_log("Error creating BVI interface: " . $e->getMessage());
         throw $e;
