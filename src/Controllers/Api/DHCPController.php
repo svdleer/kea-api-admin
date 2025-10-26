@@ -418,10 +418,26 @@ class DHCPController
                 }
             }
 
-            // Create new CIN switch in OUR database (not Kea)
-            $switchId = $cinSwitchModel->createSwitch([
-                'hostname' => $cinName
-            ]);
+            // Check if CIN switch with this name already exists
+            $existingSwitchStmt = $db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+            $existingSwitchStmt->execute([$cinName]);
+            $existingSwitch = $existingSwitchStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($existingSwitch) {
+                // Switch already exists, use its ID
+                $switchId = $existingSwitch['id'];
+                error_log("DHCPController: Using existing CIN switch '$cinName' with ID: $switchId");
+            } else {
+                // Create new CIN switch in OUR database (not Kea)
+                $switchId = $cinSwitchModel->createSwitch([
+                    'hostname' => $cinName
+                ]);
+                error_log("DHCPController: Created new CIN switch '$cinName' with ID: $switchId");
+            }
+            
+            if (!$switchId || $switchId == 0) {
+                throw new \Exception("Failed to create or find CIN switch");
+            }
 
             // Create BVI100 interface in OUR database (not Kea)
             $bviInterfaceId = $cinSwitchModel->createBviInterface($switchId, [
