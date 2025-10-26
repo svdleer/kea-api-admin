@@ -35,8 +35,6 @@ class Colors {
 
 class KeaConfigImporter {
     private $db;
-    private $apiBaseUrl;
-    private $apiKey;
     private $stats = [
         'subnets' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
         'reservations' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
@@ -45,55 +43,6 @@ class KeaConfigImporter {
 
     public function __construct() {
         $this->db = Database::getInstance();
-        
-        // Get API configuration
-        $this->apiBaseUrl = $_ENV['API_BASE_URL'] ?? 'http://localhost';
-        
-        // Get admin API key from database (API key belonging to an admin user)
-        $stmt = $this->db->prepare("
-            SELECT ak.api_key 
-            FROM api_keys ak
-            JOIN users u ON ak.user_id = u.id
-            WHERE u.is_admin = 1 AND ak.active = 1
-            LIMIT 1
-        ");
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$result) {
-            throw new Exception("No admin API key found. Please create an API key for an admin user first.");
-        }
-        
-        $this->apiKey = $result['api_key'];
-    }
-    
-    /**
-     * Make API request
-     */
-    private function apiRequest($method, $endpoint, $data = null) {
-        $url = rtrim($this->apiBaseUrl, '/') . $endpoint;
-        
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'X-API-Key: ' . $this->apiKey,
-            'Content-Type: application/json'
-        ]);
-        
-        if ($data !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        }
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode >= 200 && $httpCode < 300) {
-            return json_decode($response, true);
-        } else {
-            throw new Exception("API request failed: HTTP $httpCode - $response");
-        }
     }
 
     /**
@@ -294,20 +243,14 @@ class KeaConfigImporter {
 
             $this->info("\n  Processing subnet: $subnetPrefix (ID: $subnetId)");
 
-            // Check if subnet already exists via API
-            try {
-                $existing = $this->apiRequest('GET', '/api/dhcp/subnets');
-                if ($existing && isset($existing['subnets'])) {
-                    foreach ($existing['subnets'] as $existingSubnet) {
-                        if ($existingSubnet['subnet'] === $subnetPrefix) {
-                            $this->stats['subnets']['skipped']++;
-                            $this->warning("    Subnet already exists, skipping");
-                            return;
-                        }
-                    }
-                }
-            } catch (Exception $e) {
-                // Continue if check fails
+            // Check if subnet already exists
+            $stmt = $this->db->prepare("SELECT id FROM dhcp6_subnet WHERE subnet = ?");
+            $stmt->execute([$subnetPrefix]);
+            
+            if ($stmt->fetch()) {
+                $this->stats['subnets']['skipped']++;
+                $this->warning("    Subnet already exists, skipping");
+                return;
             }
 
             // Extract pools
@@ -318,37 +261,33 @@ class KeaConfigImporter {
                 }
             }
 
-            // Prepare subnet data for API
-            $subnetData = [
-                'subnet' => $subnetPrefix,
-                'pools' => $pools,
-                'valid_lifetime' => $subnet['valid-lifetime'] ?? 7200,
-                'preferred_lifetime' => $subnet['preferred-lifetime'] ?? 3600,
-                'rapid_commit' => $subnet['rapid-commit'] ?? false,
-                'description' => 'Imported from Kea config on ' . date('Y-m-d H:i:s')
-            ];
+            // Insert subnet into database
+            $stmt = $this->db->prepare(
+                "INSERT INTO dhcp6_subnet 
+                (subnet_id, subnet, pools, valid_lifetime, preferred_lifetime, rapid_commit) 
+                VALUES (?, ?, ?, ?, ?, ?)"
+            );
 
-            // Create subnet via API
-            $result = $this->apiRequest('POST', '/api/dhcp/subnets', $subnetData);
+            $stmt->execute([
+                $subnetId,
+                $subnetPrefix,
+                !empty($pools) ? json_encode($pools) : null,
+                $subnet['valid-lifetime'] ?? 7200,
+                $subnet['preferred-lifetime'] ?? 3600,
+                $subnet['rapid-commit'] ?? 0
+            ]);
 
-            if ($result && isset($result['success']) && $result['success']) {
-                $this->stats['subnets']['imported']++;
-                $this->success("    ✓ Imported subnet: $subnetPrefix");
-                
-                if (!empty($pools)) {
-                    $this->info("      Pools: " . implode(', ', $pools));
-                }
+            $this->stats['subnets']['imported']++;
+            $this->success("    ✓ Imported subnet: $subnetPrefix");
+            
+            if (!empty($pools)) {
+                $this->info("      Pools: " . implode(', ', $pools));
+            }
 
-                // Import reservations if present in subnet
-                if (isset($subnet['reservations']) && !empty($subnet['reservations'])) {
-                    $this->info("    Found " . count($subnet['reservations']) . " reservations (skipping - not yet implemented via API)");
-                    // TODO: Implement reservation import via API
-                    // foreach ($subnet['reservations'] as $reservation) {
-                    //     $this->importReservation($reservation, $subnetId, $subnetPrefix);
-                    // }
-                }
-            } else {
-                throw new Exception("API returned error: " . json_encode($result));
+            // Import reservations if present in subnet
+            if (isset($subnet['reservations']) && !empty($subnet['reservations'])) {
+                $this->info("    Found " . count($subnet['reservations']) . " reservations (skipping - not yet implemented)");
+                // TODO: Implement reservation import
             }
 
         } catch (Exception $e) {
