@@ -301,47 +301,52 @@ class AdminController
                 
                 // Now handle the action-specific logic
                 if ($action === 'create') {
-                    // Validate inputs
-                    if (empty($config['cin_name'])) {
-                        throw new \Exception("CIN switch name is required");
+                    // CIN switch creation is OPTIONAL during import
+                    // Users can link to CIN switches later using the "Create CIN + BVI" button
+                    if (!empty($config['cin_name'])) {
+                        // CIN name provided - create CIN switch and link it
+                        
+                        // Create new CIN switch
+                        $switchId = $cinSwitchModel->createSwitch([
+                            'hostname' => $config['cin_name']
+                        ]);
+                        
+                        // Create BVI100 interface
+                        $cinSwitchModel->createBviInterface($switchId, [
+                            'interface_number' => 100, // Always BVI100
+                            'ipv6_address' => $subnet['relay'] // Use relay address as BVI address
+                        ]);
+                        
+                        // Link subnet to BVI in cin_bvi_dhcp_core table
+                        // Parse pool to get start/end addresses
+                        $poolStart = null;
+                        $poolEnd = null;
+                        if ($subnet['pool'] && preg_match('/^(.+?)\s*-\s*(.+?)$/', $subnet['pool'], $matches)) {
+                            $poolStart = trim($matches[1]);
+                            $poolEnd = trim($matches[2]);
+                        }
+                        
+                        $stmt = $this->db->prepare("
+                            INSERT INTO cin_bvi_dhcp_core 
+                            (switch_id, kea_subnet_id, interface_number, ipv6_address, start_address, end_address, ccap_core)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ");
+                        $stmt->execute([
+                            $switchId,
+                            $subnet['id'],
+                            100,
+                            $subnet['relay'],
+                            $poolStart,
+                            $poolEnd,
+                            $subnet['ccap_core'] ?? null
+                        ]);
+                        
+                        $result['message'] = "✓ Created subnet with CIN switch '{$config['cin_name']}'";
+                    } else {
+                        // No CIN name provided - subnet created in Kea only
+                        // User can link to CIN switch later via "Create CIN + BVI" button
+                        $result['message'] = "✓ Created subnet (no CIN link - add later if needed)";
                     }
-                    
-                    // Create new CIN switch
-                    $switchId = $cinSwitchModel->createSwitch([
-                        'hostname' => $config['cin_name']
-                    ]);
-                    
-                    // Create BVI100 interface
-                    $cinSwitchModel->createBviInterface($switchId, [
-                        'interface_number' => 100, // Always BVI100
-                        'ipv6_address' => $subnet['relay'] // Use relay address as BVI address
-                    ]);
-                    
-                    // Link subnet to BVI in cin_bvi_dhcp_core table
-                    // Parse pool to get start/end addresses
-                    $poolStart = null;
-                    $poolEnd = null;
-                    if ($subnet['pool'] && preg_match('/^(.+?)\s*-\s*(.+?)$/', $subnet['pool'], $matches)) {
-                        $poolStart = trim($matches[1]);
-                        $poolEnd = trim($matches[2]);
-                    }
-                    
-                    $stmt = $this->db->prepare("
-                        INSERT INTO cin_bvi_dhcp_core 
-                        (switch_id, kea_subnet_id, interface_number, ipv6_address, start_address, end_address, ccap_core)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ");
-                    $stmt->execute([
-                        $switchId,
-                        $subnet['id'], // Kea subnet ID
-                        100,
-                        $subnet['relay'],
-                        $poolStart,
-                        $poolEnd,
-                        $subnet['ccap_core']
-                    ]);
-                    
-                    $details[] = "✓ Created CIN '{$config['cin_name']}' with BVI100 and linked subnet {$subnet['subnet']}";
                     
                 } elseif ($action === 'link') {
                     // Link to existing BVI
