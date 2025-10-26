@@ -400,11 +400,22 @@ class DHCPController
             $poolEnd = null;
             if (!empty($subnet['pools'])) {
                 $firstPool = $subnet['pools'][0]['pool'];
+                error_log("DHCPController: Raw pool data: " . $firstPool);
                 // Parse "start - end" format
                 if (preg_match('/^(.+?)\s*-\s*(.+?)$/', $firstPool, $matches)) {
                     $poolStart = trim($matches[1]);
                     $poolEnd = trim($matches[2]);
+                    error_log("DHCPController: Parsed pool - start: $poolStart, end: $poolEnd");
+                } else {
+                    error_log("DHCPController: Failed to parse pool format: " . $firstPool);
                 }
+            } else {
+                error_log("DHCPController: No pools found in subnet data");
+            }
+            
+            // Validate pool addresses are not null
+            if (!$poolStart || !$poolEnd) {
+                throw new \Exception("Failed to extract pool addresses from subnet. Start: " . var_export($poolStart, true) . ", End: " . var_export($poolEnd, true));
             }
 
             // Get CCAP core from options (already retrieved from Kea API)
