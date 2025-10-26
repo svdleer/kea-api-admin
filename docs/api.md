@@ -45,6 +45,8 @@ Session-based authentication using cookies. Used automatically when logged in th
 
 ## API Endpoints
 
+> **Note**: The generic `/api/subnets` endpoints have been deprecated. Use `/api/dhcp/subnets` for DHCPv6 subnet management or `/api/ipv6/subnets` for IPv6 subnet management instead.
+
 ### API Key Management
 
 - `GET /api/keys` - List all API keys
@@ -123,23 +125,14 @@ Session-based authentication using cookies. Used automatically when logged in th
 - `POST /api/dhcp/static` - Add static lease/reservation (requires write access)
 - `GET /api/dhcp/static/{subnetId}` - Get static leases for subnet
 
-### IPv6 Subnets (Kea)
+### IPv6 Subnets (Kea Management)
 
 - `GET /api/ipv6/subnets` - List IPv6 subnets
-- `GET /api/ipv6/subnets/{subnetId}` - Get subnet details
+- `GET /api/ipv6/subnets/{subnetId}` - Get specific IPv6 subnet
 - `POST /api/ipv6/subnets` - Create IPv6 subnet (requires write access)
 - `PUT /api/ipv6/subnets/{subnetId}` - Update IPv6 subnet (requires write access)
 - `DELETE /api/ipv6/subnets/{subnetId}` - Delete IPv6 subnet (requires write access)
-- `GET /api/ipv6/bvi/{bviId}/subnets` - Get subnets for BVI interface
-
-### Network Subnets & Prefixes
-
-- `POST /api/subnets` - Create network subnet (requires write access)
-- `PUT /api/subnets/{subnetId}` - Update network subnet (requires write access)
-- `DELETE /api/subnets/{subnetId}` - Delete network subnet (requires write access)
-- `POST /api/subnets/{subnetId}/prefixes` - Create prefix (requires write access)
-- `PUT /api/subnets/{subnetId}/prefixes/{prefixId}` - Update prefix (requires write access)
-- `DELETE /api/subnets/{subnetId}/prefixes/{prefixId}` - Delete prefix (requires write access)
+- `GET /api/ipv6/bvi/{bviId}/subnets` - Get subnets by BVI interface
 
 ## Response Format
 
@@ -218,6 +211,17 @@ curl -X POST https://your-domain.com/api/dhcp/static \
   }'
 ```
 
+## Migration from Deprecated Endpoints
+
+If you were using any of the following deprecated endpoints:
+- `/api/subnets` - Use `/api/dhcp/subnets` or `/api/ipv6/subnets` instead
+- `/api/subnets/{id}/prefixes` - These were never fully implemented
+
+**Recommended Actions:**
+1. Update any API clients to use the correct endpoints
+2. Use `/api/dhcp/subnets` for DHCPv6 server configuration
+3. Use `/api/ipv6/subnets` for IPv6 subnet management in Kea
+
 ## Security Best Practices
 
 1. **Keep API keys secure** - Never commit keys to version control
@@ -235,78 +239,3 @@ For issues or questions:
 - Contact system administrator
 
 
-API keys can be either read-only or read/write. Write operations (POST, PUT, DELETE) require a read/write API key.
-
-## Managing API Keys
-
-API keys can be managed through the web interface at `/api-keys`. Only administrators can create new API keys.
-
-### Creating an API Key
-1. Log in to the web interface as an administrator
-2. Navigate to the API Keys page
-3. Click "Create API Key"
-4. Enter a name for the key and select whether it should be read-only
-5. Copy the generated API key - it will only be shown once
-
-### API Routes
-
-#### CIN Switches
-
-- `GET /api/switches` - List all CIN switches (read-only)
-- `GET /api/switches/{id}` - Get a specific CIN switch (read-only)
-- `POST /api/switches` - Create a new CIN switch (requires write access)
-- `PUT /api/switches/{id}` - Update a CIN switch (requires write access)
-- `DELETE /api/switches/{id}` - Delete a CIN switch (requires write access)
-
-#### BVI Interfaces
-
-- `POST /api/switches/{switchId}/bvi` - Create a new BVI interface (requires write access)
-- `PUT /api/switches/{switchId}/bvi/{bviId}` - Update a BVI interface (requires write access)
-- `DELETE /api/switches/{switchId}/bvi/{bviId}` - Delete a BVI interface (requires write access)
-
-#### Validation Endpoints
-
-- `GET /api/switches/check-exists` - Check if a switch hostname exists
-- `GET /api/switches/check-bvi` - Validate BVI interface
-- `GET /api/switches/check-ipv6` - Validate IPv6 address
-
-#### Subnets and Prefixes
-
-- `POST /api/subnets` - Create a subnet (requires write access)
-- `PUT /api/subnets/{subnetId}` - Update a subnet (requires write access)
-- `DELETE /api/subnets/{subnetId}` - Delete a subnet (requires write access)
-- `POST /api/subnets/{subnetId}/prefixes` - Create a prefix (requires write access)
-- `PUT /api/subnets/{subnetId}/prefixes/{prefixId}` - Update a prefix (requires write access)
-- `DELETE /api/subnets/{subnetId}/prefixes/{prefixId}` - Delete a prefix (requires write access)
-
-## Error Responses
-
-The API returns standard HTTP status codes:
-
-- 200: Success
-- 400: Bad Request
-- 401: Unauthorized (missing or invalid API key)
-- 403: Forbidden (insufficient permissions)
-- 404: Not Found
-- 500: Internal Server Error
-
-Error responses include a JSON body with an error message:
-
-```json
-{
-    "error": "Error message here"
-}
-```
-
-## Success Responses
-
-Success responses include a JSON body with a success flag and any relevant data:
-
-```json
-{
-    "success": true,
-    "data": {
-        // Response data here
-    }
-}
-```

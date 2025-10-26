@@ -23,7 +23,7 @@ ob_start();
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-gray-900">User Management</h1>
-        <button onclick="createUser()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <button onclick="createUser()" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
             Add User
         </button>
     </div>
@@ -123,7 +123,7 @@ function loadUsers() {
                         </span>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <button onclick="editUser(${user.id || 0})" class="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
+                        <button onclick="editUser(${user.id || 0})" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
                         <button onclick="deleteUser(${user.id || 0})" class="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                 `;
@@ -537,7 +537,7 @@ function deleteUser(userId) {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
+                cancelButtonColor: '#6366f1',
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
                 if (result.isConfirmed) {

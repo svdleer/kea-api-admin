@@ -213,19 +213,14 @@ curl -X GET https://your-domain.com/api/dhcp/leases/0/13/start/50 \
 ### Network Management
 - **CIN Switches**: `/api/switches`
 - **BVI Interfaces**: `/api/switches/{id}/bvi`
-- **Subnets**: `/api/subnets`
-- **Prefixes**: `/api/subnets/{id}/prefixes`
 
 ### DHCP Management
 - **DHCP Subnets**: `/api/dhcp/subnets`
+- **IPv6 Subnets**: `/api/ipv6/subnets`
 - **Options Definitions**: `/api/dhcp/optionsdef`
 - **Options**: `/api/dhcp/options`
 - **Leases**: `/api/dhcp/leases/{switchId}/{bviId}/{from}/{limit}`
 - **Static Leases**: `/api/dhcp/static`
-
-### IPv6 Management
-- **IPv6 Subnets**: `/api/ipv6/subnets`
-- **BVI Subnets**: `/api/ipv6/bvi/{bviId}/subnets`
 
 For complete API documentation, see [docs/api.md](docs/api.md) or view the Swagger specification at `/swagger.json`.
 
@@ -236,8 +231,8 @@ For complete API documentation, see [docs/api.md](docs/api.md) or view the Swagg
 - `api_keys` - API key management
 - `cin_switches` - CIN network switches
 - `cin_switch_bvi_interfaces` - BVI interfaces
-- `subnets` - Network subnets
-- `prefixes` - IPv6 prefixes
+- `ipv6_subnets` - IPv6 subnet management for Kea
+- DHCPv6 tables managed by Kea server
 
 ## Development
 
@@ -336,6 +331,13 @@ For issues, questions, or contributions:
 - **API Docs**: `/swagger.json`
 
 ## Changelog
+
+### Version 2.0.1
+- 🗑️ **DEPRECATED**: Generic `/api/subnets` endpoints removed (non-functional)
+- ✅ **CLARIFIED**: Use `/api/dhcp/subnets` for DHCPv6 management
+- ✅ **CLARIFIED**: Use `/api/ipv6/subnets` for IPv6 subnet management  
+- 🧹 **CLEANUP**: Removed broken navigation links
+- 📚 **DOCS**: Updated API documentation for clarity
 
 ### Version 2.0.0
 - ✅ Complete REST API implementation

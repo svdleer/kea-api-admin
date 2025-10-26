@@ -26,11 +26,11 @@ $title = 'API Keys ';
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-900">API Keys</h1>
         <div class="flex space-x-2"> <!-- Added flex container with spacing -->
-            <button onclick="showSwaggerDocs()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <button onclick="showSwaggerDocs()" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
                 API Documentation
             </button>
             <?php if ($auth->isAdmin()): ?>
-            <button onclick="showCreateApiKeyModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+            <button onclick="showCreateApiKeyModal()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">
                 Create API Key
             </button>
             <?php endif; ?>
@@ -90,7 +90,7 @@ $title = 'API Keys ';
                     <button type="button" onclick="hideCreateApiKeyModal()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Cancel
                     </button>
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                         Create
                     </button>
                 </div>
@@ -111,7 +111,7 @@ $title = 'API Keys ';
                 </div>
             </div>
             <div class="mt-6">
-                <button onclick="hideApiKeyCreatedModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                <button onclick="hideApiKeyCreatedModal()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                     Close
                 </button>
             </div>
@@ -305,7 +305,7 @@ document.getElementById('createApiKeyForm').addEventListener('submit', function(
                 `,
                 icon: 'success',
                 confirmButtonText: 'I have copied the key',
-                confirmButtonColor: '#3085d6',
+                confirmButtonColor: '#6366f1',
             }).then((result) => {
                 loadApiKeys(); // Refresh the list after closing
             });
@@ -387,7 +387,7 @@ function deactivateApiKey(keyId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        cancelButtonColor: '#6366f1',
         confirmButtonText: 'Yes, deactivate it!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -429,7 +429,7 @@ function deleteApiKey(keyId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        cancelButtonColor: '#6366f1',
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {

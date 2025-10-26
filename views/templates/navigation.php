@@ -14,11 +14,7 @@
                         
                         <a href="/dhcp" class="<?php echo $currentPage === 'dhcp' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">DHCPv6</a>
                         
-                        <a href="/subnets" class="<?php echo $currentPage === 'subnets' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Subnets</a>
-                        
-                        <a href="/prefixes" class="<?php echo $currentPage === 'prefixes' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Prefixes</a>
-                        
-                        <a href="/networks" class="<?php echo $currentPage === 'networks' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Networks</a>
+                        <a href="/ipv6" class="<?php echo $currentPage === 'ipv6' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">IPv6 Subnets</a>
                         
                         <?php if ($auth->isAdmin()): ?>
                         <a href="/api-keys" class="<?php echo $currentPage === 'api-keys' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">API Keys</a>
