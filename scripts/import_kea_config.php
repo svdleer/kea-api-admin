@@ -61,15 +61,41 @@ class KeaConfigImporter {
         // Read and parse JSON config
         $configJson = file_get_contents($configFile);
         
-        // Remove comments (lines starting with # or //)
+        // Remove C-style block comments /* ... */
+        $configJson = preg_replace('/\/\*.*?\*\//s', '', $configJson);
+        
+        // Remove line comments (lines starting with # or //)
         $configJson = preg_replace('/^\s*#.*$/m', '', $configJson);
         $configJson = preg_replace('/^\s*\/\/.*$/m', '', $configJson);
+        
+        // Remove inline # comments
+        $configJson = preg_replace('/#.*$/m', '', $configJson);
+        
+        // Remove trailing commas before closing brackets/braces
+        $configJson = preg_replace('/,(\s*[}\]])/', '$1', $configJson);
+        
+        // Remove lines with "omitted" placeholders
+        $configJson = preg_replace('/.*Lines \d+-\d+ omitted.*\n?/', '', $configJson);
         
         $config = json_decode($configJson, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->error("Failed to parse configuration file: " . json_last_error_msg());
-            $this->warning("Note: Kea config files may contain comments. Make sure to remove them or use a proper parser.");
+            $this->warning("Note: Kea config files may contain comments or syntax errors.");
+            
+            // Show a snippet of the problematic area
+            $lines = explode("\n", $configJson);
+            $this->warning("\nShowing first 20 non-empty lines after cleanup:");
+            $count = 0;
+            foreach ($lines as $i => $line) {
+                $trimmed = trim($line);
+                if (!empty($trimmed)) {
+                    $this->info(sprintf("Line %d: %s", $i + 1, substr($line, 0, 100)));
+                    $count++;
+                    if ($count >= 20) break;
+                }
+            }
+            
             return false;
         }
 
