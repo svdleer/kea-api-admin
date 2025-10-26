@@ -431,7 +431,8 @@ class DHCPController
 
             // Link subnet to BVI in OUR database (cin_bvi_dhcp_core table - not Kea)
             // This is OUR mapping table that links Kea subnets to our BVI interfaces
-            $sql = "INSERT INTO cin_bvi_dhcp_core (
+            // Use REPLACE to handle duplicate switch_id + interface_number
+            $sql = "REPLACE INTO cin_bvi_dhcp_core (
                         id,
                         switch_id,
                         kea_subnet_id,
