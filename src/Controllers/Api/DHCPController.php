@@ -418,8 +418,8 @@ class DHCPController
                 }
             }
 
-            // Check if CIN switch with this name already exists
-            $existingSwitchStmt = $db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+            // Check if CIN switch with this name already exists (exclude id=0 as it's invalid)
+            $existingSwitchStmt = $db->prepare("SELECT id FROM cin_switches WHERE hostname = ? AND id > 0 ORDER BY id DESC LIMIT 1");
             $existingSwitchStmt->execute([$cinName]);
             $existingSwitch = $existingSwitchStmt->fetch(\PDO::FETCH_ASSOC);
             
