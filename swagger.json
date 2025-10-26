@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "KEA API Admin",
-    "version": "1.0.0",
-    "description": "API documentation for KEA API Admin"
+    "title": "KEA DHCP API Admin",
+    "version": "2.0.0",
+    "description": "Comprehensive API for managing KEA DHCP server, CIN switches, BVI interfaces, subnets, and network resources."
   },
   "servers": [
     {
@@ -11,189 +11,175 @@
       "description": "API Server"
     }
   ],
-  "paths": {
-    "/keys": {
-      "get": {
-        "summary": "Get all API keys",
-        "tags": ["API Keys"],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "keys": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ApiKey"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API Key authentication. Supports read-only and read/write keys."
       },
-      "post": {
-        "summary": "Create new API key",
-        "tags": ["API Keys"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "My API Key"
-                  },
-                  "read_only": {
-                    "type": "boolean",
-                    "example": false
-                  }
-                },
-                "required": ["name"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "API Key created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "key": {
-                      "type": "string",
-                      "example": "abc123def456..."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/keys/{id}/deactivate": {
-      "post": {
-        "summary": "Deactivate an API key",
-        "tags": ["API Keys"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "API Key ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "API Key deactivated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/keys/{id}": {
-      "delete": {
-        "summary": "Delete an API key",
-        "tags": ["API Keys"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "API Key ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "API Key deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      "SessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "PHPSESSID",
+        "description": "Session-based authentication for web UI access."
       }
     }
   },
-  "components": {
-    "schemas": {
-      "ApiKey": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "example": 1
-          },
-          "name": {
-            "type": "string",
-            "example": "My API Key"
-          },
-          "read_only": {
-            "type": "boolean",
-            "example": false
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2024-01-01T00:00:00Z"
-          },
-          "last_used": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
-          },
-          "active": {
-            "type": "boolean",
-            "example": true
-          }
-        }
-      }
+  "security": [
+    {
+      "ApiKeyAuth": []
+    },
+    {
+      "SessionAuth": []
+    }
+  ],
+  "tags": [
+    {"name": "API Keys", "description": "Manage API keys for authentication"},
+    {"name": "Users", "description": "User management and authentication"},
+    {"name": "Dashboard", "description": "System statistics and status"},
+    {"name": "CIN Switches", "description": "CIN switch management"},
+    {"name": "BVI Interfaces", "description": "BVI interface configuration"},
+    {"name": "DHCP Subnets", "description": "DHCPv6 subnet management"},
+    {"name": "DHCPv6 Options Definitions", "description": "DHCPv6 custom option definitions"},
+    {"name": "DHCPv6 Options", "description": "DHCPv6 option configuration"},
+    {"name": "DHCPv6 Leases", "description": "Lease and reservation management"},
+    {"name": "IPv6 Subnets", "description": "IPv6 Kea subnet management"},
+    {"name": "Network Subnets", "description": "Network subnet and prefix management"}
+  ],
+  "paths": {
+    "/keys": {
+      "get": {"summary": "List API keys", "tags": ["API Keys"]},
+      "post": {"summary": "Create API key", "tags": ["API Keys"]}
+    },
+    "/keys/{id}/deactivate": {
+      "post": {"summary": "Deactivate API key", "tags": ["API Keys"]}
+    },
+    "/keys/{id}": {
+      "delete": {"summary": "Delete API key", "tags": ["API Keys"]}
+    },
+    "/users": {
+      "get": {"summary": "List users", "tags": ["Users"]},
+      "post": {"summary": "Create user", "tags": ["Users"]}
+    },
+    "/users/{id}": {
+      "get": {"summary": "Get user", "tags": ["Users"]},
+      "put": {"summary": "Update user", "tags": ["Users"]},
+      "delete": {"summary": "Delete user", "tags": ["Users"]}
+    },
+    "/users/check-username/{username}": {
+      "get": {"summary": "Check username availability", "tags": ["Users"]}
+    },
+    "/users/check-email/{email}": {
+      "get": {"summary": "Check email availability", "tags": ["Users"]}
+    },
+    "/dashboard/stats": {
+      "get": {"summary": "Get system statistics", "tags": ["Dashboard"]}
+    },
+    "/dashboard/kea-status": {
+      "get": {"summary": "Get Kea DHCP status", "tags": ["Dashboard"]}
+    },
+    "/switches": {
+      "get": {"summary": "List switches", "tags": ["CIN Switches"]},
+      "post": {"summary": "Create switch", "tags": ["CIN Switches"]}
+    },
+    "/switches/{id}": {
+      "get": {"summary": "Get switch", "tags": ["CIN Switches"]},
+      "put": {"summary": "Update switch", "tags": ["CIN Switches"]},
+      "delete": {"summary": "Delete switch", "tags": ["CIN Switches"]}
+    },
+    "/switches/check-exists": {
+      "get": {"summary": "Check hostname exists", "tags": ["CIN Switches"]}
+    },
+    "/switches/check-bvi": {
+      "get": {"summary": "Validate BVI", "tags": ["CIN Switches"]}
+    },
+    "/switches/check-ipv6": {
+      "get": {"summary": "Validate IPv6", "tags": ["CIN Switches"]}
+    },
+    "/switches/{switchId}/bvi": {
+      "get": {"summary": "List BVI interfaces", "tags": ["BVI Interfaces"]},
+      "post": {"summary": "Create BVI", "tags": ["BVI Interfaces"]}
+    },
+    "/switches/{switchId}/bvi/{bviId}": {
+      "get": {"summary": "Get BVI", "tags": ["BVI Interfaces"]},
+      "put": {"summary": "Update BVI", "tags": ["BVI Interfaces"]},
+      "delete": {"summary": "Delete BVI", "tags": ["BVI Interfaces"]}
+    },
+    "/switches/{switchId}/bvi/check-exists": {
+      "get": {"summary": "Check BVI exists", "tags": ["BVI Interfaces"]}
+    },
+    "/switches/bvi/check-ipv6": {
+      "get": {"summary": "Check IPv6 exists", "tags": ["BVI Interfaces"]}
+    },
+    "/dhcp/subnets": {
+      "get": {"summary": "List DHCP subnets", "tags": ["DHCP Subnets"]},
+      "post": {"summary": "Create subnet", "tags": ["DHCP Subnets"]}
+    },
+    "/dhcp/subnets/check-duplicate": {
+      "post": {"summary": "Check duplicate subnet", "tags": ["DHCP Subnets"]}
+    },
+    "/dhcp/subnets/{id}": {
+      "put": {"summary": "Update subnet", "tags": ["DHCP Subnets"]},
+      "delete": {"summary": "Delete subnet", "tags": ["DHCP Subnets"]}
+    },
+    "/dhcp/orphaned-subnets/{keaId}": {
+      "delete": {"summary": "Delete orphaned subnet", "tags": ["DHCP Subnets"]}
+    },
+    "/dhcp/optionsdef": {
+      "get": {"summary": "List option definitions", "tags": ["DHCPv6 Options Definitions"]},
+      "post": {"summary": "Create option definition", "tags": ["DHCPv6 Options Definitions"]}
+    },
+    "/dhcp/optionsdef/{code}": {
+      "put": {"summary": "Update option definition", "tags": ["DHCPv6 Options Definitions"]},
+      "delete": {"summary": "Delete option definition", "tags": ["DHCPv6 Options Definitions"]}
+    },
+    "/dhcp/options": {
+      "get": {"summary": "List options", "tags": ["DHCPv6 Options"]},
+      "post": {"summary": "Create option", "tags": ["DHCPv6 Options"]}
+    },
+    "/dhcp/options/{code}": {
+      "put": {"summary": "Update option", "tags": ["DHCPv6 Options"]},
+      "delete": {"summary": "Delete option", "tags": ["DHCPv6 Options"]}
+    },
+    "/dhcp/leases/{switchId}/{bviId}/{from}/{limit}": {
+      "get": {"summary": "Get leases (paginated)", "tags": ["DHCPv6 Leases"], "description": "Retrieve DHCPv6 leases with pagination. Use 'start' for first page or an IPv6 address to continue from."}
+    },
+    "/dhcp/leases": {
+      "delete": {"summary": "Delete lease", "tags": ["DHCPv6 Leases"]}
+    },
+    "/dhcp/static": {
+      "post": {"summary": "Add static lease/reservation", "tags": ["DHCPv6 Leases"]}
+    },
+    "/dhcp/static/{subnetId}": {
+      "get": {"summary": "Get static leases", "tags": ["DHCPv6 Leases"]}
+    },
+    "/ipv6/subnets": {
+      "get": {"summary": "List IPv6 subnets", "tags": ["IPv6 Subnets"]},
+      "post": {"summary": "Create IPv6 subnet", "tags": ["IPv6 Subnets"]}
+    },
+    "/ipv6/subnets/{subnetId}": {
+      "get": {"summary": "Get IPv6 subnet", "tags": ["IPv6 Subnets"]},
+      "put": {"summary": "Update IPv6 subnet", "tags": ["IPv6 Subnets"]},
+      "delete": {"summary": "Delete IPv6 subnet", "tags": ["IPv6 Subnets"]}
+    },
+    "/ipv6/bvi/{bviId}/subnets": {
+      "get": {"summary": "Get subnets by BVI", "tags": ["IPv6 Subnets"]}
+    },
+    "/subnets": {
+      "post": {"summary": "Create network subnet", "tags": ["Network Subnets"]}
+    },
+    "/subnets/{subnetId}": {
+      "put": {"summary": "Update network subnet", "tags": ["Network Subnets"]},
+      "delete": {"summary": "Delete network subnet", "tags": ["Network Subnets"]}
+    },
+    "/subnets/{subnetId}/prefixes": {
+      "post": {"summary": "Create prefix", "tags": ["Network Subnets"]}
+    },
+    "/subnets/{subnetId}/prefixes/{prefixId}": {
+      "put": {"summary": "Update prefix", "tags": ["Network Subnets"]},
+      "delete": {"summary": "Delete prefix", "tags": ["Network Subnets"]}
     }
   }
 }
