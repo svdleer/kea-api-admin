@@ -223,9 +223,9 @@ function displaySubnets(subnets) {
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.ccap_core || 'N/A'}</td>
                         <td class="px-4 py-4">
                             <select class="subnet-action text-sm border-gray-300 rounded-md" data-index="${index}">
-                                <option value="create">Create New CIN + BVI</option>
+                                <option value="create" selected>Create New CIN + BVI</option>
+                                <option value="skip">Skip (Create Subnet Only)</option>
                                 <option value="link">Link to Existing BVI</option>
-                                <option value="skip">Skip</option>
                             </select>
                             <div class="mt-2 hidden" id="bvi-select-${index}">
                                 <select class="text-sm border-gray-300 rounded-md w-full">
@@ -233,12 +233,13 @@ function displaySubnets(subnets) {
                                     <!-- Will be populated -->
                                 </select>
                             </div>
-                            <div class="mt-2 hidden" id="cin-input-${index}">
-                                <input type="text" placeholder="CIN Switch Name (e.g., ASD-GT0004-CCAP202)" 
+                            <div class="mt-2" id="cin-input-${index}">
+                                <input type="text" placeholder="CIN Switch Name (e.g., ASD-GT0004-AR151)" 
                                        class="cin-name text-sm border-gray-300 rounded-md w-full" data-index="${index}">
-                                <input type="text" placeholder="Switch IP Address" 
-                                       class="cin-ip text-sm border-gray-300 rounded-md w-full mt-1" data-index="${index}">
-                                <p class="text-xs text-gray-500 mt-1">Will create CIN switch with BVI100 interface</p>
+                                <input type="text" placeholder="BVI IPv6 Address (e.g., ${subnet.relay || '2001:b88:8005:f006::1'})" 
+                                       class="cin-ip text-sm border-gray-300 rounded-md w-full mt-1" data-index="${index}" 
+                                       value="${subnet.relay || ''}">
+                                <p class="text-xs text-gray-500 mt-1">Optional: Leave empty to create subnet only, fill to create CIN switch + BVI100</p>
                             </div>
                         </td>
                     </tr>
@@ -272,6 +273,7 @@ function displaySubnets(subnets) {
                     cinInput.classList.remove('hidden');
                 }
             }
+            // If value === 'skip', both remain hidden
         });
     });
 }
