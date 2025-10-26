@@ -368,10 +368,10 @@ public function getNextAvailableBVINumber($switchId) {
             $nextNumber = 0;
         }
 
-        return 'BVI' . $nextNumber;
+        return $nextNumber;
     } catch (\PDOException $e) {
         error_log("Error getting next BVI number: " . $e->getMessage());
-        return 'BVI100'; // Default fallback
+        return 0; // Default fallback
     }
 }
 
