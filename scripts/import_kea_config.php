@@ -35,6 +35,7 @@ class Colors {
 
 class KeaConfigImporter {
     private $db;
+    private $dhcpModel;
     private $stats = [
         'subnets' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
         'reservations' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
@@ -43,6 +44,8 @@ class KeaConfigImporter {
 
     public function __construct() {
         $this->db = Database::getInstance();
+        // Use the DHCP model which handles Kea API communication
+        $this->dhcpModel = new \App\Models\DHCP($this->db);
     }
 
     /**
@@ -243,51 +246,143 @@ class KeaConfigImporter {
 
             $this->info("\n  Processing subnet: $subnetPrefix (ID: $subnetId)");
 
-            // Check if subnet already exists
-            $stmt = $this->db->prepare("SELECT id FROM dhcp6_subnet WHERE subnet = ?");
-            $stmt->execute([$subnetPrefix]);
-            
-            if ($stmt->fetch()) {
-                $this->stats['subnets']['skipped']++;
-                $this->warning("    Subnet already exists, skipping");
-                return;
-            }
-
-            // Extract pools
-            $pools = [];
-            if (isset($subnet['pools'])) {
-                foreach ($subnet['pools'] as $pool) {
-                    $pools[] = $pool['pool'];
+            // Check if subnet already exists in Kea
+            $existingSubnets = $this->dhcpModel->getAllSubnetsfromKEA();
+            foreach ($existingSubnets as $existing) {
+                if ($existing['subnet'] === $subnetPrefix) {
+                    $this->stats['subnets']['skipped']++;
+                    $this->warning("    Subnet already exists in Kea, skipping");
+                    return;
                 }
             }
 
-            // Insert subnet into database
-            $stmt = $this->db->prepare(
-                "INSERT INTO dhcp6_subnet 
-                (subnet_id, subnet, pools, valid_lifetime, preferred_lifetime, rapid_commit) 
-                VALUES (?, ?, ?, ?, ?, ?)"
-            );
-
-            $stmt->execute([
-                $subnetId,
-                $subnetPrefix,
-                !empty($pools) ? json_encode($pools) : null,
-                $subnet['valid-lifetime'] ?? 7200,
-                $subnet['preferred-lifetime'] ?? 3600,
-                $subnet['rapid-commit'] ?? 0
-            ]);
-
-            $this->stats['subnets']['imported']++;
-            $this->success("    ✓ Imported subnet: $subnetPrefix");
-            
-            if (!empty($pools)) {
-                $this->info("      Pools: " . implode(', ', $pools));
+            // Extract pool information
+            $poolStart = null;
+            $poolEnd = null;
+            if (isset($subnet['pools']) && !empty($subnet['pools'])) {
+                $firstPool = $subnet['pools'][0]['pool'];
+                // Parse pool format: "2001:b88:8005:f006::2-2001:b88:8005:f006::fffe"
+                if (preg_match('/^(.+?)\s*-\s*(.+?)$/', $firstPool, $matches)) {
+                    $poolStart = trim($matches[1]);
+                    $poolEnd = trim($matches[2]);
+                }
             }
 
-            // Import reservations if present in subnet
-            if (isset($subnet['reservations']) && !empty($subnet['reservations'])) {
-                $this->info("    Found " . count($subnet['reservations']) . " reservations (skipping - not yet implemented)");
-                // TODO: Implement reservation import
+            // Extract relay address
+            $relayAddress = null;
+            if (isset($subnet['relay']['ip-addresses']) && !empty($subnet['relay']['ip-addresses'])) {
+                $relayAddress = $subnet['relay']['ip-addresses'][0];
+            }
+
+            // Extract CCAP core address from options
+            $ccapCore = null;
+            if (isset($subnet['option-data'])) {
+                foreach ($subnet['option-data'] as $option) {
+                    if (($option['name'] ?? null) === 'ccap-core' || ($option['code'] ?? null) == 61) {
+                        $ccapCore = $option['data'];
+                        break;
+                    }
+                }
+            }
+
+            // For import, we'll create subnets without BVI interface linking
+            // User will need to link them to BVI interfaces manually
+            $this->info("    Note: Subnet will be created in Kea. You'll need to link it to a BVI interface manually.");
+            
+            // Create subnet directly in Kea using remote-subnet6-set command
+            $arguments = [
+                "remote" => [
+                    "type" => "mysql"
+                ],
+                "server-tags" => ["all"],
+                "subnets" => [
+                    [
+                        "subnet" => $subnetPrefix,
+                        "id" => $subnetId,
+                        "shared-network-name" => null,
+                        "pools" => []
+                    ]
+                ]
+            ];
+
+            // Add pool if available
+            if ($poolStart && $poolEnd) {
+                $arguments['subnets'][0]['pools'][] = [
+                    "pool" => $poolStart . " - " . $poolEnd
+                ];
+            }
+
+            // Add relay if available
+            if ($relayAddress) {
+                $arguments['subnets'][0]['relay'] = [
+                    "ip-addresses" => [$relayAddress]
+                ];
+            }
+
+            // Add CCAP core option if available
+            if ($ccapCore) {
+                $arguments['subnets'][0]['option-data'] = [
+                    [
+                        "name" => "ccap-core",
+                        "code" => 61,
+                        "space" => "vendor-4491",
+                        "csv-format" => true,
+                        "data" => $ccapCore,
+                        "always-send" => true
+                    ]
+                ];
+            }
+
+            // Add lifetimes
+            if (isset($subnet['valid-lifetime'])) {
+                $arguments['subnets'][0]['valid-lifetime'] = $subnet['valid-lifetime'];
+            }
+            if (isset($subnet['preferred-lifetime'])) {
+                $arguments['subnets'][0]['preferred-lifetime'] = $subnet['preferred-lifetime'];
+            }
+
+            // Send command to Kea directly via HTTP
+            $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
+            $data = [
+                "command" => 'remote-subnet6-set',
+                "service" => ['dhcp6'],
+                "arguments" => $arguments
+            ];
+
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+
+            $responseJson = curl_exec($ch);
+            if (curl_errno($ch)) {
+                throw new Exception('Kea API Error: ' . curl_error($ch));
+            }
+            curl_close($ch);
+
+            $response = json_decode($responseJson, true);
+
+            if (isset($response[0]['result']) && $response[0]['result'] === 0) {
+                $this->stats['subnets']['imported']++;
+                $this->success("    ✓ Imported subnet to Kea: $subnetPrefix (ID: $subnetId)");
+                
+                if ($poolStart && $poolEnd) {
+                    $this->info("      Pool: $poolStart - $poolEnd");
+                }
+                if ($relayAddress) {
+                    $this->info("      Relay: $relayAddress");
+                }
+                if ($ccapCore) {
+                    $this->info("      CCAP Core: $ccapCore");
+                }
+
+                // Import reservations if present
+                if (isset($subnet['reservations']) && !empty($subnet['reservations'])) {
+                    $this->info("    Found " . count($subnet['reservations']) . " reservations (skipping - manual linking needed)");
+                }
+            } else {
+                throw new Exception("Kea API returned error: " . json_encode($response));
             }
 
         } catch (Exception $e) {
