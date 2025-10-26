@@ -91,7 +91,13 @@ try {
     // Documentation route
     $router->get('/api/docs/spec', function() {
         header('Content-Type: application/json');
-        echo json_encode(\App\Documentation\ApiDocumentation::getSpecification());
+        $swaggerFile = BASE_PATH . '/swagger.json';
+        if (file_exists($swaggerFile)) {
+            echo file_get_contents($swaggerFile);
+        } else {
+            // Fallback to generated documentation if swagger.json doesn't exist
+            echo json_encode(\App\Documentation\ApiDocumentation::getSpecification());
+        }
     });
     
 
