@@ -223,22 +223,6 @@ try {
     $router->delete('/api/ipv6/subnets/{subnetId}', [IPv6Controller::class, 'delete']);
     $router->get('/api/ipv6/bvi/{bviId}/subnets', [IPv6Controller::class, 'getByBvi']);
 
-    // Network routes (subnets and prefixes management)
-    $router->post('/api/subnets', [NetworkController::class, 'createSubnet'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->put('/api/subnets/{subnetId}', [NetworkController::class, 'updateSubnet'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->delete('/api/subnets/{subnetId}', [NetworkController::class, 'deleteSubnet'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-
-    // Prefix routes
-    $router->post('/api/subnets/{subnetId}/prefixes', [NetworkController::class, 'createPrefix'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->put('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'updatePrefix'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->delete('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'deletePrefix'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-
     // DHCP Routes - Leases
     $router->get('/leases', function() {
         require BASE_PATH . '/leases.php';

@@ -45,8 +45,7 @@
     {"name": "DHCPv6 Options Definitions", "description": "DHCPv6 custom option definitions"},
     {"name": "DHCPv6 Options", "description": "DHCPv6 option configuration"},
     {"name": "DHCPv6 Leases", "description": "Lease and reservation management"},
-    {"name": "IPv6 Subnets", "description": "IPv6 Kea subnet management"},
-    {"name": "Network Subnets", "description": "Network subnet and prefix management"}
+    {"name": "IPv6 Subnets", "description": "IPv6 subnet management (Kea)"}
   ],
   "paths": {
     "/keys": {
@@ -166,20 +165,6 @@
     },
     "/ipv6/bvi/{bviId}/subnets": {
       "get": {"summary": "Get subnets by BVI", "tags": ["IPv6 Subnets"]}
-    },
-    "/subnets": {
-      "post": {"summary": "Create network subnet", "tags": ["Network Subnets"]}
-    },
-    "/subnets/{subnetId}": {
-      "put": {"summary": "Update network subnet", "tags": ["Network Subnets"]},
-      "delete": {"summary": "Delete network subnet", "tags": ["Network Subnets"]}
-    },
-    "/subnets/{subnetId}/prefixes": {
-      "post": {"summary": "Create prefix", "tags": ["Network Subnets"]}
-    },
-    "/subnets/{subnetId}/prefixes/{prefixId}": {
-      "put": {"summary": "Update prefix", "tags": ["Network Subnets"]},
-      "delete": {"summary": "Delete prefix", "tags": ["Network Subnets"]}
     }
   }
 }
