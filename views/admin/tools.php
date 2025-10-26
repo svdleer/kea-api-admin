@@ -288,9 +288,16 @@ async function importKeaConfig() {
                             <p><strong>Reservations:</strong> ${result.stats.reservations.imported} imported, ${result.stats.reservations.skipped} skipped</p>
                             <p><strong>Options:</strong> ${result.stats.options.imported} imported, ${result.stats.options.skipped} skipped</p>
                         </div>
+                        ${result.debug_output ? `
+                            <details class="mt-3 text-left">
+                                <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">Show Debug Output</summary>
+                                <pre class="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto max-h-64 whitespace-pre-wrap">${result.debug_output}</pre>
+                            </details>
+                        ` : ''}
                     `,
                     icon: 'success',
-                    confirmButtonColor: '#3B82F6'
+                    confirmButtonColor: '#3B82F6',
+                    width: '700px'
                 });
             } else {
                 Swal.fire({

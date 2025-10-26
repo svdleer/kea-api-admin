@@ -69,6 +69,11 @@ class AdminController
             // Parse output for statistics
             $outputText = implode("\n", $output);
             
+            // Log full output for debugging
+            error_log("=== Full Import Output ===");
+            error_log($outputText);
+            error_log("=========================");
+            
             // Try to extract stats from output
             preg_match('/Subnets:\s*(\d+)\s*imported,\s*(\d+)\s*skipped/', $outputText, $subnetMatches);
             preg_match('/Reservations:\s*(\d+)\s*imported,\s*(\d+)\s*skipped/', $outputText, $resMatches);
@@ -77,6 +82,7 @@ class AdminController
             $this->jsonResponse([
                 'success' => true,
                 'message' => 'Configuration imported successfully',
+                'debug_output' => $outputText, // Add full output for debugging
                 'stats' => [
                     'subnets' => [
                         'imported' => isset($subnetMatches[1]) ? (int)$subnetMatches[1] : 0,
