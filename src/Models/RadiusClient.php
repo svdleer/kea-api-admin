@@ -8,10 +8,15 @@ use PDOException;
 class RadiusClient
 {
     private $db;
+    private $radiusSync;
 
     public function __construct($db)
     {
         $this->db = $db;
+        
+        // Initialize RADIUS database sync
+        require_once BASE_PATH . '/src/Helpers/RadiusDatabaseSync.php';
+        $this->radiusSync = new \App\Helpers\RadiusDatabaseSync();
     }
 
     /**
@@ -137,7 +142,21 @@ class RadiusClient
                 $bviInterfaceId
             ]);
 
-            return $this->db->lastInsertId();
+            $clientId = $this->db->lastInsertId();
+            
+            // Sync to all RADIUS servers
+            try {
+                $client = $this->getClientById($clientId);
+                if ($client) {
+                    $syncResults = $this->radiusSync->syncClientToAllServers($client, 'INSERT');
+                    error_log("RADIUS client synced to servers: " . json_encode($syncResults));
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to sync RADIUS client to servers: " . $e->getMessage());
+                // Don't fail the main operation if sync fails
+            }
+
+            return $clientId;
         } catch (PDOException $e) {
             error_log("Error creating RADIUS client: " . $e->getMessage());
             throw new \Exception("Failed to create RADIUS client: " . $e->getMessage());
@@ -170,8 +189,23 @@ class RadiusClient
             
             $stmt = $this->db->prepare($query);
             $stmt->execute($params);
+            
+            $success = $stmt->rowCount() > 0;
+            
+            // Sync to all RADIUS servers
+            if ($success) {
+                try {
+                    $client = $this->getClientById($id);
+                    if ($client) {
+                        $syncResults = $this->radiusSync->syncClientToAllServers($client, 'UPDATE');
+                        error_log("RADIUS client updated on servers: " . json_encode($syncResults));
+                    }
+                } catch (\Exception $e) {
+                    error_log("Failed to sync RADIUS client update to servers: " . $e->getMessage());
+                }
+            }
 
-            return $stmt->rowCount() > 0;
+            return $success;
         } catch (PDOException $e) {
             error_log("Error updating RADIUS client: " . $e->getMessage());
             throw new \Exception("Failed to update RADIUS client");
@@ -201,11 +235,26 @@ class RadiusClient
     public function deleteClient($id)
     {
         try {
+            // Get client data before deletion for sync
+            $client = $this->getClientById($id);
+            
             $query = "DELETE FROM nas WHERE id = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$id]);
+            
+            $success = $stmt->rowCount() > 0;
+            
+            // Sync deletion to all RADIUS servers
+            if ($success && $client) {
+                try {
+                    $syncResults = $this->radiusSync->syncClientToAllServers($client, 'DELETE');
+                    error_log("RADIUS client deleted from servers: " . json_encode($syncResults));
+                } catch (\Exception $e) {
+                    error_log("Failed to sync RADIUS client deletion to servers: " . $e->getMessage());
+                }
+            }
 
-            return $stmt->rowCount() > 0;
+            return $success;
         } catch (PDOException $e) {
             error_log("Error deleting RADIUS client: " . $e->getMessage());
             throw new \Exception("Failed to delete RADIUS client");
@@ -311,5 +360,35 @@ class RadiusClient
     public function getCurrentGlobalSecret()
     {
         return $this->getGlobalSecret();
+    }
+    
+    /**
+     * Test connections to all RADIUS servers
+     */
+    public function testServerConnections()
+    {
+        return $this->radiusSync->testAllConnections();
+    }
+    
+    /**
+     * Force sync all clients to RADIUS servers
+     */
+    public function forceSyncToServers()
+    {
+        try {
+            $clients = $this->getAllClients();
+            return $this->radiusSync->syncAllClients($clients);
+        } catch (\Exception $e) {
+            error_log("Failed to force sync clients: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    /**
+     * Get configured RADIUS servers
+     */
+    public function getConfiguredServers()
+    {
+        return $this->radiusSync->getServers();
     }
 }

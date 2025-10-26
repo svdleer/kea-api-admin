@@ -78,6 +78,30 @@ ob_start();
         </div>
     </div>
 
+    <!-- RADIUS Servers Status -->
+    <div class="mb-6 bg-white shadow-md rounded-lg p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">FreeRADIUS Servers Status</h2>
+                <p class="text-sm text-gray-600 mt-1">Monitor database sync status for both RADIUS servers</p>
+            </div>
+            <button onclick="forceSync()" 
+                    class="inline-flex items-center px-3 py-2 border border-indigo-600 rounded-md text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
+                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Force Sync All
+            </button>
+        </div>
+        <div id="serversStatus" class="space-y-3">
+            <div class="animate-pulse flex space-x-2">
+                <div class="h-2 w-2 bg-gray-400 rounded-full"></div>
+                <div class="h-2 w-2 bg-gray-400 rounded-full"></div>
+                <div class="h-2 w-2 bg-gray-400 rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Search Box -->
     <div class="mb-6">
         <div class="relative max-w-md">
@@ -292,7 +316,141 @@ let hasGlobalSecret = false;
 $(document).ready(function() {
     loadRadiusClients();
     loadGlobalSecretStatus();
+    loadServersStatus();
+    
+    // Refresh server status every 30 seconds
+    setInterval(loadServersStatus, 30000);
 });
+
+async function loadServersStatus() {
+    try {
+        const response = await fetch('/api/radius/servers/status');
+        const data = await response.json();
+        
+        if (data.success) {
+            displayServersStatus(data.servers);
+        }
+    } catch (error) {
+        console.error('Error loading servers status:', error);
+    }
+}
+
+function displayServersStatus(servers) {
+    const statusDiv = $('#serversStatus');
+    statusDiv.empty();
+    
+    for (const [serverName, status] of Object.entries(servers)) {
+        let statusIcon, statusColor, statusText;
+        
+        if (status.status === 'online') {
+            statusIcon = `<svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>`;
+            statusColor = 'bg-green-50 border-green-200';
+            statusText = 'Online';
+        } else if (status.status === 'disabled') {
+            statusIcon = `<svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/>
+            </svg>`;
+            statusColor = 'bg-gray-50 border-gray-200';
+            statusText = 'Disabled';
+        } else {
+            statusIcon = `<svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>`;
+            statusColor = 'bg-red-50 border-red-200';
+            statusText = 'Error';
+        }
+        
+        const serverCard = `
+            <div class="border ${statusColor} rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        ${statusIcon}
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900">${escapeHtml(serverName)}</h3>
+                            <p class="text-xs text-gray-600">${escapeHtml(status.message)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-medium text-gray-900">${statusText}</div>
+                        ${status.client_count !== undefined ? `<div class="text-xs text-gray-500">${status.client_count} clients</div>` : ''}
+                        ${status.response_time !== null ? `<div class="text-xs text-gray-500">${status.response_time}ms</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        statusDiv.append(serverCard);
+    }
+}
+
+async function forceSync() {
+    const result = await Swal.fire({
+        title: 'Force Sync to RADIUS Servers?',
+        html: 'This will push all RADIUS clients from the Kea database to both FreeRADIUS server databases.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, sync now',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Syncing...',
+                text: 'Pushing clients to RADIUS servers',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/radius/servers/sync', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                let html = `<p class="mb-3">${data.message}</p>`;
+                
+                if (data.errors && data.errors.length > 0) {
+                    html += `<div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mt-3">
+                        <p class="text-sm text-yellow-700 font-semibold mb-2">Warnings:</p>
+                        <ul class="text-xs text-yellow-700 list-disc list-inside">
+                            ${data.errors.map(err => `<li>${escapeHtml(err)}</li>`).join('')}
+                        </ul>
+                    </div>`;
+                }
+                
+                await Swal.fire({
+                    title: 'Sync Complete!',
+                    html: html,
+                    icon: data.errors.length > 0 ? 'warning' : 'success',
+                    confirmButtonColor: '#6366f1'
+                });
+                loadServersStatus();
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to sync to RADIUS servers',
+                    icon: 'error',
+                    confirmButtonColor: '#6366f1'
+                });
+            }
+        } catch (error) {
+            console.error('Error syncing:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred during sync',
+                icon: 'error',
+                confirmButtonColor: '#6366f1'
+            });
+        }
+    }
+}
 
 async function loadGlobalSecretStatus() {
     try {

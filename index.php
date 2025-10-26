@@ -332,6 +332,12 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->put('/api/radius/global-secret', [$radiusController, 'updateGlobalSecret'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    
+    // RADIUS servers status and sync
+    $router->get('/api/radius/servers/status', [$radiusController, 'getServersStatus'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->post('/api/radius/servers/sync', [$radiusController, 'forceSyncServers'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
     $router->get('/dashboard', function() {

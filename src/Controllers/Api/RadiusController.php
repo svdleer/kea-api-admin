@@ -267,6 +267,50 @@ class RadiusController
             ], 500);
         }
     }
+    
+    /**
+     * Get RADIUS servers status
+     * GET /api/radius/servers/status
+     */
+    public function getServersStatus()
+    {
+        try {
+            $status = $this->radiusModel->testServerConnections();
+            
+            $this->jsonResponse([
+                'success' => true,
+                'servers' => $status
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Force sync all clients to RADIUS servers
+     * POST /api/radius/servers/sync
+     */
+    public function forceSyncServers()
+    {
+        try {
+            $result = $this->radiusModel->forceSyncToServers();
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => "Synced {$result['synced']} client(s) to RADIUS servers",
+                'synced' => $result['synced'],
+                'errors' => $result['errors']
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     /**
      * Helper function to send JSON response
