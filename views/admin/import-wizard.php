@@ -167,10 +167,30 @@ async function parseConfig() {
             showStep(2);
             updateProgress(1, 100);
         } else {
-            Swal.fire('Error', result.message || 'Failed to parse configuration', 'error');
+            Swal.fire({
+                title: 'Parse Error',
+                html: `
+                    <p class="text-red-600 mb-2">${result.message || 'Failed to parse configuration'}</p>
+                    <div class="text-xs text-left bg-gray-50 p-3 rounded mt-2">
+                        <p class="text-gray-600">Common issues:</p>
+                        <ul class="list-disc list-inside mt-1 text-gray-500">
+                            <li>Invalid JSON format</li>
+                            <li>Comments in config file</li>
+                            <li>Missing Dhcp6 section</li>
+                            <li>No subnets in configuration</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'error',
+                width: '500px'
+            });
         }
     } catch (error) {
-        Swal.fire('Error', 'Failed to parse configuration: ' + error.message, 'error');
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to parse configuration: ' + error.message,
+            icon: 'error'
+        });
     }
 }
 
@@ -229,20 +249,28 @@ function displaySubnets(subnets) {
     
     document.getElementById('subnets-table').innerHTML = table;
     
-    // Add action change handlers
+    // Add action change handlers after table is rendered
     document.querySelectorAll('.subnet-action').forEach(select => {
         select.addEventListener('change', function() {
             const index = this.dataset.index;
             const value = this.value;
             
-            document.getElementById(`bvi-select-${index}`).classList.add('hidden');
-            document.getElementById(`cin-input-${index}`).classList.add('hidden');
+            const bviSelect = document.getElementById(`bvi-select-${index}`);
+            const cinInput = document.getElementById(`cin-input-${index}`);
+            
+            // Hide both first
+            if (bviSelect) bviSelect.classList.add('hidden');
+            if (cinInput) cinInput.classList.add('hidden');
             
             if (value === 'link') {
-                document.getElementById(`bvi-select-${index}`).classList.remove('hidden');
-                loadBVIInterfaces(index);
+                if (bviSelect) {
+                    bviSelect.classList.remove('hidden');
+                    loadBVIInterfaces(index);
+                }
             } else if (value === 'create') {
-                document.getElementById(`cin-input-${index}`).classList.remove('hidden');
+                if (cinInput) {
+                    cinInput.classList.remove('hidden');
+                }
             }
         });
     });
