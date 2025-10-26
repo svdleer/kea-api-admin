@@ -1,0 +1,510 @@
+<?php
+require_once BASE_PATH . '/vendor/autoload.php';
+
+use App\Auth\Authentication;
+use App\Database\Database;
+
+// Check if user is logged in and is admin
+$auth = new Authentication(Database::getInstance());
+if (!$auth->isLoggedIn() || !$auth->isAdmin()) {
+    header('Location: /');
+    exit;
+}
+
+$currentPage = 'admin-tools';
+$title = 'Admin Tools - Backup & Import';
+
+ob_start();
+?>
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Admin Tools</h1>
+        <p class="text-gray-600 mt-1">Backup, restore, import and export configurations</p>
+    </div>
+
+    <!-- Tools Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Kea Configuration -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-blue-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Configuration</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Export current configuration or import from kea-dhcp6.conf</p>
+            <div class="space-y-2">
+                <button onclick="exportKeaConfig()" 
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export Config
+                </button>
+                <button onclick="importKeaConfig()" 
+                        class="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Import Config
+                </button>
+            </div>
+        </div>
+
+        <!-- Kea Database (Config) -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-green-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Database</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Backup configuration database (subnets, options, BVI interfaces)</p>
+            <div class="space-y-2">
+                <button onclick="backupKeaDatabase()" 
+                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Backup Database
+                </button>
+                <button onclick="restoreKeaDatabase()" 
+                        class="w-full px-4 py-2 border border-green-600 text-green-600 rounded-md hover:bg-green-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Restore Database
+                </button>
+            </div>
+        </div>
+
+        <!-- Kea Leases -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-purple-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Leases</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Backup active DHCP leases database</p>
+            <div class="space-y-2">
+                <button onclick="backupKeaLeases()" 
+                        class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Backup Leases
+                </button>
+                <button onclick="exportKeaLeases()" 
+                        class="w-full px-4 py-2 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Export to CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- FreeRADIUS Configuration -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-indigo-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">RADIUS Config</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Export RADIUS clients for FreeRADIUS</p>
+            <div class="space-y-2">
+                <button onclick="exportRadiusClients()" 
+                        class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export Clients
+                </button>
+                <button onclick="syncRadiusToServers()" 
+                        class="w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Sync to Servers
+                </button>
+            </div>
+        </div>
+
+        <!-- FreeRADIUS Database -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-yellow-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">RADIUS Database</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Backup FreeRADIUS databases (Primary & Secondary)</p>
+            <div class="space-y-2">
+                <button onclick="backupRadiusDatabase('primary')" 
+                        class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Backup Primary
+                </button>
+                <button onclick="backupRadiusDatabase('secondary')" 
+                        class="w-full px-4 py-2 border border-yellow-600 text-yellow-600 rounded-md hover:bg-yellow-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Backup Secondary
+                </button>
+            </div>
+        </div>
+
+        <!-- Full System Backup -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-red-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Full Backup</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Backup everything at once</p>
+            <div class="space-y-2">
+                <button onclick="fullSystemBackup()" 
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                    </svg>
+                    Full Backup
+                </button>
+                <div class="text-xs text-gray-500 text-center">
+                    Includes: Kea DB, Leases, RADIUS DBs
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recent Backups -->
+    <div class="mt-8 bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Backups</h2>
+        <div id="recentBackups">
+            <div class="text-center text-gray-500 py-4">
+                Loading backup history...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+// Load recent backups on page load
+$(document).ready(function() {
+    loadRecentBackups();
+});
+
+async function exportKeaConfig() {
+    Swal.fire({
+        title: 'Export Kea Configuration',
+        text: 'This will generate a kea-dhcp6.conf compatible file',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#3B82F6',
+        confirmButtonText: 'Export',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/api/admin/export/kea-config';
+        }
+    });
+}
+
+async function importKeaConfig() {
+    const { value: file } = await Swal.fire({
+        title: 'Import Kea Configuration',
+        html: `
+            <p class="text-sm text-gray-600 mb-4">Upload your kea-dhcp6.conf file</p>
+            <input type="file" id="keaConfigFile" accept=".conf,.json" class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100"/>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#3B82F6',
+        confirmButtonText: 'Import',
+        preConfirm: () => {
+            const file = document.getElementById('keaConfigFile').files[0];
+            if (!file) {
+                Swal.showValidationMessage('Please select a file');
+            }
+            return file;
+        }
+    });
+
+    if (file) {
+        const formData = new FormData();
+        formData.append('config', file);
+
+        try {
+            Swal.fire({
+                title: 'Importing...',
+                text: 'Processing configuration file',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/admin/import/kea-config', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    title: 'Import Complete!',
+                    html: `
+                        <p class="mb-2">${result.message}</p>
+                        <div class="text-sm text-left bg-gray-50 p-3 rounded">
+                            <p>Subnets: ${result.stats.subnets.imported} imported, ${result.stats.subnets.skipped} skipped</p>
+                            <p>Reservations: ${result.stats.reservations.imported} imported, ${result.stats.reservations.skipped} skipped</p>
+                            <p>Options: ${result.stats.options.imported} imported, ${result.stats.options.skipped} skipped</p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#3B82F6'
+                });
+            } else {
+                Swal.fire('Error', result.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to import configuration', 'error');
+        }
+    }
+}
+
+async function backupKeaDatabase() {
+    Swal.fire({
+        title: 'Backup Kea Database',
+        text: 'Create a backup of the configuration database',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10B981',
+        confirmButtonText: 'Create Backup'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/api/admin/backup/kea-database';
+        }
+    });
+}
+
+async function restoreKeaDatabase() {
+    const { value: file } = await Swal.fire({
+        title: 'Restore Kea Database',
+        html: `
+            <p class="text-sm text-red-600 mb-4">⚠️ This will overwrite current database!</p>
+            <input type="file" id="backupFile" accept=".sql" class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-semibold
+                file:bg-green-50 file:text-green-700
+                hover:file:bg-green-100"/>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#10B981',
+        confirmButtonText: 'Restore',
+        preConfirm: () => {
+            const file = document.getElementById('backupFile').files[0];
+            if (!file) {
+                Swal.showValidationMessage('Please select a backup file');
+            }
+            return file;
+        }
+    });
+
+    if (file) {
+        // Implementation pending
+        Swal.fire('Info', 'Database restore functionality coming soon', 'info');
+    }
+}
+
+async function backupKeaLeases() {
+    window.location.href = '/api/admin/backup/kea-leases';
+}
+
+async function exportKeaLeases() {
+    window.location.href = '/api/admin/export/kea-leases-csv';
+}
+
+async function exportRadiusClients() {
+    window.location.href = '/api/admin/export/radius-clients';
+}
+
+async function syncRadiusToServers() {
+    try {
+        Swal.fire({
+            title: 'Syncing...',
+            text: 'Pushing RADIUS clients to servers',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch('/api/radius/servers/sync', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                title: 'Sync Complete!',
+                text: data.message,
+                icon: 'success',
+                confirmButtonColor: '#6366F1'
+            });
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to sync to servers', 'error');
+    }
+}
+
+async function backupRadiusDatabase(type) {
+    const serverName = type === 'primary' ? 'Primary' : 'Secondary';
+    
+    Swal.fire({
+        title: `Backup RADIUS ${serverName}`,
+        text: `Create backup of ${serverName} FreeRADIUS database`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#EAB308',
+        confirmButtonText: 'Create Backup'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = `/api/admin/backup/radius-database/${type}`;
+        }
+    });
+}
+
+async function fullSystemBackup() {
+    Swal.fire({
+        title: 'Full System Backup',
+        html: `
+            <p class="text-sm text-gray-600 mb-2">This will backup:</p>
+            <ul class="text-sm text-left text-gray-700 mb-4">
+                <li>✓ Kea configuration database</li>
+                <li>✓ Kea leases database</li>
+                <li>✓ Primary RADIUS database</li>
+                <li>✓ Secondary RADIUS database</li>
+            </ul>
+            <p class="text-sm text-gray-500">Backups will be combined into a ZIP file</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        confirmButtonText: 'Create Full Backup'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/api/admin/backup/full-system';
+        }
+    });
+}
+
+async function loadRecentBackups() {
+    try {
+        const response = await fetch('/api/admin/backups/list');
+        const data = await response.json();
+
+        if (data.success && data.backups.length > 0) {
+            displayBackups(data.backups);
+        } else {
+            $('#recentBackups').html('<div class="text-center text-gray-500 py-4">No backups found</div>');
+        }
+    } catch (error) {
+        $('#recentBackups').html('<div class="text-center text-red-500 py-4">Error loading backups</div>');
+    }
+}
+
+function displayBackups(backups) {
+    let html = '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">';
+    html += '<thead class="bg-gray-50">';
+    html += '<tr>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Filename</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Size</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>';
+    html += '<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>';
+    html += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
+
+    backups.forEach(backup => {
+        html += '<tr>';
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${backup.filename}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.type}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.size}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.date}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
+        html += `<a href="/api/admin/backup/download/${backup.filename}" class="text-indigo-600 hover:text-indigo-900 mr-3">Download</a>`;
+        html += `<button onclick="deleteBackup('${backup.filename}')" class="text-red-600 hover:text-red-900">Delete</button>`;
+        html += `</td></tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    $('#recentBackups').html(html);
+}
+
+async function deleteBackup(filename) {
+    const result = await Swal.fire({
+        title: 'Delete Backup?',
+        text: `Delete ${filename}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        confirmButtonText: 'Delete'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/api/admin/backup/delete/${filename}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire('Deleted!', 'Backup has been deleted', 'success');
+                loadRecentBackups();
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to delete backup', 'error');
+        }
+    }
+}
+</script>
+
+<?php
+$content = ob_get_clean();
+require_once BASE_PATH . '/views/layout.php';
+?>

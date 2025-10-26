@@ -1,0 +1,9 @@
+# Ignore all backup files
+*.sql
+*.csv
+*.conf
+*.zip
+*.tar.gz
+
+# But keep the directory
+!.gitkeep

@@ -106,6 +106,12 @@ try {
         require BASE_PATH . '/views/users/index.php';
     });
     
+    // Admin Tools Routes
+    $router->get('/admin/tools', function() use ($auth) {
+        $currentPage = 'admin-tools';
+        require BASE_PATH . '/views/admin/tools.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+    
     $router->get('/api/users', [new UserController($userModel, $auth), 'list'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/users', [new UserController($userModel, $auth), 'create'])
@@ -349,6 +355,32 @@ try {
     $router->put('/api/radius/servers/config', [$radiusController, 'updateServerConfig'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/radius/servers/test', [$radiusController, 'testServerConnection'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+
+    // Admin Tools - Backup/Import/Export Routes (Admin Only)
+    $adminController = new \App\Controllers\Api\AdminController($db);
+    
+    $router->get('/api/admin/export/kea-config', [$adminController, 'exportKeaConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->post('/api/admin/import/kea-config', [$adminController, 'importKeaConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->get('/api/admin/backup/kea-database', [$adminController, 'backupKeaDatabase'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/backup/kea-leases', [$adminController, 'backupKeaLeases'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/export/kea-leases-csv', [$adminController, 'exportKeaLeasesCSV'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/export/radius-clients', [$adminController, 'exportRadiusClients'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/backup/radius-database/{type}', [$adminController, 'backupRadiusDatabase'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/backup/full-system', [$adminController, 'fullSystemBackup'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/backups/list', [$adminController, 'listBackups'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/backup/download/{filename}', [$adminController, 'downloadBackup'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->delete('/api/admin/backup/delete/{filename}', [$adminController, 'deleteBackup'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
