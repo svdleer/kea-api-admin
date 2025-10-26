@@ -33,18 +33,12 @@ class CinSwitch
     public function createSwitch($data)
     {
         try {
-            // Get next available ID manually (since AUTO_INCREMENT might not be set)
-            $maxIdStmt = $this->db->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM cin_switches");
-            $nextId = $maxIdStmt->fetch(\PDO::FETCH_ASSOC)['next_id'];
-            
-            error_log("createSwitch: Manually calculated next ID: $nextId");
-            
             $stmt = $this->db->prepare("
                 INSERT INTO cin_switches 
-                (id, hostname, created_at) 
-                VALUES (?, ?, NOW())
+                (hostname, created_at) 
+                VALUES (?, NOW())
             ");
-            $result = $stmt->execute([$nextId, $data['hostname']]);
+            $result = $stmt->execute([$data['hostname']]);
             
             if (!$result) {
                 $errorInfo = $stmt->errorInfo();
@@ -52,9 +46,10 @@ class CinSwitch
                 throw new \RuntimeException('Failed to execute INSERT: ' . $errorInfo[2]);
             }
             
-            error_log("createSwitch: Successfully inserted with ID: $nextId, rowCount=" . $stmt->rowCount());
+            $lastId = $this->db->lastInsertId();
+            error_log("createSwitch: Successfully created switch with ID: $lastId");
             
-            return $nextId;
+            return $lastId;
         } catch (\PDOException $e) {
             error_log("Database error in createSwitch(): " . $e->getMessage());
             throw new \RuntimeException('Error creating switch: ' . $e->getMessage());
