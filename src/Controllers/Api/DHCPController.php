@@ -431,29 +431,56 @@ class DHCPController
 
             // Link subnet to BVI in OUR database (cin_bvi_dhcp_core table - not Kea)
             // This is OUR mapping table that links Kea subnets to our BVI interfaces
-            // Use REPLACE to handle duplicate switch_id + interface_number
-            $sql = "REPLACE INTO cin_bvi_dhcp_core (
-                        id,
-                        switch_id,
-                        kea_subnet_id,
-                        interface_number,
-                        ipv6_address,
-                        start_address,
-                        end_address,
-                        ccap_core
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-            $stmt = $db->prepare($sql);
-            $stmt->execute([
-                $bviInterfaceId, // Use BVI interface ID as primary key
-                $switchId,
-                $keaSubnetId,
-                100,
-                $bviIpv6,
-                $poolStart,
-                $poolEnd,
-                $ccapCore
-            ]);
+            // Check if this switch+interface already exists
+            $checkStmt = $db->prepare("
+                SELECT id FROM cin_bvi_dhcp_core 
+                WHERE switch_id = ? AND interface_number = ?
+            ");
+            $checkStmt->execute([$switchId, 100]);
+            $existingLink = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($existingLink) {
+                // Update existing link
+                $sql = "UPDATE cin_bvi_dhcp_core 
+                        SET kea_subnet_id = ?,
+                            ipv6_address = ?,
+                            start_address = ?,
+                            end_address = ?,
+                            ccap_core = ?
+                        WHERE id = ?";
+                
+                $stmt = $db->prepare($sql);
+                $stmt->execute([
+                    $keaSubnetId,
+                    $bviIpv6,
+                    $poolStart,
+                    $poolEnd,
+                    $ccapCore,
+                    $existingLink['id']
+                ]);
+            } else {
+                // Insert new link (without specifying id, let it auto-increment)
+                $sql = "INSERT INTO cin_bvi_dhcp_core (
+                            switch_id,
+                            kea_subnet_id,
+                            interface_number,
+                            ipv6_address,
+                            start_address,
+                            end_address,
+                            ccap_core
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = $db->prepare($sql);
+                $stmt->execute([
+                    $switchId,
+                    $keaSubnetId,
+                    100,
+                    $bviIpv6,
+                    $poolStart,
+                    $poolEnd,
+                    $ccapCore
+                ]);
+            }
 
             error_log("DHCPController: Successfully created CIN + BVI100 and linked subnet (no Kea DB writes)");
 
