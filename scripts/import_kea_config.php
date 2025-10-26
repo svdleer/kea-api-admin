@@ -106,6 +106,15 @@ class KeaConfigImporter {
 
         $dhcp6Config = $config['Dhcp6'];
 
+        // Debug: Show what we found
+        $this->info("\nConfiguration structure detected:");
+        $this->info("  - Option definitions: " . (isset($dhcp6Config['option-def']) ? count($dhcp6Config['option-def']) : 0));
+        $this->info("  - Global options: " . (isset($dhcp6Config['option-data']) ? count($dhcp6Config['option-data']) : 0));
+        $this->info("  - Subnets: " . (isset($dhcp6Config['subnet6']) ? count($dhcp6Config['subnet6']) : 0));
+        
+        // Debug: Show keys in config
+        $this->info("\nTop-level Dhcp6 keys found: " . implode(', ', array_keys($dhcp6Config)));
+
         // Import option definitions first
         if (isset($dhcp6Config['option-def'])) {
             $this->info("\n" . Colors::CYAN . "Importing Option Definitions..." . Colors::RESET);
@@ -121,9 +130,12 @@ class KeaConfigImporter {
         // Import subnets
         if (isset($dhcp6Config['subnet6'])) {
             $this->info("\n" . Colors::CYAN . "Importing Subnets..." . Colors::RESET);
+            $this->info("Found " . count($dhcp6Config['subnet6']) . " subnets in configuration");
             foreach ($dhcp6Config['subnet6'] as $subnet) {
                 $this->importSubnet($subnet);
             }
+        } else {
+            $this->warning("\n" . Colors::YELLOW . "No subnets found in configuration" . Colors::RESET);
         }
 
         // Import host reservations from reservations file if configured
