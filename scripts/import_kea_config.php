@@ -35,6 +35,8 @@ class Colors {
 
 class KeaConfigImporter {
     private $db;
+    private $apiBaseUrl;
+    private $apiKey;
     private $stats = [
         'subnets' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
         'reservations' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
@@ -43,6 +45,49 @@ class KeaConfigImporter {
 
     public function __construct() {
         $this->db = Database::getInstance();
+        
+        // Get API configuration
+        $this->apiBaseUrl = $_ENV['API_BASE_URL'] ?? 'http://localhost';
+        
+        // Get admin API key from database
+        $stmt = $this->db->prepare("SELECT api_key FROM api_keys WHERE is_admin = 1 LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$result) {
+            throw new Exception("No admin API key found in database. Please create an admin API key first.");
+        }
+        
+        $this->apiKey = $result['api_key'];
+    }
+    
+    /**
+     * Make API request
+     */
+    private function apiRequest($method, $endpoint, $data = null) {
+        $url = rtrim($this->apiBaseUrl, '/') . $endpoint;
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-API-Key: ' . $this->apiKey,
+            'Content-Type: application/json'
+        ]);
+        
+        if ($data !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        }
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return json_decode($response, true);
+        } else {
+            throw new Exception("API request failed: HTTP $httpCode - $response");
+        }
     }
 
     /**
@@ -115,17 +160,8 @@ class KeaConfigImporter {
         // Debug: Show keys in config
         $this->info("\nTop-level Dhcp6 keys found: " . implode(', ', array_keys($dhcp6Config)));
 
-        // Import option definitions first
-        if (isset($dhcp6Config['option-def'])) {
-            $this->info("\n" . Colors::CYAN . "Importing Option Definitions..." . Colors::RESET);
-            $this->importOptionDefinitions($dhcp6Config['option-def']);
-        }
-
-        // Import global options
-        if (isset($dhcp6Config['option-data'])) {
-            $this->info("\n" . Colors::CYAN . "Importing Global Options..." . Colors::RESET);
-            $this->importOptions($dhcp6Config['option-data'], null);
-        }
+        // For now, only import subnets (options and reservations can be added later)
+        $this->info("\n" . Colors::YELLOW . "Note: Currently importing subnets only. Options and reservations will be added in future updates." . Colors::RESET);
 
         // Import subnets
         if (isset($dhcp6Config['subnet6'])) {
@@ -252,14 +288,20 @@ class KeaConfigImporter {
 
             $this->info("\n  Processing subnet: $subnetPrefix (ID: $subnetId)");
 
-            // Check if subnet already exists in database
-            $stmt = $this->db->prepare("SELECT id FROM ipv6_subnets WHERE subnet = ?");
-            $stmt->execute([$subnetPrefix]);
-            
-            if ($stmt->fetch()) {
-                $this->stats['subnets']['skipped']++;
-                $this->warning("    Subnet already exists in database, skipping");
-                return;
+            // Check if subnet already exists via API
+            try {
+                $existing = $this->apiRequest('GET', '/api/dhcp/subnets');
+                if ($existing && isset($existing['subnets'])) {
+                    foreach ($existing['subnets'] as $existingSubnet) {
+                        if ($existingSubnet['subnet'] === $subnetPrefix) {
+                            $this->stats['subnets']['skipped']++;
+                            $this->warning("    Subnet already exists, skipping");
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                // Continue if check fails
             }
 
             // Extract pools
@@ -270,45 +312,37 @@ class KeaConfigImporter {
                 }
             }
 
-            // Insert subnet into database
-            $stmt = $this->db->prepare(
-                "INSERT INTO ipv6_subnets 
-                (subnet, pools, interface, valid_lifetime, preferred_lifetime, 
-                 rapid_commit, description, bvi_interface_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            );
+            // Prepare subnet data for API
+            $subnetData = [
+                'subnet' => $subnetPrefix,
+                'pools' => $pools,
+                'valid_lifetime' => $subnet['valid-lifetime'] ?? 7200,
+                'preferred_lifetime' => $subnet['preferred-lifetime'] ?? 3600,
+                'rapid_commit' => $subnet['rapid-commit'] ?? false,
+                'description' => 'Imported from Kea config on ' . date('Y-m-d H:i:s')
+            ];
 
-            $stmt->execute([
-                $subnetPrefix,
-                !empty($pools) ? json_encode($pools) : null,
-                $subnet['interface'] ?? null,
-                $subnet['valid-lifetime'] ?? 7200,
-                $subnet['preferred-lifetime'] ?? 3600,
-                $subnet['rapid-commit'] ?? false,
-                "Imported from Kea config",
-                null // Will need to be linked manually to BVI interface
-            ]);
+            // Create subnet via API
+            $result = $this->apiRequest('POST', '/api/dhcp/subnets', $subnetData);
 
-            $dbSubnetId = $this->db->lastInsertId();
-
-            $this->stats['subnets']['imported']++;
-            $this->success("    ✓ Imported subnet: $subnetPrefix");
-            
-            if (!empty($pools)) {
-                $this->info("      Pools: " . implode(', ', $pools));
-            }
-
-            // Import subnet-specific options
-            if (isset($subnet['option-data'])) {
-                $this->importOptions($subnet['option-data'], $dbSubnetId);
-            }
-
-            // Import reservations if present in subnet
-            if (isset($subnet['reservations'])) {
-                $this->info("    Importing reservations...");
-                foreach ($subnet['reservations'] as $reservation) {
-                    $this->importReservation($reservation, $subnetId, $subnetPrefix);
+            if ($result && isset($result['success']) && $result['success']) {
+                $this->stats['subnets']['imported']++;
+                $this->success("    ✓ Imported subnet: $subnetPrefix");
+                
+                if (!empty($pools)) {
+                    $this->info("      Pools: " . implode(', ', $pools));
                 }
+
+                // Import reservations if present in subnet
+                if (isset($subnet['reservations']) && !empty($subnet['reservations'])) {
+                    $this->info("    Found " . count($subnet['reservations']) . " reservations (skipping - not yet implemented via API)");
+                    // TODO: Implement reservation import via API
+                    // foreach ($subnet['reservations'] as $reservation) {
+                    //     $this->importReservation($reservation, $subnetId, $subnetPrefix);
+                    // }
+                }
+            } else {
+                throw new Exception("API returned error: " . json_encode($result));
             }
 
         } catch (Exception $e) {
