@@ -33,12 +33,18 @@ class CinSwitch
     public function createSwitch($data)
     {
         try {
+            // Get next available ID manually (since AUTO_INCREMENT might not be set)
+            $maxIdStmt = $this->db->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM cin_switches");
+            $nextId = $maxIdStmt->fetch(\PDO::FETCH_ASSOC)['next_id'];
+            
+            error_log("createSwitch: Manually calculated next ID: $nextId");
+            
             $stmt = $this->db->prepare("
                 INSERT INTO cin_switches 
-                (hostname, created_at) 
-                VALUES (?, NOW())
+                (id, hostname, created_at) 
+                VALUES (?, ?, NOW())
             ");
-            $result = $stmt->execute([$data['hostname']]);
+            $result = $stmt->execute([$nextId, $data['hostname']]);
             
             if (!$result) {
                 $errorInfo = $stmt->errorInfo();
@@ -46,21 +52,9 @@ class CinSwitch
                 throw new \RuntimeException('Failed to execute INSERT: ' . $errorInfo[2]);
             }
             
-            $lastId = $this->db->lastInsertId();
-            error_log("createSwitch: execute result=" . var_export($result, true) . ", lastInsertId=" . var_export($lastId, true) . ", rowCount=" . $stmt->rowCount());
+            error_log("createSwitch: Successfully inserted with ID: $nextId, rowCount=" . $stmt->rowCount());
             
-            if (!$lastId || $lastId == '0') {
-                // lastInsertId() returned 0, try to get the ID another way
-                $checkStmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ? ORDER BY id DESC LIMIT 1");
-                $checkStmt->execute([$data['hostname']]);
-                $row = $checkStmt->fetch(\PDO::FETCH_ASSOC);
-                if ($row && $row['id']) {
-                    error_log("createSwitch: Retrieved ID via SELECT: " . $row['id']);
-                    return $row['id'];
-                }
-            }
-            
-            return $lastId;
+            return $nextId;
         } catch (\PDOException $e) {
             error_log("Database error in createSwitch(): " . $e->getMessage());
             throw new \RuntimeException('Error creating switch: ' . $e->getMessage());
