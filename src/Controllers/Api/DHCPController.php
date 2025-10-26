@@ -395,6 +395,9 @@ class DHCPController
                 throw new \Exception('Subnet not found in Kea');
             }
 
+            // Log the full subnet data to see what Kea returned
+            error_log("DHCPController: Full subnet data from Kea: " . json_encode($subnet, JSON_PRETTY_PRINT));
+
             // Extract pool information from subnet data (already retrieved from Kea API)
             $poolStart = null;
             $poolEnd = null;
