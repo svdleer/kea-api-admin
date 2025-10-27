@@ -364,35 +364,22 @@ class DHCP
     public function deleteSubnet($subnetId)
     {
         try {
-            // Get the Kea subnet ID from our database
-            $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE id = ?");
-            $stmt->execute([$subnetId]);
-            $record = $stmt->fetch(\PDO::FETCH_ASSOC);
+            // $subnetId is the KEA subnet ID (not our database record ID)
+            error_log("DHCP Model: deleteSubnet called with Kea subnet ID: $subnetId");
             
-            if (!$record || !$record['kea_subnet_id']) {
-                error_log("DHCP Model: No kea_subnet_id found for record ID: $subnetId, skipping Kea deletion");
-                // Still delete from database
-                $sql = "DELETE FROM cin_bvi_dhcp_core WHERE id = :subnet_id";
-                $deleteStmt = $this->db->prepare($sql);
-                $deleteStmt->execute([':subnet_id' => $subnetId]);
-                error_log("DHCP Model: Deleted database record for subnet ID: $subnetId");
-                return true;
-            }
-            
-            $keaSubnetId = $record['kea_subnet_id'];
-            
+            // First, delete from Kea
             $arguments = [
                 "remote" => [
                     "type" => "mysql"
                 ],
                 "subnets" => [
                     [
-                        "id" => intval($keaSubnetId)
+                        "id" => intval($subnetId)
                     ]
                 ]
             ];
     
-            error_log("DHCP Model: Attempting to delete subnet with Kea ID: $keaSubnetId (DB record ID: $subnetId)");
+            error_log("DHCP Model: Attempting to delete subnet from Kea with ID: $subnetId");
             
             $response = $this->sendKeaCommand('remote-subnet6-del-by-id', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
@@ -407,11 +394,11 @@ class DHCP
                 error_log("DHCP Model: Subnet not found in Kea (may have been deleted already). Response: " . ($response[0]['text'] ?? 'Unknown'));
             }
     
-            // Always try to delete from our database regardless of Kea result
-            error_log("DHCP Model: Deleting record from cin_bvi_dhcp_core table");
-            $sql = "DELETE FROM cin_bvi_dhcp_core WHERE id = :subnet_id";
+            // Now delete from our database using the Kea subnet ID
+            error_log("DHCP Model: Deleting record from cin_bvi_dhcp_core table where kea_subnet_id = $subnetId");
+            $sql = "DELETE FROM cin_bvi_dhcp_core WHERE kea_subnet_id = :kea_subnet_id";
             $deleteStmt = $this->db->prepare($sql);
-            $deleteStmt->execute([':subnet_id' => $subnetId]);
+            $deleteStmt->execute([':kea_subnet_id' => $subnetId]);
             
             $rowsAffected = $deleteStmt->rowCount();
             error_log("DHCP Model: Deleted {$rowsAffected} rows from cin_bvi_dhcp_core table");
