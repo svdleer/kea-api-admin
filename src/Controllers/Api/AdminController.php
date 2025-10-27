@@ -973,6 +973,54 @@ class AdminController
     }
 
     /**
+     * Clear all CIN data (switches, BVI interfaces, links)
+     * POST /api/admin/clear-cin-data
+     */
+    public function clearCinData()
+    {
+        try {
+            // Count before deleting
+            $switchCount = $this->db->query("SELECT COUNT(*) FROM cin_switches")->fetchColumn();
+            $bviCount = $this->db->query("SELECT COUNT(*) FROM cin_switch_bvi_interfaces")->fetchColumn();
+            $linkCount = $this->db->query("SELECT COUNT(*) FROM cin_bvi_dhcp_core")->fetchColumn();
+            
+            // Count RADIUS clients
+            $radiusCount = 0;
+            try {
+                $radiusCount = $this->db->query("SELECT COUNT(*) FROM radius_clients")->fetchColumn();
+            } catch (\Exception $e) {
+                // Table might not exist
+            }
+            
+            // Delete in correct order (respect foreign keys)
+            $this->db->exec("DELETE FROM cin_bvi_dhcp_core");
+            $this->db->exec("DELETE FROM cin_switch_bvi_interfaces");
+            $this->db->exec("DELETE FROM cin_switches");
+            
+            // Delete RADIUS clients if table exists
+            try {
+                $this->db->exec("DELETE FROM radius_clients");
+            } catch (\Exception $e) {
+                // Table might not exist
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'CIN data cleared successfully',
+                'switches' => $switchCount,
+                'bvi_interfaces' => $bviCount,
+                'links' => $linkCount,
+                'radius_clients' => $radiusCount
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to clear CIN data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper: Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)

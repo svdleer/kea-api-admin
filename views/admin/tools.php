@@ -121,6 +121,29 @@ ob_start();
             </div>
         </div>
 
+        <!-- Clear CIN Data -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-2 border-red-200">
+            <div class="flex items-center mb-4">
+                <div class="bg-red-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Clear CIN Data</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Delete all CIN switches and BVI data. Kea subnets remain untouched.</p>
+            <div class="space-y-2">
+                <button onclick="clearCinData()" 
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    Clear All CIN Data
+                </button>
+                <p class="text-xs text-red-600 mt-2">⚠️ Warning: This deletes all CIN switches, BVI interfaces, and links. Cannot be undone!</p>
+            </div>
+        </div>
+
         <!-- FreeRADIUS Configuration -->
         <div class="bg-white shadow-md rounded-lg p-6">
             <div class="flex items-center mb-4">
@@ -684,6 +707,72 @@ async function deleteBackup(filename) {
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to delete backup', 'error');
+        }
+    }
+}
+
+async function clearCinData() {
+    const result = await Swal.fire({
+        title: 'Clear All CIN Data?',
+        html: `
+            <div class="text-left">
+                <p class="mb-3 text-red-600 font-semibold">⚠️ This will permanently delete:</p>
+                <ul class="list-disc list-inside mb-3 text-sm">
+                    <li>All CIN switches</li>
+                    <li>All BVI interfaces</li>
+                    <li>All subnet-BVI links</li>
+                    <li>All RADIUS clients</li>
+                </ul>
+                <p class="text-sm text-gray-600 mb-2">✓ Kea subnets will NOT be deleted</p>
+                <p class="text-sm text-gray-600 mb-2">✓ Only our database tables are cleared</p>
+                <p class="mt-3 font-semibold">This action cannot be undone!</p>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, Clear All CIN Data!',
+        cancelButtonText: 'Cancel',
+        width: '600px'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Clearing CIN Data...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/admin/clear-cin-data', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    title: 'Cleared!',
+                    html: `
+                        <div class="text-left">
+                            <p class="mb-2">✓ Deleted ${data.switches || 0} CIN switches</p>
+                            <p class="mb-2">✓ Deleted ${data.bvi_interfaces || 0} BVI interfaces</p>
+                            <p class="mb-2">✓ Deleted ${data.links || 0} subnet links</p>
+                            <p class="mb-2">✓ Deleted ${data.radius_clients || 0} RADIUS clients</p>
+                            <p class="mt-3 text-sm text-gray-600">Ready for fresh import!</p>
+                        </div>
+                    `,
+                    icon: 'success'
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to clear CIN data: ' + error.message, 'error');
         }
     }
 }
