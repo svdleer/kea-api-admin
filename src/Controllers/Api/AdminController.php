@@ -1090,19 +1090,27 @@ class AdminController
             $file = $_FILES['leases_file']['tmp_name'];
             $fileName = $_FILES['leases_file']['name'];
             
-            // Get subnet mapping if provided
-            $subnetMapping = [];
-            if (isset($_POST['subnet_mapping'])) {
-                $subnetMapping = json_decode($_POST['subnet_mapping'], true) ?: [];
-                error_log("Subnet mapping: " . json_encode($subnetMapping));
-            }
-            
             error_log("Processing file: " . $fileName);
 
             // Read and parse CSV
             $leases = $this->parseLeasesCSV($file);
             
             error_log("Parsed " . count($leases) . " leases from CSV");
+            
+            // Get subnet mapping
+            $subnetMapping = [];
+            $autoMap = isset($_POST['auto_map']) && $_POST['auto_map'] === 'true';
+            
+            if ($autoMap) {
+                // Automatic mapping by matching IP addresses
+                error_log("Auto-mapping subnet IDs by IP address matching");
+                $subnetMapping = $this->autoMapSubnetIds($leases);
+                error_log("Auto-mapped subnets: " . json_encode($subnetMapping));
+            } elseif (isset($_POST['subnet_mapping'])) {
+                // Manual mapping provided
+                $subnetMapping = json_decode($_POST['subnet_mapping'], true) ?: [];
+                error_log("Manual subnet mapping: " . json_encode($subnetMapping));
+            }
             
             // Apply subnet mapping
             if (!empty($subnetMapping)) {
@@ -1125,7 +1133,8 @@ class AdminController
                 'total' => count($leases),
                 'imported' => $result['imported'],
                 'skipped' => $result['skipped'],
-                'errors' => $result['errors']
+                'errors' => $result['errors'],
+                'subnet_mapping' => $subnetMapping
             ]);
 
         } catch (\Exception $e) {
@@ -1187,6 +1196,118 @@ class AdminController
 
         fclose($handle);
         return $leases;
+    }
+
+    /**
+     * Auto-map subnet IDs by matching IP addresses to Kea subnets
+     */
+    private function autoMapSubnetIds($leases)
+    {
+        $mapping = [];
+        
+        try {
+            // Get all subnets from Kea
+            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            
+            $data = [
+                'command' => 'remote-subnet6-list',
+                'service' => ['dhcp6'],
+                'arguments' => [
+                    'remote' => ['type' => 'mysql'],
+                    'server-tags' => ['all']
+                ]
+            ];
+            
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+            
+            $keaResponse = json_decode($response, true);
+            
+            if (!$keaResponse || !isset($keaResponse[0]['arguments']['subnets'])) {
+                error_log("Failed to get subnets from Kea for auto-mapping");
+                return $mapping;
+            }
+            
+            $keaSubnets = $keaResponse[0]['arguments']['subnets'];
+            error_log("Found " . count($keaSubnets) . " Kea subnets for matching");
+            
+            // Group leases by subnet_id to find their IP ranges
+            $leasesBySubnet = [];
+            foreach ($leases as $lease) {
+                $subnetId = $lease['subnet_id'];
+                if (!isset($leasesBySubnet[$subnetId])) {
+                    $leasesBySubnet[$subnetId] = [];
+                }
+                $leasesBySubnet[$subnetId][] = $lease['address'];
+            }
+            
+            // Match each old subnet ID to a Kea subnet by checking if IPs belong to the subnet
+            foreach ($leasesBySubnet as $oldSubnetId => $addresses) {
+                foreach ($keaSubnets as $keaSubnet) {
+                    $keaSubnetId = $keaSubnet['id'];
+                    $subnetPrefix = $keaSubnet['subnet'];
+                    
+                    // Check if any lease address belongs to this Kea subnet
+                    foreach ($addresses as $address) {
+                        if ($this->ipBelongsToSubnet($address, $subnetPrefix)) {
+                            $mapping[strval($oldSubnetId)] = $keaSubnetId;
+                            error_log("Auto-mapped: Subnet $oldSubnetId → $keaSubnetId (matched $address in $subnetPrefix)");
+                            break 2; // Found a match, move to next old subnet
+                        }
+                    }
+                }
+            }
+            
+        } catch (\Exception $e) {
+            error_log("Error in auto-mapping: " . $e->getMessage());
+        }
+        
+        return $mapping;
+    }
+
+    /**
+     * Check if an IPv6 address belongs to a subnet
+     */
+    private function ipBelongsToSubnet($ip, $subnet)
+    {
+        // Parse subnet (e.g., "2001:db8::/32")
+        list($subnetAddr, $prefixLen) = explode('/', $subnet);
+        
+        // Convert both to binary representation and compare
+        $ipBin = inet_pton($ip);
+        $subnetBin = inet_pton($subnetAddr);
+        
+        if ($ipBin === false || $subnetBin === false) {
+            return false;
+        }
+        
+        // Calculate how many full bytes and bits to compare
+        $fullBytes = floor($prefixLen / 8);
+        $remainingBits = $prefixLen % 8;
+        
+        // Compare full bytes
+        if (substr($ipBin, 0, $fullBytes) !== substr($subnetBin, 0, $fullBytes)) {
+            return false;
+        }
+        
+        // Compare remaining bits if any
+        if ($remainingBits > 0) {
+            $mask = 0xFF << (8 - $remainingBits);
+            $ipByte = ord($ipBin[$fullBytes]);
+            $subnetByte = ord($subnetBin[$fullBytes]);
+            
+            if (($ipByte & $mask) !== ($subnetByte & $mask)) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     /**

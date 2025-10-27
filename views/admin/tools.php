@@ -795,12 +795,8 @@ async function importLeasesWizard() {
                     into the Kea lease database as active leases.
                 </p>
                 <div class="mb-4 p-4 bg-blue-50 rounded-md">
-                    <p class="text-sm font-semibold text-blue-900 mb-2">CSV Format Expected:</p>
-                    <code class="text-xs text-gray-700">address,duid,valid_lifetime,expire,subnet_id,...</code>
-                </div>
-                <div class="mb-4 p-4 bg-yellow-50 rounded-md">
-                    <p class="text-sm font-semibold text-yellow-900 mb-2">⚠️ Subnet ID Mapping:</p>
-                    <p class="text-xs text-yellow-800 mb-2">If your CSV subnet IDs don't match your current Kea configuration, you'll be able to map them in the next step.</p>
+                    <p class="text-sm font-semibold text-blue-900 mb-2">✨ Smart Mapping:</p>
+                    <p class="text-xs text-blue-800">Subnet IDs will be automatically mapped by matching IP addresses to your current Kea configuration.</p>
                 </div>
                 <input type="file" id="leases-file" accept=".csv,.leases" 
                        class="block w-full text-sm text-gray-500
@@ -812,7 +808,7 @@ async function importLeasesWizard() {
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Next: Map Subnets',
+        confirmButtonText: 'Import Leases',
         confirmButtonColor: '#9333EA',
         preConfirm: () => {
             const fileInput = document.getElementById('leases-file');
@@ -825,7 +821,72 @@ async function importLeasesWizard() {
     });
 
     if (file) {
-        await analyzeAndMapSubnets(file);
+        await autoMapAndImportLeases(file);
+    }
+}
+
+async function autoMapAndImportLeases(file) {
+    try {
+        Swal.fire({
+            title: 'Auto-mapping Subnets...',
+            text: 'Analyzing CSV and matching with Kea configuration',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const formData = new FormData();
+        formData.append('leases_file', file);
+        formData.append('auto_map', 'true');
+
+        const response = await fetch('/api/admin/import-leases', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        Swal.close();
+
+        if (data.success) {
+            let mappingInfo = '';
+            if (data.subnet_mapping && Object.keys(data.subnet_mapping).length > 0) {
+                mappingInfo = '<div class="mt-3 p-3 bg-blue-50 rounded"><p class="text-sm font-semibold text-blue-900 mb-1">Subnet Mappings Applied:</p><ul class="text-xs text-blue-800 list-disc list-inside">';
+                for (const [oldId, newId] of Object.entries(data.subnet_mapping)) {
+                    mappingInfo += `<li>Subnet ${oldId} → ${newId}</li>`;
+                }
+                mappingInfo += '</ul></div>';
+            }
+            
+            await Swal.fire({
+                title: 'Import Complete!',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2">✓ Processed ${data.total || 0} leases from CSV</p>
+                        <p class="mb-2">✓ Imported ${data.imported || 0} active leases</p>
+                        <p class="mb-2">⊘ Skipped ${data.skipped || 0} (expired or invalid)</p>
+                        ${mappingInfo}
+                        ${data.errors && data.errors.length > 0 ? `
+                            <div class="mt-3 p-3 bg-yellow-50 rounded">
+                                <p class="text-sm font-semibold text-yellow-900 mb-1">Warnings:</p>
+                                <ul class="text-xs text-yellow-800 list-disc list-inside">
+                                    ${data.errors.slice(0, 5).map(e => `<li>${e}</li>`).join('')}
+                                    ${data.errors.length > 5 ? `<li>... and ${data.errors.length - 5} more</li>` : ''}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonColor: '#9333EA'
+            });
+        } else {
+            Swal.fire('Error', data.message || 'Failed to import leases', 'error');
+        }
+    } catch (error) {
+        Swal.close();
+        Swal.fire('Error', 'Failed to process file: ' + error.message, 'error');
     }
 }
 
