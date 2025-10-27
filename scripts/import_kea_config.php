@@ -153,34 +153,43 @@ class KeaConfigImporter {
                 $type = $optionDef['type'];
                 $space = $optionDef['space'] ?? 'dhcp6';
 
-                // Check if already exists
-                $stmt = $this->db->prepare("SELECT code FROM dhcp6_option_def WHERE code = ? AND space = ?");
-                $stmt->execute([$code, $space]);
+                // Use Kea API to add option definition
+                $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
+                $keaCommand = [
+                    'command' => 'remote-option-def6-set',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'option-defs' => [[
+                            'code' => $code,
+                            'name' => $name,
+                            'type' => $type,
+                            'space' => $space,
+                            'array' => $optionDef['array'] ?? false,
+                            'record-types' => $optionDef['record-types'] ?? null,
+                            'encapsulate' => $optionDef['encapsulate'] ?? ''
+                        ]],
+                        'remote' => ['type' => 'mysql'],
+                        'server-tags' => ['all']
+                    ]
+                ];
+
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($keaCommand));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                $responseJson = curl_exec($ch);
+                curl_close($ch);
                 
-                if ($stmt->fetch()) {
+                $response = json_decode($responseJson, true);
+                
+                if (isset($response[0]['result']) && $response[0]['result'] === 0) {
+                    $this->stats['options']['imported']++;
+                    $this->success("  ✓ Imported option definition: $name (code $code)");
+                } else {
                     $this->stats['options']['skipped']++;
-                    $this->warning("  Option definition $code ($name) already exists, skipping");
-                    continue;
+                    $this->warning("  Option definition $code ($name) already exists or failed, skipping");
                 }
-
-                // Insert option definition
-                $stmt = $this->db->prepare(
-                    "INSERT INTO dhcp6_option_def (code, name, type, space, array, record_types, encapsulate) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?)"
-                );
-
-                $stmt->execute([
-                    $code,
-                    $name,
-                    $type,
-                    $space,
-                    $optionDef['array'] ?? false,
-                    isset($optionDef['record-types']) ? implode(',', $optionDef['record-types']) : null,
-                    $optionDef['encapsulate'] ?? null
-                ]);
-
-                $this->stats['options']['imported']++;
-                $this->success("  ✓ Imported option definition: $name (code $code)");
 
             } catch (Exception $e) {
                 $this->stats['options']['errors']++;
@@ -199,35 +208,61 @@ class KeaConfigImporter {
                 $data = $option['data'];
                 $name = $option['name'] ?? "option-$code";
 
-                // Check if already exists
-                $query = $subnetId 
-                    ? "SELECT code FROM dhcp6_options WHERE code = ? AND subnet_id = ?"
-                    : "SELECT code FROM dhcp6_options WHERE code = ? AND subnet_id IS NULL";
+                // Use Kea API to set options
+                $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
                 
-                $stmt = $this->db->prepare($query);
-                $params = $subnetId ? [$code, $subnetId] : [$code];
-                $stmt->execute($params);
-                
-                if ($stmt->fetch()) {
-                    $this->stats['options']['skipped']++;
-                    continue;
+                if ($subnetId) {
+                    // Subnet-specific option
+                    $keaCommand = [
+                        'command' => 'remote-option6-subnet-set',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'subnets' => [[
+                                'id' => $subnetId,
+                                'option-data' => [[
+                                    'code' => $code,
+                                    'name' => $name,
+                                    'data' => $data,
+                                    'space' => $option['space'] ?? 'dhcp6'
+                                ]]
+                            ]],
+                            'remote' => ['type' => 'mysql'],
+                            'server-tags' => ['all']
+                        ]
+                    ];
+                } else {
+                    // Global option
+                    $keaCommand = [
+                        'command' => 'remote-option6-global-set',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'options' => [[
+                                'code' => $code,
+                                'name' => $name,
+                                'data' => $data,
+                                'space' => $option['space'] ?? 'dhcp6'
+                            ]],
+                            'remote' => ['type' => 'mysql'],
+                            'server-tags' => ['all']
+                        ]
+                    ];
                 }
 
-                // Insert option
-                $stmt = $this->db->prepare(
-                    "INSERT INTO dhcp6_options (code, name, data, space, subnet_id) 
-                     VALUES (?, ?, ?, ?, ?)"
-                );
-
-                $stmt->execute([
-                    $code,
-                    $name,
-                    $data,
-                    $option['space'] ?? 'dhcp6',
-                    $subnetId
-                ]);
-
-                $this->stats['options']['imported']++;
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($keaCommand));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                $responseJson = curl_exec($ch);
+                curl_close($ch);
+                
+                $response = json_decode($responseJson, true);
+                
+                if (isset($response[0]['result']) && $response[0]['result'] === 0) {
+                    $this->stats['options']['imported']++;
+                } else {
+                    $this->stats['options']['skipped']++;
+                }
 
             } catch (Exception $e) {
                 $this->stats['options']['errors']++;
@@ -457,33 +492,48 @@ class KeaConfigImporter {
             }
 
             foreach ($ipAddresses as $ipAddress) {
-                // Check if reservation already exists
-                $stmt = $this->db->prepare(
-                    "SELECT dhcp6_iaid FROM hosts WHERE dhcp6_subnet_id = ? AND ipv6_address = ?"
-                );
-                $stmt->execute([$subnetId, inet_pton($ipAddress)]);
+                // Use Kea API to add reservation
+                $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
                 
-                if ($stmt->fetch()) {
-                    $this->stats['reservations']['skipped']++;
-                    continue;
+                $reservation_data = [
+                    'subnet-id' => $subnetId,
+                    'ip-addresses' => [$ipAddress]
+                ];
+                
+                if (isset($reservation['hw-address'])) {
+                    $reservation_data['hw-address'] = $reservation['hw-address'];
                 }
+                if (isset($reservation['duid'])) {
+                    $reservation_data['duid'] = $reservation['duid'];
+                }
+                if ($hostname) {
+                    $reservation_data['hostname'] = $hostname;
+                }
+                
+                $keaCommand = [
+                    'command' => 'reservation-add',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'reservation' => $reservation_data
+                    ]
+                ];
 
-                // Insert reservation (using Kea's hosts table structure)
-                $stmt = $this->db->prepare(
-                    "INSERT INTO hosts 
-                    (dhcp_identifier, dhcp_identifier_type, dhcp6_subnet_id, ipv6_address, hostname) 
-                    VALUES (?, 0, ?, ?, ?)"
-                );
-
-                $stmt->execute([
-                    hex2bin(str_replace(':', '', $duid)),
-                    $subnetId,
-                    inet_pton($ipAddress),
-                    $hostname
-                ]);
-
-                $this->stats['reservations']['imported']++;
-                $this->success("      ✓ Imported reservation: $ipAddress ($hostname)");
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($keaCommand));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                $responseJson = curl_exec($ch);
+                curl_close($ch);
+                
+                $response = json_decode($responseJson, true);
+                
+                if (isset($response[0]['result']) && $response[0]['result'] === 0) {
+                    $this->stats['reservations']['imported']++;
+                    $this->success("      ✓ Imported reservation: $ipAddress ($hostname)");
+                } else {
+                    $this->stats['reservations']['skipped']++;
+                }
             }
 
         } catch (Exception $e) {

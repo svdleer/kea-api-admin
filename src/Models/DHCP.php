@@ -695,26 +695,18 @@ class DHCP
     private function deleteSubnetFromDatabase($subnet_id)
     {
         try {
-            // Delete from custom_dhcp6_subnet_config
+            // Only delete from OUR custom table, never touch Kea tables
+            // Kea tables are managed by Kea API only
             $query1 = "DELETE FROM custom_dhcp6_subnet_config WHERE subnet_id = :subnet_id";
             $stmt1 = $this->db->prepare($query1);
             $stmt1->execute(['subnet_id' => $subnet_id]);
     
-            /*
-            // Delete from dhcp6_pool
-            $query2 = "DELETE FROM dhcp6_pool WHERE subnet_id = :subnet_id";
-            $stmt2 = $this->db->prepare($query2);
-            $stmt2->execute(['subnet_id' => $subnet_id]);
-    
-            // Delete from dhcp6_subnet
-            $query3 = "DELETE FROM dhcp6_subnet WHERE subnet_id = :subnet_id";
-            $stmt3 = $this->db->prepare($query3);
-            $stmt3->execute(['subnet_id' => $subnet_id]);
-            */
+            // FORBIDDEN: Never delete from dhcp6_pool, dhcp6_subnet, or any Kea tables
+            // Those are managed exclusively by Kea API
     
             return true;
-        } catch (PDOException $e) {
-            throw new Exception("Database error: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            throw new \Exception("Database error: " . $e->getMessage());
         }
     }
     
