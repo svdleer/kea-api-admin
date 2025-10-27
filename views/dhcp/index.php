@@ -120,6 +120,34 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
     <!-- Table Container -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <?php if (empty($switches)): ?>
+            <!-- Empty state - no table header -->
+            <div class="px-6 py-12 text-center text-sm text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No DHCP subnets configured</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Get started by creating a switch and BVI interface, or import from existing configuration.
+                </p>
+                <div class="mt-6 flex justify-center gap-3">
+                    <a href="/switches/add" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Switch
+                    </a>
+                    <a href="/admin/import-wizard" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Import Configuration
+                    </a>
+                </div>
+            </div>
+        <?php else: ?>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -193,6 +221,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </tbody>
             </table>
         </div>
+        <?php endif; ?>
     </div>
 
     <?php
