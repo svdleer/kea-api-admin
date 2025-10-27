@@ -256,11 +256,12 @@ class AdminController
                     "subnet" => $subnet['subnet'],
                     "id" => $subnet['id'],
                     "shared-network-name" => null,
+                    "client-class" => "RPD", // Add client class for RPD devices
                     "pools" => []
                 ];
                 
                 // Add pool if available
-                if ($subnet['pool']) {
+                if (!empty($subnet['pool'])) {
                     $keaSubnet['pools'][] = ["pool" => $subnet['pool']];
                 }
                 
@@ -284,6 +285,12 @@ class AdminController
                 // Add lifetimes
                 $keaSubnet['valid-lifetime'] = $subnet['valid_lifetime'];
                 $keaSubnet['preferred-lifetime'] = $subnet['preferred_lifetime'];
+                
+                // Log what we're sending to Kea for debugging
+                error_log("=== Sending to Kea ===");
+                error_log("Subnet: " . $subnet['subnet']);
+                error_log("Pool: " . ($subnet['pool'] ?? 'NULL'));
+                error_log("Kea Subnet Data: " . json_encode($keaSubnet, JSON_PRETTY_PRINT));
                 
                 // Send to Kea
                 $data = [

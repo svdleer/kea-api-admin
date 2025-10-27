@@ -27,7 +27,7 @@ mysql -u [username] -p kea_db < create_cin_switch_bvi_interfaces_table.sql
 ### 5. Fix interface_number Datatype (October 2025)
 ```bash
 mysql -u [username] -p kea_db < fix_interface_number_datatype.sql
-```
+``
 
 ## Run All Migrations at Once
 
