@@ -104,6 +104,29 @@ ob_start();
 
     <!-- Switches Table -->
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <?php if (empty($switches)): ?>
+            <!-- Empty state - no table header -->
+            <div class="px-6 py-12 text-center text-sm text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No switches found</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    <?php echo $searchQuery ? 'Try adjusting your search terms.' : 'Get started by adding a new switch.'; ?>
+                </p>
+                <?php if (!$searchQuery): ?>
+                <div class="mt-6">
+                    <a href="/switches/add" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Switch
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -113,14 +136,7 @@ ob_start();
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                <?php if (empty($switches)): ?>
-                            <tr>
-                                <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
-                                    <?php echo $searchQuery ? 'No switches found matching your search.' : 'No switches found'; ?>
-                                </td>
-                            </tr>
-                            <?php else: ?>
-                                <?php foreach ($switches as $switch): ?>
+                <?php foreach ($switches as $switch): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         <?php echo htmlspecialchars($switch['hostname'] ?? ''); ?>
@@ -153,9 +169,9 @@ ob_start();
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
                         </tbody>
                     </table>
+                <?php endif; ?>
                 </div>
             </div>
         </div>
