@@ -171,12 +171,14 @@ class KeaConfigImporter {
             
             // Search for comment like: ##### SWITCHNAME-CCAP... - SWITCHNAME-AR### #####
             foreach ($lines as $lineNum => $line) {
-                if (strpos($line, $subnetPrefix) !== false) {
+                if (strpos($line, '"subnet": "' . $subnetPrefix . '"') !== false) {
                     // Found the subnet, look backwards for comment
-                    for ($i = $lineNum - 1; $i >= 0 && $i >= $lineNum - 10; $i--) {
-                        if (preg_match('/#####+\s*([A-Z0-9\-]+)-[A-Z]+\d+\s*-\s*([A-Z0-9\-]+)-AR(\d+)/', $lines[$i], $matches)) {
+                    for ($i = $lineNum - 1; $i >= 0 && $i >= $lineNum - 15; $i--) {
+                        $commentLine = trim($lines[$i]);
+                        if (preg_match('/#####+\s*([A-Z0-9\-]+)-[A-Z]+\d+\s*-\s*([A-Z0-9\-]+)-AR(\d+)/', $commentLine, $matches)) {
                             $switchName = $matches[1];
                             $bviNumber = (int)$matches[3];
+                            $this->info("  → Parsed comment: Switch=$switchName, BVI=$bviNumber");
                             break;
                         }
                     }
