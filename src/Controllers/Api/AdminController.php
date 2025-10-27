@@ -260,9 +260,11 @@ class AdminController
                     "pools" => []
                 ];
                 
-                // Add pool if available
+                // Add pool if available - Kea requires spaces around the dash!
                 if (!empty($subnet['pool'])) {
-                    $keaSubnet['pools'][] = ["pool" => $subnet['pool']];
+                    // Convert "start-end" to "start - end" (with spaces)
+                    $pool = str_replace('-', ' - ', $subnet['pool']);
+                    $keaSubnet['pools'][] = ["pool" => $pool];
                 }
                 
                 // Add relay if available
