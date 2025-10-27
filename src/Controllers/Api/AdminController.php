@@ -244,8 +244,10 @@ class AdminController
                 $subnet = $config['subnet'];
                 $action = $config['action'];
                 
+                // Skip completely if action is skip - don't create in Kea at all
                 if ($action === 'skip') {
                     $skipped++;
+                    $details[] = "⊘ Skipped {$subnet['subnet']} (already exists)";
                     continue;
                 }
                 
