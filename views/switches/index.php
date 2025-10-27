@@ -21,6 +21,7 @@ $title = 'Switches - VFZ RPD Infrastructure Management';
 
 $error = null;
 $switches = [];
+$searchQuery = null; // Initialize search query variable
 $message = isset($_SESSION['message']) ? $_SESSION['message'] : null;
 unset($_SESSION['message']);
 
