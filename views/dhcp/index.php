@@ -140,7 +140,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                 <?= htmlspecialchars($switch['hostname'] ?? '') ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?= isset($switch['bvi_interface']) && $switch['bvi_interface'] !== '' ? 'BVI' . intval($switch['bvi_interface']) : '' ?>
+                                <?= isset($switch['bvi_interface']) && $switch['bvi_interface'] !== '' ? 'BVI' . (100 + intval($switch['bvi_interface'])) : '' ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <?= htmlspecialchars($switch['ipv6_address'] ?? '') ?>

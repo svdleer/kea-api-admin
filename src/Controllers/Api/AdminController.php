@@ -325,10 +325,10 @@ class AdminController
                         $existingSwitch = $checkStmt->fetch(\PDO::FETCH_ASSOC);
                         
                         if ($existingSwitch) {
-                            // Switch already exists - check if it has BVI100
+                            // Switch already exists - check if it has BVI100 (stored as interface_number = 0)
                             $bviCheckStmt = $this->db->prepare("
                                 SELECT id FROM cin_switch_bvi_interfaces 
-                                WHERE switch_id = ? AND interface_number = 100
+                                WHERE switch_id = ? AND interface_number = 0
                             ");
                             $bviCheckStmt->execute([$existingSwitch['id']]);
                             $existingBVI = $bviCheckStmt->fetch(\PDO::FETCH_ASSOC);
@@ -345,9 +345,9 @@ class AdminController
                             ]);
                         }
                         
-                        // Create BVI100 interface
+                        // Create BVI100 interface (stored as 0, displayed as BVI100)
                         $cinSwitchModel->createBviInterface($switchId, [
-                            'interface_number' => 100, // Always BVI100
+                            'interface_number' => 0, // Store as 0, display shows BVI + (100 + 0) = BVI100
                             'ipv6_address' => $subnet['relay'] // Use relay address as BVI address
                         ]);
                         
@@ -368,7 +368,7 @@ class AdminController
                         $stmt->execute([
                             $switchId,
                             $subnet['id'],
-                            100,
+                            0, // Store as 0 for BVI100
                             $subnet['relay'],
                             $poolStart,
                             $poolEnd,

@@ -459,8 +459,9 @@ class DHCPController
             }
 
             // Create BVI100 interface in OUR database (not Kea)
+            // Store as 0, display adds 100 to show BVI100
             $bviInterfaceId = $cinSwitchModel->createBviInterface($switchId, [
-                'interface_number' => 100,
+                'interface_number' => 0,
                 'ipv6_address' => $bviIpv6
             ]);
 
