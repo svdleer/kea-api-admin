@@ -315,6 +315,11 @@ class AdminController
                 
                 $keaResponse = json_decode($response, true);
                 
+                // Log Kea response
+                error_log("=== Kea Response ===");
+                error_log("HTTP Code: " . $httpCode);
+                error_log("Response: " . json_encode($keaResponse, JSON_PRETTY_PRINT));
+                
                 if (!$keaResponse || !isset($keaResponse[0]['result']) || $keaResponse[0]['result'] !== 0) {
                     throw new \Exception("Kea API error: " . json_encode($keaResponse));
                 }
