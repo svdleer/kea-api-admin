@@ -782,7 +782,6 @@ async function clearCinData() {
             Swal.fire('Error', 'Failed to clear CIN data: ' + error.message, 'error');
         }
     }
-}
 
 // Import Leases Wizard
 async function importLeasesWizard() {
