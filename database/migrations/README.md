@@ -24,10 +24,35 @@ mysql -u [username] -p kea_db < create_ipv6_subnets_table.sql
 mysql -u [username] -p kea_db < create_cin_switch_bvi_interfaces_table.sql
 ```
 
+### 5. Fix interface_number Datatype (October 2025)
+```bash
+mysql -u [username] -p kea_db < fix_interface_number_datatype.sql
+```
+
 ## Run All Migrations at Once
 
 ```bash
-cat create_users_table.sql create_api_keys_table.sql create_ipv6_subnets_table.sql create_cin_switch_bvi_interfaces_table.sql | mysql -u [username] -p kea_db
+cat create_users_table.sql create_api_keys_table.sql create_ipv6_subnets_table.sql create_cin_switch_bvi_interfaces_table.sql fix_interface_number_datatype.sql | mysql -u [username] -p kea_db
+```
+
+## Run Single Migration Fix
+
+If you need to fix the interface_number column type from VARCHAR to INT(11):
+
+```bash
+mysql -u [username] -p kea_db < fix_interface_number_datatype.sql
+```
+
+Or run directly in MySQL:
+
+```sql
+USE kea_db;
+
+ALTER TABLE cin_bvi_dhcp_core 
+MODIFY COLUMN interface_number INT(11) NOT NULL;
+
+ALTER TABLE cin_switch_bvi_interfaces 
+MODIFY COLUMN interface_number INT(11) NOT NULL;
 ```
 
 ## Quick Fix for Missing ipv6_subnets Table
