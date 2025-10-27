@@ -215,6 +215,8 @@ class DHCPController
             
             $result = $this->subnetModel->deleteSubnet($id);
             
+            error_log("DHCPController: Delete result: " . ($result ? 'success' : 'failed'));
+            
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
@@ -223,8 +225,14 @@ class DHCPController
             
         } catch (\Exception $e) {
             error_log("Error in DHCPController::delete: " . $e->getMessage());
+            error_log("Error trace: " . $e->getTraceAsString());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'error' => $e->getMessage(),
+                'message' => 'Failed to delete subnet: ' . $e->getMessage()
+            ]);
         }
     }
 

@@ -1009,11 +1009,23 @@ function showEditSubnetModal(subnetData, relay) {
             });
 
             if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Deleting...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 const response = await fetch(`/api/dhcp/subnets/${subnetId}`, {
                     method: 'DELETE'
                 });
                 
                 const data = await response.json();
+                
+                console.log('Delete response:', data);
+                console.log('Response status:', response.status);
                 
                 if (data.success) {
                     await Swal.fire({
@@ -1026,16 +1038,17 @@ function showEditSubnetModal(subnetData, relay) {
                 } else {
                     Swal.fire({
                         title: 'Error!',
-                        text: data.message || 'Failed to delete subnet.',
+                        text: data.message || data.error || 'Failed to delete subnet.',
                         icon: 'error',
                         confirmButtonColor: '#3085d6'
                     });
                 }
             }
         } catch (error) {
+            console.error('Delete subnet error:', error);
             Swal.fire({
                 title: 'Error!',
-                text: 'An unexpected error occurred.',
+                text: 'An unexpected error occurred: ' + error.message,
                 icon: 'error',
                 confirmButtonColor: '#3085d6'
             });
