@@ -1027,14 +1027,21 @@ function showEditSubnetModal(subnetData, relay) {
                 console.log('Delete response:', data);
                 console.log('Response status:', response.status);
                 
+                // Close loading dialog
+                Swal.close();
+                
                 if (data.success) {
-                    await Swal.fire({
+                    const result = await Swal.fire({
                         title: 'Success!',
                         text: 'DHCP Subnet and all associated data have been removed successfully.',
                         icon: 'success',
-                        confirmButtonColor: '#3085d6'
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
                     });
-                    window.location.reload();
+                    
+                    if (result.isConfirmed || result.isDismissed) {
+                        window.location.reload();
+                    }
                 } else {
                     Swal.fire({
                         title: 'Error!',
@@ -1046,6 +1053,7 @@ function showEditSubnetModal(subnetData, relay) {
             }
         } catch (error) {
             console.error('Delete subnet error:', error);
+            Swal.close(); // Close loading dialog on error
             Swal.fire({
                 title: 'Error!',
                 text: 'An unexpected error occurred: ' + error.message,
