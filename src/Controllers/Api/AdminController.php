@@ -251,21 +251,14 @@ class AdminController
                     continue;
                 }
                 
-                // Create subnet in Kea first
+                // STEP 1: Create subnet in Kea WITHOUT pools first
                 $keaSubnet = [
                     "subnet" => $subnet['subnet'],
                     "id" => $subnet['id'],
                     "shared-network-name" => null,
-                    "client-class" => "RPD", // Add client class for RPD devices
-                    "pools" => []
+                    "client-class" => "RPD"
+                    // NO POOLS YET - will be added separately
                 ];
-                
-                // Add pool if available - Kea requires spaces around the dash!
-                if (!empty($subnet['pool'])) {
-                    // Convert "start-end" to "start - end" (with spaces)
-                    $pool = str_replace('-', ' - ', $subnet['pool']);
-                    $keaSubnet['pools'][] = ["pool" => $pool];
-                }
                 
                 // Add relay if available
                 if ($subnet['relay']) {
@@ -289,12 +282,11 @@ class AdminController
                 $keaSubnet['preferred-lifetime'] = $subnet['preferred_lifetime'];
                 
                 // Log what we're sending to Kea for debugging
-                error_log("=== Sending to Kea ===");
+                error_log("=== STEP 1: Creating Subnet (without pools) ===");
                 error_log("Subnet: " . $subnet['subnet']);
-                error_log("Pool: " . ($subnet['pool'] ?? 'NULL'));
                 error_log("Kea Subnet Data: " . json_encode($keaSubnet, JSON_PRETTY_PRINT));
                 
-                // Send to Kea
+                // Send subnet creation to Kea
                 $data = [
                     "command" => 'remote-subnet6-set',
                     "service" => ['dhcp6'],
@@ -318,12 +310,58 @@ class AdminController
                 $keaResponse = json_decode($response, true);
                 
                 // Log Kea response
-                error_log("=== Kea Response ===");
+                error_log("=== STEP 1 Response: Subnet Created ===");
                 error_log("HTTP Code: " . $httpCode);
                 error_log("Response: " . json_encode($keaResponse, JSON_PRETTY_PRINT));
                 
                 if (!$keaResponse || !isset($keaResponse[0]['result']) || $keaResponse[0]['result'] !== 0) {
-                    throw new \Exception("Kea API error: " . json_encode($keaResponse));
+                    throw new \Exception("Kea subnet creation failed: " . json_encode($keaResponse));
+                }
+                
+                // STEP 2: Now add the pool to the subnet (separate API call)
+                if (!empty($subnet['pool'])) {
+                    error_log("=== STEP 2: Adding Pool to Subnet ===");
+                    error_log("Subnet ID: " . $subnet['id']);
+                    error_log("Pool: " . $subnet['pool']);
+                    
+                    // Convert "start-end" to "start - end" (with spaces)
+                    $pool = str_replace('-', ' - ', $subnet['pool']);
+                    
+                    $poolData = [
+                        "command" => 'remote-subnet6-set',
+                        "service" => ['dhcp6'],
+                        "arguments" => [
+                            "remote" => ["type" => "mysql"],
+                            "server-tags" => ["all"],
+                            "subnets" => [[
+                                "id" => $subnet['id'],
+                                "subnet" => $subnet['subnet'],
+                                "pools" => [["pool" => $pool]]
+                            ]]
+                        ]
+                    ];
+                    
+                    error_log("Pool Data: " . json_encode($poolData, JSON_PRETTY_PRINT));
+                    
+                    $ch2 = curl_init($keaApiUrl);
+                    curl_setopt($ch2, CURLOPT_POST, 1);
+                    curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($poolData));
+                    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    
+                    $poolResponse = curl_exec($ch2);
+                    $poolHttpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                    curl_close($ch2);
+                    
+                    $poolKeaResponse = json_decode($poolResponse, true);
+                    
+                    error_log("=== STEP 2 Response: Pool Added ===");
+                    error_log("HTTP Code: " . $poolHttpCode);
+                    error_log("Response: " . json_encode($poolKeaResponse, JSON_PRETTY_PRINT));
+                    
+                    if (!$poolKeaResponse || !isset($poolKeaResponse[0]['result']) || $poolKeaResponse[0]['result'] !== 0) {
+                        error_log("WARNING: Pool addition failed but continuing: " . json_encode($poolKeaResponse));
+                    }
                 }
                 
                 // Now handle the action-specific logic
@@ -346,6 +384,7 @@ class AdminController
                             ");
                             $bviCheckStmt->execute([$existingSwitch['id']]);
                             $existingBVI = $bviCheckStmt->fetch(\PDO::FETCH_ASSOC);
+
                             
                             if ($existingBVI) {
                                 throw new \Exception("CIN switch '{$config['cin_name']}' with BVI100 already exists. Use 'Skip' action to create subnet only, or 'Link to Existing BVI' to link to existing BVI.");
