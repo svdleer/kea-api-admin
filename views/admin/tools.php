@@ -762,6 +762,19 @@ async function clearCinData() {
             const data = await response.json();
 
             if (data.success) {
+                let keaInfo = '';
+                if (data.kea_subnets_total > 0) {
+                    keaInfo = `
+                        <div class="mt-3 p-3 bg-purple-50 rounded">
+                            <p class="text-sm font-semibold text-purple-900 mb-1">Kea Subnets:</p>
+                            <p class="text-xs text-purple-800">✓ Deleted ${data.kea_subnets_deleted || 0} of ${data.kea_subnets_total} from Kea</p>
+                            ${data.kea_errors && data.kea_errors.length > 0 ? `
+                                <p class="text-xs text-yellow-800 mt-1">⚠️ ${data.kea_errors.length} errors occurred</p>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
                 Swal.fire({
                     title: 'Cleared!',
                     html: `
@@ -770,6 +783,7 @@ async function clearCinData() {
                             <p class="mb-2">✓ Deleted ${data.bvi_interfaces || 0} BVI interfaces</p>
                             <p class="mb-2">✓ Deleted ${data.links || 0} subnet links</p>
                             <p class="mb-2">✓ Deleted ${data.radius_clients || 0} RADIUS clients</p>
+                            ${keaInfo}
                             <p class="mt-3 text-sm text-gray-600">Ready for fresh import!</p>
                         </div>
                     `,

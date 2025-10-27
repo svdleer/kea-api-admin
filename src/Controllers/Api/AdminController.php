@@ -1026,12 +1026,24 @@ class AdminController
     }
 
     /**
-     * Clear all CIN data (switches, BVI interfaces, links)
+     * Clear all CIN data (switches, BVI interfaces, links) and remove from Kea
      * POST /api/admin/clear-cin-data
      */
     public function clearCinData()
     {
         try {
+            error_log("=== Clear CIN Data Started ===");
+            
+            // Get all subnet IDs linked to BVI interfaces before deleting
+            $stmt = $this->db->query("
+                SELECT DISTINCT kea_subnet_id 
+                FROM cin_bvi_dhcp_core 
+                WHERE kea_subnet_id IS NOT NULL
+            ");
+            $keaSubnetIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+            
+            error_log("Found " . count($keaSubnetIds) . " Kea subnets to delete");
+            
             // Count before deleting
             $switchCount = $this->db->query("SELECT COUNT(*) FROM cin_switches")->fetchColumn();
             $bviCount = $this->db->query("SELECT COUNT(*) FROM cin_switch_bvi_interfaces")->fetchColumn();
@@ -1045,7 +1057,7 @@ class AdminController
                 // Table might not exist
             }
             
-            // Delete in correct order (respect foreign keys)
+            // Delete CIN data from database (in correct order - respect foreign keys)
             $this->db->exec("DELETE FROM cin_bvi_dhcp_core");
             $this->db->exec("DELETE FROM cin_switch_bvi_interfaces");
             $this->db->exec("DELETE FROM cin_switches");
@@ -1057,15 +1069,70 @@ class AdminController
                 // Table might not exist
             }
             
+            error_log("Deleted CIN data from database");
+            
+            // Now delete subnets from Kea
+            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            $deletedSubnets = 0;
+            $subnetErrors = [];
+            
+            foreach ($keaSubnetIds as $subnetId) {
+                try {
+                    error_log("Deleting Kea subnet ID: $subnetId");
+                    
+                    $data = [
+                        'command' => 'remote-subnet6-del-by-id',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'subnets' => [
+                                ['id' => intval($subnetId)]
+                            ],
+                            'remote' => ['type' => 'mysql']
+                        ]
+                    ];
+                    
+                    $ch = curl_init($keaApiUrl);
+                    curl_setopt($ch, CURLOPT_POST, 1);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    
+                    $response = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    
+                    $keaResponse = json_decode($response, true);
+                    
+                    if ($keaResponse && isset($keaResponse[0]['result']) && $keaResponse[0]['result'] === 0) {
+                        $deletedSubnets++;
+                        error_log("✓ Deleted Kea subnet: $subnetId");
+                    } else {
+                        $errorMsg = $keaResponse[0]['text'] ?? 'Unknown error';
+                        $subnetErrors[] = "Subnet $subnetId: $errorMsg";
+                        error_log("✗ Failed to delete subnet $subnetId: $errorMsg");
+                    }
+                    
+                } catch (\Exception $e) {
+                    $subnetErrors[] = "Subnet $subnetId: " . $e->getMessage();
+                    error_log("✗ Exception deleting subnet $subnetId: " . $e->getMessage());
+                }
+            }
+            
+            error_log("=== Clear CIN Data Complete ===");
+            
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'CIN data cleared successfully',
+                'message' => 'CIN data and Kea subnets cleared successfully',
                 'switches' => $switchCount,
                 'bvi_interfaces' => $bviCount,
                 'links' => $linkCount,
-                'radius_clients' => $radiusCount
+                'radius_clients' => $radiusCount,
+                'kea_subnets_deleted' => $deletedSubnets,
+                'kea_subnets_total' => count($keaSubnetIds),
+                'kea_errors' => $subnetErrors
             ]);
         } catch (\Exception $e) {
+            error_log("Clear CIN Data Error: " . $e->getMessage());
             $this->jsonResponse([
                 'success' => false,
                 'message' => 'Failed to clear CIN data: ' . $e->getMessage()
