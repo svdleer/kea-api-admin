@@ -20,6 +20,10 @@
 define('BASE_PATH', dirname(__DIR__));
 require_once BASE_PATH . '/vendor/autoload.php';
 
+// Load environment variables
+$dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
+$dotenv->load();
+
 use App\Database\Database;
 
 // Colors for output
@@ -43,9 +47,13 @@ class KeaConfigImporter {
     ];
 
     public function __construct() {
-        $this->db = Database::getInstance();
-        // Use the DHCP model which handles Kea API communication
-        $this->dhcpModel = new \App\Models\DHCP($this->db);
+        try {
+            $this->db = Database::getInstance();
+            // Use the DHCP model which handles Kea API communication
+            $this->dhcpModel = new \App\Models\DHCP($this->db);
+        } catch (\Exception $e) {
+            die("Failed to initialize database connection: " . $e->getMessage() . "\n");
+        }
     }
 
     /**
@@ -156,6 +164,7 @@ class KeaConfigImporter {
         $lines = explode("\n", $configJson);
         $bviCreated = 0;
         $bviSkipped = 0;
+        $bviErrors = 0;
         
         foreach ($subnets as $subnet) {
             if (!isset($subnet['relay']['ip-addresses'][0])) {
@@ -187,11 +196,17 @@ class KeaConfigImporter {
             }
             
             // Check if BVI interface already exists with this IP
-            $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE bvi_ipv6 = ?");
-            $stmt->execute([$relayIp]);
-            if ($stmt->fetch()) {
-                $bviSkipped++;
-                $this->info("  → BVI already exists for relay IP: $relayIp");
+            try {
+                $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE bvi_ipv6 = ?");
+                $stmt->execute([$relayIp]);
+                if ($stmt->fetch()) {
+                    $bviSkipped++;
+                    $this->info("  → BVI already exists for relay IP: $relayIp");
+                    continue;
+                }
+            } catch (\PDOException $e) {
+                $this->error("  ✗ Database error checking BVI: " . $e->getMessage());
+                $bviErrors++;
                 continue;
             }
             
