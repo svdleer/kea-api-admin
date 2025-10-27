@@ -1159,8 +1159,9 @@ class AdminController
                 'state' => intval($row[$columns['state']] ?? 0)
             ];
 
-            // Only include active leases (non-expired)
-            if ($lease['valid_lifetime'] > 0 && $lease['expire'] > time()) {
+            // Only include leases with valid lifetime (skip zero lifetime)
+            // Note: We import even if expired - Kea will create new leases with current time + valid_lifetime
+            if ($lease['valid_lifetime'] > 0) {
                 $leases[] = $lease;
             }
         }
