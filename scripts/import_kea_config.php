@@ -285,11 +285,11 @@ class KeaConfigImporter {
                 }
             }
 
-            // For import, we'll create subnets without BVI interface linking
-            // User will need to link them to BVI interfaces manually
-            $this->info("    Note: Subnet will be created in Kea. You'll need to link it to a BVI interface manually.");
-            
-            // Create subnet directly in Kea using remote-subnet6-set command
+            // Extract relay (BVI IP) - used for automatic BVI linking
+            $relayAddress = null;
+            if (isset($subnet['relay']['ip-addresses']) && !empty($subnet['relay']['ip-addresses'])) {
+                $relayAddress = $subnet['relay']['ip-addresses'][0];
+            }
             $arguments = [
                 "remote" => [
                     "type" => "mysql"
@@ -375,6 +375,49 @@ class KeaConfigImporter {
                 }
                 if ($ccapCore) {
                     $this->info("      CCAP Core: $ccapCore");
+                }
+
+                // Link subnet to BVI interface by matching relay IP
+                if ($relayAddress) {
+                    try {
+                        // Find BVI interface with matching IP address
+                        $stmt = $this->db->prepare(
+                            "SELECT id FROM cin_switch_bvi_interfaces WHERE bvi_ipv6 = ?"
+                        );
+                        $stmt->execute([$relayAddress]);
+                        $bviInterface = $stmt->fetch(\PDO::FETCH_ASSOC);
+                        
+                        if ($bviInterface) {
+                            // Check if link already exists
+                            $stmt = $this->db->prepare(
+                                "SELECT id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ? AND kea_subnet_id = ?"
+                            );
+                            $stmt->execute([$bviInterface['id'], $subnetId]);
+                            
+                            if (!$stmt->fetch()) {
+                                // Create link between BVI interface and subnet
+                                $stmt = $this->db->prepare(
+                                    "INSERT INTO cin_bvi_dhcp_core (bvi_interface_id, kea_subnet_id, dhcp_subnet, dhcp_pool_start, dhcp_pool_end) 
+                                     VALUES (?, ?, ?, ?, ?)"
+                                );
+                                $stmt->execute([
+                                    $bviInterface['id'],
+                                    $subnetId,
+                                    $subnetPrefix,
+                                    $poolStart,
+                                    $poolEnd
+                                ]);
+                                $this->success("      ✓ Linked to BVI interface (ID: {$bviInterface['id']})");
+                            } else {
+                                $this->info("      → Already linked to BVI interface");
+                            }
+                        } else {
+                            $this->warning("      ⚠ No BVI interface found with relay IP: $relayAddress");
+                            $this->warning("      → Subnet created but not linked. You can link it manually later.");
+                        }
+                    } catch (Exception $e) {
+                        $this->warning("      ⚠ Failed to link BVI: " . $e->getMessage());
+                    }
                 }
 
                 // Import reservations if present
