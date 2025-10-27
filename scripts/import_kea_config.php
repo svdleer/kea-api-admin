@@ -450,9 +450,7 @@ class KeaConfigImporter {
             // Add pool if available
             if ($poolStart && $poolEnd) {
                 $arguments['subnets'][0]['pools'][] = [
-                    "pool" => $poolStart . " - " . $poolEnd,
-                    "shared-network-name" => "",
-                    "option-data" => []
+                    "pool" => $poolStart . " - " . $poolEnd
                 ];
             }
 
