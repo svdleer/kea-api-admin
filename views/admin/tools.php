@@ -881,7 +881,6 @@ async function processLeasesFile(file) {
         Swal.fire('Error', 'Failed to process file: ' + error.message, 'error');
     }
 }
-```
 </script>
 
 <?php
