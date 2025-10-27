@@ -796,11 +796,11 @@ async function importLeasesWizard() {
                 </p>
                 <div class="mb-4 p-4 bg-blue-50 rounded-md">
                     <p class="text-sm font-semibold text-blue-900 mb-2">CSV Format Expected:</p>
-                    <code class="text-xs text-gray-700">address,duid,valid_lifetime,expire,subnet_id,pref_lifetime,lease_type,iaid,prefix_len,fqdn_fwd,fqdn_rev,hostname,hwaddr,state,user_context</code>
+                    <code class="text-xs text-gray-700">address,duid,valid_lifetime,expire,subnet_id,...</code>
                 </div>
                 <div class="mb-4 p-4 bg-yellow-50 rounded-md">
-                    <p class="text-sm font-semibold text-yellow-900 mb-2">⚠️ Note:</p>
-                    <p class="text-xs text-yellow-800">Only active (non-expired) leases will be imported. Expired leases will be skipped.</p>
+                    <p class="text-sm font-semibold text-yellow-900 mb-2">⚠️ Subnet ID Mapping:</p>
+                    <p class="text-xs text-yellow-800 mb-2">If your CSV subnet IDs don't match your current Kea configuration, you'll be able to map them in the next step.</p>
                 </div>
                 <input type="file" id="leases-file" accept=".csv,.leases" 
                        class="block w-full text-sm text-gray-500
@@ -812,7 +812,7 @@ async function importLeasesWizard() {
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Import Leases',
+        confirmButtonText: 'Next: Map Subnets',
         confirmButtonColor: '#9333EA',
         preConfirm: () => {
             const fileInput = document.getElementById('leases-file');
@@ -825,15 +825,101 @@ async function importLeasesWizard() {
     });
 
     if (file) {
-        await processLeasesFile(file);
+        await analyzeAndMapSubnets(file);
     }
 }
 
-async function processLeasesFile(file) {
+async function analyzeAndMapSubnets(file) {
+    try {
+        // First, analyze the CSV to find subnet IDs
+        Swal.fire({
+            title: 'Analyzing CSV...',
+            text: 'Detecting subnet IDs',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const text = await file.text();
+        const lines = text.split('\n');
+        const header = lines[0].split(',');
+        const subnetIdIndex = header.indexOf('subnet_id');
+        
+        // Find unique subnet IDs in CSV
+        const subnetIds = new Set();
+        for (let i = 1; i < lines.length; i++) {
+            const row = lines[i].split(',');
+            if (row[subnetIdIndex]) {
+                subnetIds.add(row[subnetIdIndex]);
+            }
+        }
+        
+        const uniqueSubnets = Array.from(subnetIds).filter(id => id && id !== '0');
+        
+        Swal.close();
+        
+        if (uniqueSubnets.length === 0) {
+            Swal.fire('Error', 'No valid subnet IDs found in CSV', 'error');
+            return;
+        }
+
+        // Show subnet mapping dialog
+        const { value: mapping } = await Swal.fire({
+            title: 'Map Subnet IDs',
+            html: `
+                <div class="text-left">
+                    <p class="mb-4 text-sm text-gray-600">
+                        Map old subnet IDs from CSV to your current Kea subnet IDs:
+                    </p>
+                    <div class="space-y-3">
+                        ${uniqueSubnets.map(oldId => `
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium text-gray-700 w-32">Old ID: ${oldId} →</label>
+                                <input type="number" 
+                                       id="subnet-map-${oldId}" 
+                                       placeholder="New subnet ID"
+                                       value="${oldId}"
+                                       min="1"
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500">
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">💡 Tip: Leave unchanged if IDs are the same</p>
+                </div>
+            `,
+            width: '500px',
+            showCancelButton: true,
+            confirmButtonText: 'Import with Mapping',
+            confirmButtonColor: '#9333EA',
+            preConfirm: () => {
+                const mapping = {};
+                for (const oldId of uniqueSubnets) {
+                    const newId = document.getElementById(`subnet-map-${oldId}`).value;
+                    if (!newId || newId === '0') {
+                        Swal.showValidationMessage(`Please provide a valid subnet ID for ${oldId}`);
+                        return false;
+                    }
+                    mapping[oldId] = newId;
+                }
+                return mapping;
+            }
+        });
+
+        if (mapping) {
+            await processLeasesFile(file, mapping);
+        }
+    } catch (error) {
+        Swal.close();
+        Swal.fire('Error', 'Failed to analyze CSV: ' + error.message, 'error');
+    }
+}
+
+async function processLeasesFile(file, subnetMapping = {}) {
     try {
         Swal.fire({
             title: 'Processing Leases...',
-            text: 'Reading and parsing CSV file',
+            text: 'Importing leases with subnet mapping',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -842,6 +928,7 @@ async function processLeasesFile(file) {
 
         const formData = new FormData();
         formData.append('leases_file', file);
+        formData.append('subnet_mapping', JSON.stringify(subnetMapping));
 
         const response = await fetch('/api/admin/import-leases', {
             method: 'POST',

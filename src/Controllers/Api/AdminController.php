@@ -1090,14 +1090,33 @@ class AdminController
             $file = $_FILES['leases_file']['tmp_name'];
             $fileName = $_FILES['leases_file']['name'];
             
+            // Get subnet mapping if provided
+            $subnetMapping = [];
+            if (isset($_POST['subnet_mapping'])) {
+                $subnetMapping = json_decode($_POST['subnet_mapping'], true) ?: [];
+                error_log("Subnet mapping: " . json_encode($subnetMapping));
+            }
+            
             error_log("Processing file: " . $fileName);
 
             // Read and parse CSV
             $leases = $this->parseLeasesCSV($file);
             
             error_log("Parsed " . count($leases) . " leases from CSV");
+            
+            // Apply subnet mapping
+            if (!empty($subnetMapping)) {
+                foreach ($leases as &$lease) {
+                    $oldSubnetId = strval($lease['subnet_id']);
+                    if (isset($subnetMapping[$oldSubnetId])) {
+                        $newSubnetId = intval($subnetMapping[$oldSubnetId]);
+                        error_log("Mapping subnet ID: $oldSubnetId → $newSubnetId for lease {$lease['address']}");
+                        $lease['subnet_id'] = $newSubnetId;
+                    }
+                }
+            }
 
-            // Import leases as static reservations
+            // Import leases
             $result = $this->importLeasesToStatic($leases);
             
             $this->jsonResponse([
