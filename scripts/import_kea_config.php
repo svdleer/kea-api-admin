@@ -121,9 +121,15 @@ class KeaConfigImporter {
         // For now, only import subnets (options and reservations can be added later)
         $this->info("\n" . Colors::YELLOW . "Note: Currently importing subnets only. Options and reservations will be added in future updates." . Colors::RESET);
 
-        // Import subnets
+        // STEP 1: Pre-process subnets to extract and create BVI interfaces
         if (isset($dhcp6Config['subnet6'])) {
-            $this->info("\n" . Colors::CYAN . "Importing Subnets..." . Colors::RESET);
+            $this->info("\n" . Colors::CYAN . "Step 1: Creating BVI interfaces from relay IPs..." . Colors::RESET);
+            $this->createBviInterfacesFromConfig($dhcp6Config['subnet6'], $configJson);
+        }
+
+        // STEP 2: Import subnets (now BVIs exist for linking)
+        if (isset($dhcp6Config['subnet6'])) {
+            $this->info("\n" . Colors::CYAN . "Step 2: Importing Subnets..." . Colors::RESET);
             $this->info("Found " . count($dhcp6Config['subnet6']) . " subnets in configuration");
             foreach ($dhcp6Config['subnet6'] as $subnet) {
                 $this->importSubnet($subnet);
@@ -140,6 +146,100 @@ class KeaConfigImporter {
 
         $this->printSummary();
         return true;
+    }
+
+    /**
+     * Create BVI interfaces from relay IPs in subnets
+     * Parses comments to extract switch names
+     */
+    private function createBviInterfacesFromConfig($subnets, $configJson) {
+        $lines = explode("\n", $configJson);
+        $bviCreated = 0;
+        $bviSkipped = 0;
+        
+        foreach ($subnets as $subnet) {
+            if (!isset($subnet['relay']['ip-addresses'][0])) {
+                continue; // No relay IP, skip
+            }
+            
+            $relayIp = $subnet['relay']['ip-addresses'][0];
+            $subnetPrefix = $subnet['subnet'];
+            
+            // Try to find comment above this subnet to extract switch name and BVI number
+            $switchName = null;
+            $bviNumber = null;
+            
+            // Search for comment like: ##### SWITCHNAME-CCAP... - SWITCHNAME-AR### #####
+            foreach ($lines as $lineNum => $line) {
+                if (strpos($line, $subnetPrefix) !== false) {
+                    // Found the subnet, look backwards for comment
+                    for ($i = $lineNum - 1; $i >= 0 && $i >= $lineNum - 10; $i--) {
+                        if (preg_match('/#####+\s*([A-Z0-9\-]+)-[A-Z]+\d+\s*-\s*([A-Z0-9\-]+)-AR(\d+)/', $lines[$i], $matches)) {
+                            $switchName = $matches[1];
+                            $bviNumber = (int)$matches[3];
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            // Check if BVI interface already exists with this IP
+            $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE bvi_ipv6 = ?");
+            $stmt->execute([$relayIp]);
+            if ($stmt->fetch()) {
+                $bviSkipped++;
+                $this->info("  → BVI already exists for relay IP: $relayIp");
+                continue;
+            }
+            
+            // Check if switch exists, create if not
+            $switchId = null;
+            if ($switchName) {
+                $stmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+                $stmt->execute([$switchName]);
+                $switch = $stmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if (!$switch) {
+                    // Create switch
+                    $stmt = $this->db->prepare("INSERT INTO cin_switches (hostname) VALUES (?)");
+                    $stmt->execute([$switchName]);
+                    $switchId = $this->db->lastInsertId();
+                    $this->success("  ✓ Created switch: $switchName");
+                } else {
+                    $switchId = $switch['id'];
+                }
+            } else {
+                // Create a generic switch
+                $switchName = 'AUTO-IMPORT';
+                $stmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+                $stmt->execute([$switchName]);
+                $switch = $stmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if (!$switch) {
+                    $stmt = $this->db->prepare("INSERT INTO cin_switches (hostname) VALUES (?)");
+                    $stmt->execute([$switchName]);
+                    $switchId = $this->db->lastInsertId();
+                } else {
+                    $switchId = $switch['id'];
+                }
+            }
+            
+            // Create BVI interface
+            $interfaceNumber = $bviNumber ?? 100; // Default to BVI100 if not found
+            $stmt = $this->db->prepare(
+                "INSERT INTO cin_switch_bvi_interfaces (switch_id, interface_number, bvi_ipv6, vlan_id) 
+                 VALUES (?, ?, ?, ?)"
+            );
+            $stmt->execute([$switchId, $interfaceNumber, $relayIp, $interfaceNumber]);
+            
+            $bviCreated++;
+            $this->success("  ✓ Created BVI$interfaceNumber for $switchName: $relayIp");
+        }
+        
+        $this->info("\nBVI Interface Summary:");
+        $this->info("  Created: $bviCreated");
+        $this->info("  Skipped (already exist): $bviSkipped");
     }
 
     /**
