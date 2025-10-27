@@ -102,7 +102,7 @@ ob_start();
                 </div>
                 <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Leases</h2>
             </div>
-            <p class="text-gray-600 text-sm mb-4">Backup active DHCP leases database</p>
+            <p class="text-gray-600 text-sm mb-4">Backup active DHCP leases database or import existing leases as static reservations</p>
             <div class="space-y-2">
                 <button onclick="backupKeaLeases()" 
                         class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center">
@@ -117,6 +117,13 @@ ob_start();
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Export to CSV
+                </button>
+                <button onclick="importLeasesWizard()" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Import Leases from CSV
                 </button>
             </div>
         </div>
@@ -776,6 +783,106 @@ async function clearCinData() {
         }
     }
 }
+
+// Import Leases Wizard
+async function importLeasesWizard() {
+    const { value: file } = await Swal.fire({
+        title: 'Import Kea Leases from CSV',
+        html: `
+            <div class="text-left">
+                <p class="mb-4 text-sm text-gray-600">
+                    This will import leases directly from a Kea CSV lease file (dhcp6.leases) 
+                    into the Kea lease database as active leases.
+                </p>
+                <div class="mb-4 p-4 bg-blue-50 rounded-md">
+                    <p class="text-sm font-semibold text-blue-900 mb-2">CSV Format Expected:</p>
+                    <code class="text-xs text-gray-700">address,duid,valid_lifetime,expire,subnet_id,pref_lifetime,lease_type,iaid,prefix_len,fqdn_fwd,fqdn_rev,hostname,hwaddr,state,user_context</code>
+                </div>
+                <div class="mb-4 p-4 bg-yellow-50 rounded-md">
+                    <p class="text-sm font-semibold text-yellow-900 mb-2">⚠️ Note:</p>
+                    <p class="text-xs text-yellow-800">Only active (non-expired) leases will be imported. Expired leases will be skipped.</p>
+                </div>
+                <input type="file" id="leases-file" accept=".csv,.leases" 
+                       class="block w-full text-sm text-gray-500
+                       file:mr-4 file:py-2 file:px-4
+                       file:rounded-md file:border-0
+                       file:text-sm file:font-semibold
+                       file:bg-purple-50 file:text-purple-700
+                       hover:file:bg-purple-100">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Import Leases',
+        confirmButtonColor: '#9333EA',
+        preConfirm: () => {
+            const fileInput = document.getElementById('leases-file');
+            if (!fileInput.files[0]) {
+                Swal.showValidationMessage('Please select a CSV file');
+                return false;
+            }
+            return fileInput.files[0];
+        }
+    });
+
+    if (file) {
+        await processLeasesFile(file);
+    }
+}
+
+async function processLeasesFile(file) {
+    try {
+        Swal.fire({
+            title: 'Processing Leases...',
+            text: 'Reading and parsing CSV file',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const formData = new FormData();
+        formData.append('leases_file', file);
+
+        const response = await fetch('/api/admin/import-leases', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        Swal.close();
+
+        if (data.success) {
+            await Swal.fire({
+                title: 'Import Complete!',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2">✓ Processed ${data.total || 0} leases from CSV</p>
+                        <p class="mb-2">✓ Imported ${data.imported || 0} active leases</p>
+                        <p class="mb-2">⊘ Skipped ${data.skipped || 0} (expired or invalid)</p>
+                        ${data.errors && data.errors.length > 0 ? `
+                            <div class="mt-3 p-3 bg-yellow-50 rounded">
+                                <p class="text-sm font-semibold text-yellow-900 mb-1">Warnings:</p>
+                                <ul class="text-xs text-yellow-800 list-disc list-inside">
+                                    ${data.errors.slice(0, 5).map(e => `<li>${e}</li>`).join('')}
+                                    ${data.errors.length > 5 ? `<li>... and ${data.errors.length - 5} more</li>` : ''}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonColor: '#9333EA'
+            });
+        } else {
+            Swal.fire('Error', data.message || 'Failed to import leases', 'error');
+        }
+    } catch (error) {
+        Swal.close();
+        Swal.fire('Error', 'Failed to process file: ' + error.message, 'error');
+    }
+}
+```
 </script>
 
 <?php

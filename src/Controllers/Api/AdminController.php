@@ -1074,6 +1074,183 @@ class AdminController
     }
 
     /**
+     * Import Kea leases from CSV and convert to static reservations
+     * POST /api/admin/import-leases
+     */
+    public function importLeases()
+    {
+        try {
+            error_log("=== Starting lease import ===");
+            
+            // Check if file was uploaded
+            if (!isset($_FILES['leases_file']) || $_FILES['leases_file']['error'] !== UPLOAD_ERR_OK) {
+                throw new \Exception('No file uploaded or upload error');
+            }
+
+            $file = $_FILES['leases_file']['tmp_name'];
+            $fileName = $_FILES['leases_file']['name'];
+            
+            error_log("Processing file: " . $fileName);
+
+            // Read and parse CSV
+            $leases = $this->parseLeasesCSV($file);
+            
+            error_log("Parsed " . count($leases) . " leases from CSV");
+
+            // Import leases as static reservations
+            $result = $this->importLeasesToStatic($leases);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Leases imported successfully',
+                'total' => count($leases),
+                'imported' => $result['imported'],
+                'skipped' => $result['skipped'],
+                'errors' => $result['errors']
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Import leases error: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to import leases: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Parse Kea CSV lease file
+     */
+    private function parseLeasesCSV($filePath)
+    {
+        $leases = [];
+        $handle = fopen($filePath, 'r');
+        
+        if (!$handle) {
+            throw new \Exception('Could not open file');
+        }
+
+        // Read header
+        $header = fgetcsv($handle);
+        
+        if (!$header || !in_array('address', $header)) {
+            fclose($handle);
+            throw new \Exception('Invalid CSV format - missing required columns');
+        }
+
+        // Map header to indices
+        $columns = array_flip($header);
+        
+        // Read data rows
+        while (($row = fgetcsv($handle)) !== false) {
+            if (empty($row) || count($row) < count($header)) {
+                continue;
+            }
+
+            $lease = [
+                'address' => $row[$columns['address']] ?? '',
+                'duid' => $row[$columns['duid']] ?? '',
+                'valid_lifetime' => intval($row[$columns['valid_lifetime']] ?? 0),
+                'expire' => intval($row[$columns['expire']] ?? 0),
+                'subnet_id' => intval($row[$columns['subnet_id']] ?? 0),
+                'pref_lifetime' => intval($row[$columns['pref_lifetime']] ?? 0),
+                'hostname' => $row[$columns['hostname']] ?? '',
+                'hwaddr' => $row[$columns['hwaddr']] ?? '',
+                'state' => intval($row[$columns['state']] ?? 0)
+            ];
+
+            // Only include active leases (non-expired)
+            if ($lease['valid_lifetime'] > 0 && $lease['expire'] > time()) {
+                $leases[] = $lease;
+            }
+        }
+
+        fclose($handle);
+        return $leases;
+    }
+
+    /**
+     * Import leases as active leases using Kea API (lease6-add)
+     */
+    private function importLeasesToStatic($leases)
+    {
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+        
+        $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+
+        foreach ($leases as $lease) {
+            try {
+                // Validate lease data
+                if (empty($lease['address']) || empty($lease['duid']) || empty($lease['subnet_id'])) {
+                    $skipped++;
+                    $errors[] = "Skipped lease: missing required fields";
+                    continue;
+                }
+
+                // Add as active lease via Kea API (lease6-add)
+                $data = [
+                    'command' => 'lease6-add',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'ip-address' => $lease['address'],
+                        'duid' => $lease['duid'],
+                        'subnet-id' => $lease['subnet_id'],
+                        'valid-lft' => $lease['valid_lifetime']
+                    ]
+                ];
+                
+                // Add optional fields
+                if (!empty($lease['pref_lifetime'])) {
+                    $data['arguments']['preferred-lft'] = $lease['pref_lifetime'];
+                }
+                if (!empty($lease['hostname'])) {
+                    $data['arguments']['hostname'] = $lease['hostname'];
+                }
+                if (!empty($lease['hwaddr'])) {
+                    $data['arguments']['hw-address'] = $lease['hwaddr'];
+                }
+
+                error_log("Adding active lease: " . $lease['address'] . " for DUID: " . $lease['duid']);
+
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                $keaResponse = json_decode($response, true);
+
+                if ($keaResponse && isset($keaResponse[0]['result']) && $keaResponse[0]['result'] === 0) {
+                    $imported++;
+                    error_log("✓ Imported: " . $lease['address']);
+                } else {
+                    $skipped++;
+                    $errorMsg = $keaResponse[0]['text'] ?? 'Unknown error';
+                    $errors[] = "Failed to import {$lease['address']}: {$errorMsg}";
+                    error_log("✗ Failed: " . $lease['address'] . " - " . $errorMsg);
+                }
+
+            } catch (\Exception $e) {
+                $skipped++;
+                $errors[] = "Error importing {$lease['address']}: " . $e->getMessage();
+                error_log("✗ Exception: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'errors' => $errors
+        ];
+    }
+
+    /**
      * Helper: Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)
