@@ -203,7 +203,12 @@ function deleteSwitch(switchId, hostname) {
                 }
             })
             .then(response => response.json())
-            icon: 'success',
+            .then(result => {
+                if (result.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Switch deleted successfully',
+                        icon: 'success',
                         confirmButtonColor: '#3B82F6'
                     });
                     window.location.reload();
