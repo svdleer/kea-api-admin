@@ -1355,32 +1355,36 @@ class AdminController
             $keaSubnets = $keaResponse[0]['arguments']['subnets'];
             error_log("Found " . count($keaSubnets) . " Kea subnets for matching");
             
-            // Group leases by subnet_id to find their IP ranges
-            $leasesBySubnet = [];
+            // NEW APPROACH: Map each lease directly to correct subnet based on IP
+            // This handles cases where subnet IDs are completely different
             foreach ($leases as $lease) {
-                $subnetId = $lease['subnet_id'];
-                if (!isset($leasesBySubnet[$subnetId])) {
-                    $leasesBySubnet[$subnetId] = [];
+                $ipAddress = $lease['address'];
+                $oldSubnetId = strval($lease['subnet_id']);
+                
+                // Skip if already mapped
+                if (isset($mapping[$oldSubnetId])) {
+                    continue;
                 }
-                $leasesBySubnet[$subnetId][] = $lease['address'];
-            }
-            
-            // Match each old subnet ID to a Kea subnet by checking if IPs belong to the subnet
-            foreach ($leasesBySubnet as $oldSubnetId => $addresses) {
+                
+                // Find which Kea subnet this IP belongs to
                 foreach ($keaSubnets as $keaSubnet) {
                     $keaSubnetId = $keaSubnet['id'];
                     $subnetPrefix = $keaSubnet['subnet'];
                     
-                    // Check if any lease address belongs to this Kea subnet
-                    foreach ($addresses as $address) {
-                        if ($this->ipBelongsToSubnet($address, $subnetPrefix)) {
-                            $mapping[strval($oldSubnetId)] = $keaSubnetId;
-                            error_log("Auto-mapped: Subnet $oldSubnetId → $keaSubnetId (matched $address in $subnetPrefix)");
-                            break 2; // Found a match, move to next old subnet
-                        }
+                    if ($this->ipBelongsToSubnet($ipAddress, $subnetPrefix)) {
+                        $mapping[$oldSubnetId] = $keaSubnetId;
+                        error_log("Auto-mapped: CSV Subnet $oldSubnetId → Kea Subnet $keaSubnetId (IP $ipAddress belongs to $subnetPrefix)");
+                        break; // Found match, move to next lease
                     }
                 }
+                
+                // If no match found, log warning
+                if (!isset($mapping[$oldSubnetId])) {
+                    error_log("WARNING: No matching Kea subnet found for IP $ipAddress (CSV subnet_id: $oldSubnetId)");
+                }
             }
+            
+            error_log("Auto-mapping complete. Total mappings: " . count($mapping));
             
         } catch (\Exception $e) {
             error_log("Error in auto-mapping: " . $e->getMessage());
