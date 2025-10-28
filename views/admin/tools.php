@@ -151,6 +151,36 @@ ob_start();
             </div>
         </div>
 
+        <!-- RADIUS Cleanup -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-2 border-yellow-200">
+            <div class="flex items-center mb-4">
+                <div class="bg-yellow-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">RADIUS Cleanup</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Check and clean orphaned RADIUS entries</p>
+            <div class="space-y-2">
+                <button onclick="checkRadiusOrphans()" 
+                        class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                    Check for Orphans
+                </button>
+                <button onclick="cleanRadiusOrphans()" 
+                        class="w-full px-4 py-2 border border-yellow-600 text-yellow-600 rounded-md hover:bg-yellow-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Clean Orphans
+                </button>
+                <p class="text-xs text-yellow-600 mt-2">ℹ️ Removes RADIUS entries for deleted BVI interfaces</p>
+            </div>
+        </div>
+
         <!-- FreeRADIUS Configuration -->
         <div class="bg-white shadow-md rounded-lg p-6">
             <div class="flex items-center mb-4">
@@ -794,6 +824,170 @@ async function clearCinData() {
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to clear CIN data: ' + error.message, 'error');
+        }
+    }
+}
+
+// Check for orphaned RADIUS entries
+async function checkRadiusOrphans() {
+    try {
+        Swal.fire({
+            title: 'Checking RADIUS entries...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch('/api/admin/radius/check-orphans');
+        const data = await response.json();
+
+        if (data.success) {
+            const report = data.report;
+            let html = `
+                <div class="text-left">
+                    <p class="mb-3"><strong>Valid BVI Interface IDs:</strong> ${report.valid_bvi_ids.join(', ') || 'None'}</p>
+                    <p class="mb-2"><strong>Total Orphans Found:</strong> ${data.total_orphans}</p>
+            `;
+
+            // Local orphans
+            if (report.local_orphans.length > 0) {
+                html += `
+                    <div class="mt-3 p-3 bg-red-50 rounded">
+                        <p class="font-semibold text-red-900 mb-2">Local Database (${report.local_orphans.length}):</p>
+                        <ul class="text-xs text-red-800 list-disc list-inside">
+                `;
+                report.local_orphans.forEach(orphan => {
+                    html += `<li>ID ${orphan.id}: ${orphan.nasname} (BVI ID: ${orphan.bvi_interface_id})</li>`;
+                });
+                html += `</ul></div>`;
+            } else {
+                html += `<p class="mt-2 text-green-600">✓ No orphans in local database</p>`;
+            }
+
+            // Remote orphans
+            if (Object.keys(report.remote_orphans).length > 0) {
+                Object.entries(report.remote_orphans).forEach(([serverName, serverData]) => {
+                    if (serverData.error) {
+                        html += `
+                            <div class="mt-3 p-3 bg-yellow-50 rounded">
+                                <p class="font-semibold text-yellow-900">${serverName}:</p>
+                                <p class="text-xs text-yellow-800">Error: ${serverData.error}</p>
+                            </div>
+                        `;
+                    } else if (serverData.count > 0) {
+                        html += `
+                            <div class="mt-3 p-3 bg-red-50 rounded">
+                                <p class="font-semibold text-red-900 mb-2">${serverName} (${serverData.count}):</p>
+                                <ul class="text-xs text-red-800 list-disc list-inside">
+                        `;
+                        serverData.entries.forEach(orphan => {
+                            html += `<li>ID ${orphan.id}: ${orphan.nasname} (BVI ID: ${orphan.bvi_interface_id})</li>`;
+                        });
+                        html += `</ul></div>`;
+                    }
+                });
+            }
+
+            html += `</div>`;
+
+            Swal.fire({
+                title: 'RADIUS Orphan Check',
+                html: html,
+                icon: data.total_orphans > 0 ? 'warning' : 'success',
+                width: '600px',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            Swal.fire('Error', data.error, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to check RADIUS orphans: ' + error.message, 'error');
+    }
+}
+
+// Clean orphaned RADIUS entries
+async function cleanRadiusOrphans() {
+    const result = await Swal.fire({
+        title: 'Clean RADIUS Orphans?',
+        html: `
+            <div class="text-left">
+                <p class="mb-3 text-yellow-600 font-semibold">⚠️ This will delete:</p>
+                <ul class="list-disc list-inside mb-3 text-sm">
+                    <li>RADIUS entries from local database</li>
+                    <li>RADIUS entries from remote servers</li>
+                    <li>Only entries referencing deleted BVI interfaces</li>
+                </ul>
+                <p class="text-sm text-gray-600 mb-2">✓ Valid RADIUS entries will NOT be touched</p>
+                <p class="mt-3 font-semibold">This action cannot be undone!</p>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#D97706',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, Clean Orphans!',
+        cancelButtonText: 'Cancel',
+        width: '600px'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Cleaning RADIUS Orphans...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/admin/radius/clean-orphans', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const report = data.report;
+                let html = `
+                    <div class="text-left">
+                        <p class="mb-3 text-green-600 font-semibold">✓ Cleanup Complete!</p>
+                        <p class="mb-2">Local Database: ${report.local_deleted} deleted</p>
+                `;
+
+                if (Object.keys(report.remote_deleted).length > 0) {
+                    html += `<p class="mt-2 font-semibold">Remote Servers:</p><ul class="list-disc list-inside mb-2">`;
+                    Object.entries(report.remote_deleted).forEach(([serverName, count]) => {
+                        html += `<li>${serverName}: ${count} deleted</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                if (report.errors && report.errors.length > 0) {
+                    html += `<div class="mt-3 p-3 bg-yellow-50 rounded">
+                        <p class="font-semibold text-yellow-900">Warnings:</p>
+                        <ul class="text-xs text-yellow-800 list-disc list-inside">`;
+                    report.errors.forEach(error => {
+                        html += `<li>${error}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+
+                html += `<p class="mt-3 text-lg font-bold text-green-600">Total Deleted: ${data.total_deleted}</p></div>`;
+
+                Swal.fire({
+                    title: 'Cleaned!',
+                    html: html,
+                    icon: 'success',
+                    width: '600px'
+                });
+            } else {
+                Swal.fire('Error', data.error, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to clean RADIUS orphans: ' + error.message, 'error');
         }
     }
 }

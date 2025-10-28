@@ -403,6 +403,12 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/import-leases', [$adminController, 'importLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    
+    // RADIUS orphan management routes
+    $router->get('/api/admin/radius/check-orphans', [$adminController, 'checkRadiusOrphans'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/admin/radius/clean-orphans', [$adminController, 'cleanRadiusOrphans'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
     $router->get('/dashboard', function() {

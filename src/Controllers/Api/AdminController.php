@@ -1462,6 +1462,198 @@ class AdminController
     }
 
     /**
+     * Check for orphaned RADIUS entries
+     * GET /api/admin/radius/check-orphans
+     */
+    public function checkRadiusOrphans()
+    {
+        try {
+            // Get all valid BVI interface IDs
+            $validBviIds = $this->db->query("SELECT id FROM cin_switch_bvi_interfaces")->fetchAll(PDO::FETCH_COLUMN);
+            
+            $report = [
+                'valid_bvi_ids' => $validBviIds,
+                'local_orphans' => [],
+                'remote_orphans' => []
+            ];
+            
+            // Check local nas table
+            $localOrphans = $this->db->query("
+                SELECT n.id, n.nasname, n.bvi_interface_id, n.shortname
+                FROM nas n
+                LEFT JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
+                WHERE n.bvi_interface_id IS NOT NULL 
+                AND b.id IS NULL
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            
+            $report['local_orphans'] = $localOrphans;
+            
+            // Check remote RADIUS servers
+            require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+            $radiusConfigModel = new \App\Models\RadiusServerConfig($this->db);
+            $servers = $radiusConfigModel->getServersForSync();
+            
+            foreach ($servers as $server) {
+                if (!$server['enabled']) {
+                    continue;
+                }
+                
+                try {
+                    $dsn = sprintf(
+                        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                        $server['host'],
+                        $server['port'],
+                        $server['database'],
+                        $server['charset']
+                    );
+                    
+                    $remoteDb = new PDO($dsn, $server['username'], $server['password'], [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]);
+                    
+                    $stmt = $remoteDb->query("SELECT id, nasname, shortname, bvi_interface_id FROM nas WHERE bvi_interface_id IS NOT NULL");
+                    $nasEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    $serverOrphans = [];
+                    foreach ($nasEntries as $entry) {
+                        if (!in_array($entry['bvi_interface_id'], $validBviIds)) {
+                            $serverOrphans[] = $entry;
+                        }
+                    }
+                    
+                    if (!empty($serverOrphans)) {
+                        $report['remote_orphans'][$server['name']] = [
+                            'count' => count($serverOrphans),
+                            'entries' => $serverOrphans
+                        ];
+                    }
+                    
+                } catch (\PDOException $e) {
+                    $report['remote_orphans'][$server['name']] = [
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+            
+            $totalOrphans = count($localOrphans);
+            foreach ($report['remote_orphans'] as $serverData) {
+                if (isset($serverData['count'])) {
+                    $totalOrphans += $serverData['count'];
+                }
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'total_orphans' => $totalOrphans,
+                'report' => $report
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Error checking RADIUS orphans: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Clean orphaned RADIUS entries
+     * POST /api/admin/radius/clean-orphans
+     */
+    public function cleanRadiusOrphans()
+    {
+        try {
+            // Get all valid BVI interface IDs
+            $validBviIds = $this->db->query("SELECT id FROM cin_switch_bvi_interfaces")->fetchAll(PDO::FETCH_COLUMN);
+            
+            $report = [
+                'local_deleted' => 0,
+                'remote_deleted' => [],
+                'errors' => []
+            ];
+            
+            // Clean local nas table
+            $localOrphans = $this->db->query("
+                SELECT n.id, n.nasname, n.bvi_interface_id
+                FROM nas n
+                LEFT JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
+                WHERE n.bvi_interface_id IS NOT NULL 
+                AND b.id IS NULL
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($localOrphans as $orphan) {
+                $stmt = $this->db->prepare("DELETE FROM nas WHERE id = ?");
+                $stmt->execute([$orphan['id']]);
+                $report['local_deleted']++;
+            }
+            
+            // Clean remote RADIUS servers
+            require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+            $radiusConfigModel = new \App\Models\RadiusServerConfig($this->db);
+            $servers = $radiusConfigModel->getServersForSync();
+            
+            foreach ($servers as $server) {
+                if (!$server['enabled']) {
+                    continue;
+                }
+                
+                try {
+                    $dsn = sprintf(
+                        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                        $server['host'],
+                        $server['port'],
+                        $server['database'],
+                        $server['charset']
+                    );
+                    
+                    $remoteDb = new PDO($dsn, $server['username'], $server['password'], [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]);
+                    
+                    $stmt = $remoteDb->query("SELECT id, nasname, bvi_interface_id FROM nas WHERE bvi_interface_id IS NOT NULL");
+                    $nasEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    $deletedCount = 0;
+                    foreach ($nasEntries as $entry) {
+                        if (!in_array($entry['bvi_interface_id'], $validBviIds)) {
+                            $deleteStmt = $remoteDb->prepare("DELETE FROM nas WHERE id = ?");
+                            $deleteStmt->execute([$entry['id']]);
+                            $deletedCount++;
+                        }
+                    }
+                    
+                    $report['remote_deleted'][$server['name']] = $deletedCount;
+                    
+                } catch (\PDOException $e) {
+                    $report['errors'][] = "{$server['name']}: {$e->getMessage()}";
+                }
+            }
+            
+            $totalDeleted = $report['local_deleted'];
+            foreach ($report['remote_deleted'] as $count) {
+                $totalDeleted += $count;
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'total_deleted' => $totalDeleted,
+                'report' => $report,
+                'message' => "Deleted {$totalDeleted} orphaned RADIUS entries"
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Error cleaning RADIUS orphans: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper: Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)
