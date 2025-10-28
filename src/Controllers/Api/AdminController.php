@@ -336,6 +336,7 @@ class AdminController
                             "subnets" => [[
                                 "id" => $subnet['id'],
                                 "subnet" => $subnet['subnet'],
+                                "shared-network-name" => null,
                                 "pools" => [["pool" => $pool]]
                             ]]
                         ]
