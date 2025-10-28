@@ -210,6 +210,36 @@ ob_start();
             </div>
         </div>
 
+        <!-- Kea Config Viewer -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-2 border-cyan-200">
+            <div class="flex items-center mb-4">
+                <div class="bg-cyan-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Config Viewer</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">View current Kea DHCPv6 configuration with syntax highlighting</p>
+            <div class="space-y-2">
+                <button onclick="viewKeaConfig()" 
+                        class="w-full px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    View Config
+                </button>
+                <button onclick="downloadKeaConfigJSON()" 
+                        class="w-full px-4 py-2 border border-cyan-600 text-cyan-600 rounded-md hover:bg-cyan-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download JSON
+                </button>
+            </div>
+        </div>
+
         <!-- FreeRADIUS Database -->
         <div class="bg-white shadow-md rounded-lg p-6">
             <div class="flex items-center mb-4">
@@ -1237,6 +1267,196 @@ async function processLeasesFile(file, subnetMapping = {}) {
         Swal.close();
         Swal.fire('Error', 'Failed to process file: ' + error.message, 'error');
     }
+}
+
+// View Kea Configuration in modal
+async function viewKeaConfig() {
+    try {
+        Swal.fire({
+            title: 'Loading Configuration...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch('/api/admin/kea-config/view');
+        const data = await response.json();
+
+        if (data.success) {
+            const configJson = JSON.stringify(data.config, null, 2);
+            
+            Swal.fire({
+                title: 'Kea DHCPv6 Configuration',
+                html: `
+                    <div class="text-left">
+                        <div class="mb-3 flex justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                <span class="font-semibold">Subnets:</span> ${data.stats.subnets || 0} | 
+                                <span class="font-semibold">Pools:</span> ${data.stats.pools || 0} | 
+                                <span class="font-semibold">Options:</span> ${data.stats.options || 0}
+                            </div>
+                            <button onclick="copyKeaConfig()" class="px-3 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700">
+                                Copy JSON
+                            </button>
+                        </div>
+                        <div class="bg-gray-900 rounded-lg overflow-auto" style="max-height: 500px;">
+                            <pre class="p-4 text-xs text-left"><code class="language-json" id="kea-config-code">${escapeHtml(configJson)}</code></pre>
+                        </div>
+                        <div class="mt-3 flex gap-2">
+                            <button onclick="downloadKeaConfigJSON()" class="flex-1 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">
+                                <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Download JSON
+                            </button>
+                            <button onclick="downloadKeaConfigINI()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Download .conf
+                            </button>
+                        </div>
+                    </div>
+                `,
+                width: '900px',
+                showConfirmButton: true,
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#06B6D4',
+                didOpen: () => {
+                    // Apply syntax highlighting if Prism.js is available
+                    if (typeof Prism !== 'undefined') {
+                        Prism.highlightAll();
+                    }
+                }
+            });
+
+            // Store config globally for copy/download functions
+            window.currentKeaConfig = data.config;
+        } else {
+            Swal.fire('Error', data.error || 'Failed to load configuration', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to load Kea config: ' + error.message, 'error');
+    }
+}
+
+// Copy Kea config to clipboard
+function copyKeaConfig() {
+    if (!window.currentKeaConfig) {
+        Swal.fire('Error', 'No configuration loaded', 'error');
+        return;
+    }
+    
+    const configJson = JSON.stringify(window.currentKeaConfig, null, 2);
+    navigator.clipboard.writeText(configJson).then(() => {
+        Swal.fire({
+            title: 'Copied!',
+            text: 'Configuration copied to clipboard',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }).catch(err => {
+        Swal.fire('Error', 'Failed to copy: ' + err.message, 'error');
+    });
+}
+
+// Download Kea config as JSON
+async function downloadKeaConfigJSON() {
+    try {
+        let config = window.currentKeaConfig;
+        
+        // If not loaded yet, fetch it
+        if (!config) {
+            Swal.fire({
+                title: 'Loading...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            
+            const response = await fetch('/api/admin/kea-config/view');
+            const data = await response.json();
+            Swal.close();
+            
+            if (!data.success) {
+                Swal.fire('Error', data.error || 'Failed to load configuration', 'error');
+                return;
+            }
+            config = data.config;
+        }
+
+        const configJson = JSON.stringify(config, null, 2);
+        const blob = new Blob([configJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kea-dhcp6-config-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        Swal.fire({
+            title: 'Downloaded!',
+            text: 'Configuration file downloaded',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    } catch (error) {
+        Swal.fire('Error', 'Failed to download: ' + error.message, 'error');
+    }
+}
+
+// Download Kea config as .conf format
+async function downloadKeaConfigINI() {
+    try {
+        Swal.fire({
+            title: 'Generating .conf file...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const response = await fetch('/api/admin/kea-config/download-conf');
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate .conf file');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kea-dhcp6-${new Date().toISOString().split('T')[0]}.conf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        Swal.fire({
+            title: 'Downloaded!',
+            text: 'Configuration file downloaded',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    } catch (error) {
+        Swal.fire('Error', 'Failed to download .conf: ' + error.message, 'error');
+    }
+}
+
+// HTML escape helper
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
 }
 </script>
 

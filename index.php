@@ -409,6 +409,12 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/radius/clean-orphans', [$adminController, 'cleanRadiusOrphans'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    
+    // Kea config viewer routes
+    $router->get('/api/admin/kea-config/view', [$adminController, 'viewKeaConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->get('/api/admin/kea-config/download-conf', [$adminController, 'downloadKeaConfigConf'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // Web UI Routes with Auth Middleware
     $router->get('/dashboard', function() {

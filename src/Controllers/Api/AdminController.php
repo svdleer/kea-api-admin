@@ -1654,6 +1654,132 @@ class AdminController
     }
 
     /**
+     * View current Kea configuration
+     * GET /api/admin/kea-config/view
+     */
+    public function viewKeaConfig()
+    {
+        try {
+            // Use DHCP model to send Kea command
+            require_once BASE_PATH . '/src/Models/DHCP.php';
+            $dhcpModel = new \App\Models\DHCP($this->db);
+            
+            // Get config via the model's sendKeaCommand method (we need to use reflection to access private method)
+            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            
+            $command = [
+                'command' => 'config-get',
+                'service' => ['dhcp6']
+            ];
+            
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            $responseJson = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200) {
+                throw new \Exception('Failed to communicate with Kea API');
+            }
+            
+            $response = json_decode($responseJson, true);
+            
+            if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
+                throw new \Exception('Failed to retrieve configuration from Kea');
+            }
+            
+            $config = $response[0]['arguments'];
+            
+            // Calculate statistics
+            $stats = [
+                'subnets' => count($config['Dhcp6']['subnet6'] ?? []),
+                'pools' => 0,
+                'options' => count($config['Dhcp6']['option-data'] ?? [])
+            ];
+            
+            // Count pools
+            foreach ($config['Dhcp6']['subnet6'] ?? [] as $subnet) {
+                $stats['pools'] += count($subnet['pools'] ?? []);
+                $stats['pools'] += count($subnet['pd-pools'] ?? []);
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'config' => $config,
+                'stats' => $stats
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Error viewing Kea config: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download Kea configuration as .conf file
+     * GET /api/admin/kea-config/download-conf
+     */
+    public function downloadKeaConfigConf()
+    {
+        try {
+            // Get Kea configuration via direct API call
+            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            
+            $command = [
+                'command' => 'config-get',
+                'service' => ['dhcp6']
+            ];
+            
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            $responseJson = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200) {
+                throw new \Exception('Failed to communicate with Kea API');
+            }
+            
+            $response = json_decode($responseJson, true);
+            
+            if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
+                throw new \Exception('Failed to retrieve configuration from Kea');
+            }
+            
+            $config = $response[0]['arguments'];
+            
+            // Convert to JSON format (Kea uses JSON config format)
+            $configJson = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            
+            // Set headers for download
+            header('Content-Type: application/json');
+            header('Content-Disposition: attachment; filename="kea-dhcp6-' . date('Y-m-d') . '.conf"');
+            header('Content-Length: ' . strlen($configJson));
+            
+            echo $configJson;
+            exit;
+            
+        } catch (\Exception $e) {
+            error_log("Error downloading Kea config: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper: Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)
