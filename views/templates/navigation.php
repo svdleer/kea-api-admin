@@ -12,7 +12,7 @@
                         
                         <a href="/switches" class="<?php echo $currentPage === 'switches' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">Switches</a>
                         
-                        <a href="/dhcp" class="<?php echo $currentPage === 'dhcp' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">IPv6 Leases</a>
+                        <a href="/dhcp" class="<?php echo $currentPage === 'dhcp' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">DHCPv6</a>
                         
                         <a href="/ipv6" class="<?php echo $currentPage === 'ipv6' ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'; ?> px-3 py-2 rounded-md text-sm font-medium">IPv6 Subnets</a>
                         
