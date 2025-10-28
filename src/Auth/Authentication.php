@@ -22,9 +22,9 @@ class Authentication
     public function login(string $username, string $password): bool
     {
         try {
-            error_log("=== Starting login attempt for user: " . $username . " ===");
-            error_log("Current Session ID: " . session_id());
-            error_log("Current Session Data: " . print_r($_SESSION, true));
+            // error_log("=== Starting login attempt for user: " . $username . " ===");
+            // error_log("Current Session ID: " . session_id());
+            // error_log("Current Session Data: " . print_r($_SESSION, true));
             
             $stmt = $this->db->prepare(
                 "SELECT id, username, password, is_admin, email 
@@ -35,17 +35,17 @@ class Authentication
             $stmt->execute(['username' => $username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            error_log("Database query executed. User found: " . ($user ? "Yes" : "No"));
+            // error_log("Database query executed. User found: " . ($user ? "Yes" : "No"));
             
             if (!$user) {
-                error_log("No user found with username: " . $username);
+                // error_log("No user found with username: " . $username);
                 return false;
             }
 
-            error_log("Verifying password for user: " . $username);
+            // error_log("Verifying password for user: " . $username);
             
             if (password_verify($password, $user['password'])) {
-                error_log("Password verification successful");
+                // error_log("Password verification successful");
                 
                 // Clear any existing session data
                 $_SESSION = array();
@@ -55,7 +55,7 @@ class Authentication
                     session_regenerate_id(true);
                 }
                 
-                error_log("New Session ID: " . session_id());
+                // error_log("New Session ID: " . session_id());
 
                 // Store user data in session
                 $_SESSION = [
@@ -69,16 +69,16 @@ class Authentication
                     'user_agent' => $_SERVER['HTTP_USER_AGENT']
                 ];
                 
-                error_log("Session data after login: " . print_r($_SESSION, true));
+                // error_log("Session data after login: " . print_r($_SESSION, true));
                 
                 // Update last login timestamp
                 $this->updateLastLogin($user['id']);
                 
-                error_log("=== Login successful for user: " . $username . " ===");
+                // error_log("=== Login successful for user: " . $username . " ===");
                 return true;
             }
             
-            error_log("Password verification failed for user: " . $username);
+            // error_log("Password verification failed for user: " . $username);
             return false;
         } catch (\PDOException $e) {
             error_log("Database error during login: " . $e->getMessage());
@@ -94,34 +94,34 @@ class Authentication
      */
     public function isLoggedIn(): bool
     {
-        error_log("=== Checking login status ===");
-        error_log("Session status: " . session_status());
-        error_log("Session ID: " . session_id());
-        error_log("Session data: " . print_r($_SESSION, true));
+        // error_log("=== Checking login status ===");
+        // error_log("Session status: " . session_status());
+        // error_log("Session ID: " . session_id());
+        // error_log("Session data: " . print_r($_SESSION, true));
     
         if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-            error_log("No valid session data found");
+            // error_log("No valid session data found");
             return false;
         }
     
         // Verify session integrity
         if ($_SESSION['ip_address'] !== $_SERVER['REMOTE_ADDR'] || 
             $_SESSION['user_agent'] !== $_SERVER['HTTP_USER_AGENT']) {
-            error_log("Session integrity check failed");
+            // error_log("Session integrity check failed");
             $this->logout();
             return false;
         }
     
         // Check session timeout
         if (time() - $_SESSION['last_activity'] > self::SESSION_LIFETIME) {
-            error_log("Session timed out. Current time: " . time() . ", Last activity: " . $_SESSION['last_activity']);
+            // error_log("Session timed out. Current time: " . time() . ", Last activity: " . $_SESSION['last_activity']);
             $this->logout();
             return false;
         }
     
         // Update last activity time
         $_SESSION['last_activity'] = time();
-        error_log("Session is valid, user is logged in");
+        // error_log("Session is valid, user is logged in");
         return true;
     }
 
@@ -130,8 +130,8 @@ class Authentication
      */
     public function logout(): void
     {
-        error_log("=== Logging out user ===");
-        error_log("Session before logout: " . print_r($_SESSION, true));
+        // error_log("=== Logging out user ===");
+        // error_log("Session before logout: " . print_r($_SESSION, true));
         
         // Unset all session variables
         $_SESSION = array();
@@ -143,7 +143,7 @@ class Authentication
 
         // Destroy the session
         session_destroy();
-        error_log("Session destroyed");
+        // error_log("Session destroyed");
     }
 
     /**
@@ -151,20 +151,16 @@ class Authentication
      */
     public function isAdmin(): bool
     {
-
-        error_log('Session data in isAdmin: ' . print_r($_SESSION, true));
-        error_log('User ID in session: ' . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set'));
+        // error_log('Session data in isAdmin: ' . print_r($_SESSION, true));
+        // error_log('User ID in session: ' . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set'));
+        // error_log('Is admin in session: ' . (isset($_SESSION['is_admin']) ? $_SESSION['is_admin'] : 'not set'));
         
-        // If you're storing is_admin in session
-        error_log('Is admin in session: ' . (isset($_SESSION['is_admin']) ? $_SESSION['is_admin'] : 'not set'));
-        
-        // If you're checking against database
         if (isset($_SESSION['user_id'])) {
             try {
                 $stmt = $this->db->prepare("SELECT is_admin FROM users WHERE id = :user_id");
                 $stmt->execute(['user_id' => $_SESSION['user_id']]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                error_log('Database user data: ' . print_r($result, true));
+                // error_log('Database user data: ' . print_r($result, true));
                 
                 return isset($result['is_admin']) && $result['is_admin'] == true;
             } catch (\PDOException $e) {
@@ -173,8 +169,7 @@ class Authentication
             }
         }
         
-        return false; // Current return value
-        //return isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+        return false;
     }
 
     /**
