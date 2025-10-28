@@ -554,7 +554,7 @@ class DHCP
                         'end' => $customConfig['end_address'] ?? $poolEnd
                     ],
                     'bvi_interface' => $customConfig['interface_number'] ?? null,
-                    'bvi_interface_id' => $customConfig['id'] ?? null,
+                    'bvi_interface_id' => $customConfig['bvi_interface_id'] ?? null,  // FIXED: Use bvi_interface_id not id
                     'ccap_core' => $customConfig['ccap_core'] ?? null,
                     'ipv6_address' => $customConfig['ipv6_address'] ?? null,
                     'switch_id' => $customConfig['switch_id'] ?? null,
