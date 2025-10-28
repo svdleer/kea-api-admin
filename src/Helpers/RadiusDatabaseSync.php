@@ -174,23 +174,26 @@ class RadiusDatabaseSync
 
     /**
      * Insert client into RADIUS database
+     * Uses INSERT...ON DUPLICATE KEY UPDATE to handle duplicates gracefully
      */
     private function insertClient($conn, $clientData)
     {
+        // First check if nasname already exists
+        $checkQuery = "SELECT id FROM nas WHERE nasname = ?";
+        $checkStmt = $conn->prepare($checkQuery);
+        $checkStmt->execute([$clientData['nasname']]);
+        $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            // Update existing entry instead
+            error_log("RADIUS client with nasname {$clientData['nasname']} already exists (ID: {$existing['id']}), updating instead");
+            $this->updateClient($conn, array_merge($clientData, ['id' => $existing['id']]));
+            return;
+        }
+
         $query = "INSERT INTO nas 
                   (id, nasname, shortname, type, ports, secret, server, community, description, bvi_interface_id, created_at, updated_at) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                  ON DUPLICATE KEY UPDATE
-                  nasname = VALUES(nasname),
-                  shortname = VALUES(shortname),
-                  type = VALUES(type),
-                  ports = VALUES(ports),
-                  secret = VALUES(secret),
-                  server = VALUES(server),
-                  community = VALUES(community),
-                  description = VALUES(description),
-                  bvi_interface_id = VALUES(bvi_interface_id),
-                  updated_at = VALUES(updated_at)";
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($query);
         $stmt->execute([
@@ -249,6 +252,47 @@ class RadiusDatabaseSync
         $query = "DELETE FROM nas WHERE id = ?";
         $stmt = $conn->prepare($query);
         $stmt->execute([$clientId]);
+    }
+
+    /**
+     * Delete client from RADIUS database by nasname (IP address)
+     * Used when cleaning up duplicate entries
+     */
+    public function deleteClientByNasname($nasname)
+    {
+        $results = [];
+
+        foreach ($this->servers as $server) {
+            if (!$server['enabled']) {
+                $results[$server['name']] = [
+                    'success' => false,
+                    'message' => 'Server disabled in configuration',
+                    'skipped' => true
+                ];
+                continue;
+            }
+
+            try {
+                $conn = $this->getConnection($server);
+                $query = "DELETE FROM nas WHERE nasname = ?";
+                $stmt = $conn->prepare($query);
+                $stmt->execute([$nasname]);
+                
+                $results[$server['name']] = [
+                    'success' => true,
+                    'message' => 'Deleted by nasname',
+                    'affected_rows' => $stmt->rowCount()
+                ];
+            } catch (PDOException $e) {
+                error_log("Failed to delete from {$server['name']}: " . $e->getMessage());
+                $results[$server['name']] = [
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ];
+            }
+        }
+
+        return $results;
     }
 
     /**

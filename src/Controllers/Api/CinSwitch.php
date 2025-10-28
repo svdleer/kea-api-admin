@@ -253,30 +253,45 @@ class CinSwitch
         try {
             header('Content-Type: application/json');
 
+            // Initialize RadiusClient model
+            require_once BASE_PATH . '/src/Models/RadiusClient.php';
+            $radiusModel = new \App\Models\RadiusClient($this->db);
+
             // Get all BVI interfaces for this switch
             $stmtGetBvi = $this->db->prepare("
-                SELECT id FROM cin_switch_bvi_interfaces 
+                SELECT id, ipv6_address FROM cin_switch_bvi_interfaces 
                 WHERE switch_id = ?
             ");
             $stmtGetBvi->execute([$id]);
             $bviInterfaces = $stmtGetBvi->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Delete DHCP subnets for each BVI using the DHCP API
+            // Delete DHCP subnets and RADIUS clients for each BVI
+            $deletedRadiusClients = 0;
             foreach ($bviInterfaces as $bvi) {
+                // Delete DHCP subnet
                 try {
-                    // Check if there's a DHCP subnet for this BVI
                     $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE id = ?");
                     $stmt->execute([$bvi['id']]);
                     $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
                     
                     if ($subnet && $subnet['kea_subnet_id']) {
                         error_log("Deleting DHCP subnet (Kea ID: {$subnet['kea_subnet_id']}) for BVI {$bvi['id']} via API");
-                        // Pass the BVI ID (which is the primary key in cin_bvi_dhcp_core)
                         $this->dhcpModel->deleteSubnet($bvi['id']);
                     }
                 } catch (\Exception $e) {
                     error_log("Warning: Could not delete DHCP subnet for BVI {$bvi['id']}: " . $e->getMessage());
-                    // Continue with other deletions
+                }
+
+                // Delete RADIUS client
+                try {
+                    $radiusClient = $radiusModel->getClientByBviId($bvi['id']);
+                    if ($radiusClient) {
+                        error_log("Deleting RADIUS client (ID: {$radiusClient['id']}, NAS: {$bvi['ipv6_address']}) for BVI {$bvi['id']}");
+                        $radiusModel->deleteClient($radiusClient['id']);
+                        $deletedRadiusClients++;
+                    }
+                } catch (\Exception $e) {
+                    error_log("Warning: Could not delete RADIUS client for BVI {$bvi['id']}: " . $e->getMessage());
                 }
             }
 
@@ -299,9 +314,14 @@ class CinSwitch
 
                 $this->db->commit();
 
+                $message = 'Switch and ' . count($bviInterfaces) . ' BVI interface(s) deleted successfully';
+                if ($deletedRadiusClients > 0) {
+                    $message .= ' (including ' . $deletedRadiusClients . ' RADIUS client(s))';
+                }
+
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Switch, BVI interfaces, and DHCP subnets deleted successfully'
+                    'message' => $message
                 ]);
             } catch (\Exception $e) {
                 $this->db->rollBack();
