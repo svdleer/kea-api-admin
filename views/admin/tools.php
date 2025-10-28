@@ -1302,7 +1302,7 @@ async function viewKeaConfig() {
                             </button>
                         </div>
                         <div class="bg-gray-900 rounded-lg overflow-auto" style="max-height: 500px;">
-                            <pre class="p-4 text-xs text-left"><code class="language-json" id="kea-config-code">${escapeHtml(configJson)}</code></pre>
+                            <pre class="p-4 text-xs text-left text-gray-100"><code class="language-json text-gray-100" id="kea-config-code" style="color: #f3f4f6;">${escapeHtml(configJson)}</code></pre>
                         </div>
                         <div class="mt-3 flex gap-2">
                             <button onclick="downloadKeaConfigJSON()" class="flex-1 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">
