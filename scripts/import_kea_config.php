@@ -295,17 +295,22 @@ class KeaConfigImporter {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($keaCommand));
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                
+                $this->debug("Sending option definition to Kea API: " . json_encode($keaCommand));
                 $responseJson = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
                 
+                $this->debug("Kea API response (HTTP $httpCode): $responseJson");
                 $response = json_decode($responseJson, true);
                 
                 if (isset($response[0]['result']) && $response[0]['result'] === 0) {
                     $this->stats['options']['imported']++;
                     $this->success("  ✓ Imported option definition: $name (code $code)");
                 } else {
+                    $errorMsg = $response[0]['text'] ?? 'Unknown error';
                     $this->stats['options']['skipped']++;
-                    $this->warning("  Option definition $code ($name) already exists or failed, skipping");
+                    $this->warning("  Option definition $code ($name) failed: $errorMsg");
                 }
 
             } catch (Exception $e) {
@@ -370,15 +375,22 @@ class KeaConfigImporter {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($keaCommand));
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                
+                $this->debug("Sending option to Kea API: " . json_encode($keaCommand));
                 $responseJson = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
                 
+                $this->debug("Kea API response (HTTP $httpCode): $responseJson");
                 $response = json_decode($responseJson, true);
                 
                 if (isset($response[0]['result']) && $response[0]['result'] === 0) {
                     $this->stats['options']['imported']++;
+                    $this->info("  ✓ Imported option: $name");
                 } else {
+                    $errorMsg = $response[0]['text'] ?? 'Unknown error';
                     $this->stats['options']['skipped']++;
+                    $this->warning("  Option $name failed: $errorMsg");
                 }
 
             } catch (Exception $e) {
@@ -512,12 +524,15 @@ class KeaConfigImporter {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 
+            $this->debug("Sending subnet to Kea API: " . json_encode($data));
             $responseJson = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             if (curl_errno($ch)) {
                 throw new Exception('Kea API Error: ' . curl_error($ch));
             }
             curl_close($ch);
 
+            $this->debug("Kea API response (HTTP $httpCode): $responseJson");
             $response = json_decode($responseJson, true);
 
             if (isset($response[0]['result']) && $response[0]['result'] === 0) {
@@ -539,7 +554,10 @@ class KeaConfigImporter {
                     $this->info("    Found " . count($subnet['reservations']) . " reservations (skipping - manual linking needed)");
                 }
             } else {
-                throw new Exception("Kea API returned error: " . json_encode($response));
+                $errorMsg = $response[0]['text'] ?? 'Unknown error';
+                $this->error("    ✗ Kea API error: $errorMsg");
+                $this->debug("Full response: " . json_encode($response));
+                throw new Exception("Kea API returned error: $errorMsg");
             }
             } // End of if (!$subnetExists)
             
@@ -640,16 +658,22 @@ class KeaConfigImporter {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($keaCommand));
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                
+                $this->debug("Sending reservation to Kea API: " . json_encode($keaCommand));
                 $responseJson = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
                 
+                $this->debug("Kea API response (HTTP $httpCode): $responseJson");
                 $response = json_decode($responseJson, true);
                 
                 if (isset($response[0]['result']) && $response[0]['result'] === 0) {
                     $this->stats['reservations']['imported']++;
                     $this->success("      ✓ Imported reservation: $ipAddress ($hostname)");
                 } else {
+                    $errorMsg = $response[0]['text'] ?? 'Unknown error';
                     $this->stats['reservations']['skipped']++;
+                    $this->warning("      Reservation $ipAddress ($hostname) failed: $errorMsg");
                 }
             }
 
@@ -736,6 +760,10 @@ class KeaConfigImporter {
 
     private function error($message) {
         echo Colors::RED . $message . Colors::RESET . "\n";
+    }
+
+    private function debug($message) {
+        echo Colors::CYAN . "[DEBUG] " . $message . Colors::RESET . "\n";
     }
 }
 
