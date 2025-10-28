@@ -208,6 +208,7 @@ function displaySubnets(subnets) {
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pool</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Relay</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CCAP Core</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Suggested CIN</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
                 </tr>
             </thead>
@@ -229,7 +230,13 @@ function displaySubnets(subnets) {
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.pool || 'N/A'}</td>
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.relay || 'N/A'}</td>
                         <td class="px-4 py-4 text-sm text-gray-500">${subnet.ccap_core || 'N/A'}</td>
-                        <td class="px-4 py-4">
+                        <td class="px-4 py-4 text-sm">
+                            ${subnet.suggested_cin_name ? 
+                                `<span class="text-green-600 font-medium">${subnet.suggested_cin_name}</span>
+                                 <br><span class="text-xs text-gray-400">(from: ${subnet.suggested_ccap_name})</span>` 
+                                : '<span class="text-gray-400">None</span>'}
+                        </td>
+                        <td class="px-4 py-4 text-sm">
                             <select class="subnet-action text-sm border-gray-300 rounded-md" data-index="${index}">
                                 <option value="create" ${defaultAction === 'create' ? 'selected' : ''}>Create New CIN + BVI</option>
                                 <option value="skip" ${defaultAction === 'skip' ? 'selected' : ''}>Skip (Already imported)</option>
@@ -242,12 +249,15 @@ function displaySubnets(subnets) {
                                 </select>
                             </div>
                             <div class="mt-2 ${defaultAction === 'skip' ? 'hidden' : ''}" id="cin-input-${index}">
-                                <input type="text" placeholder="CIN Switch Name (e.g., ASD-GT0004-AR151)" 
-                                       class="cin-name text-sm border-gray-300 rounded-md w-full" data-index="${index}">
+                                <input type="text" placeholder="${subnet.suggested_cin_name || 'CIN Switch Name (e.g., ASD-GT0004-AR151)'}" 
+                                       class="cin-name text-sm border-gray-300 rounded-md w-full" data-index="${index}"
+                                       value="${subnet.suggested_cin_name || ''}">
                                 <input type="text" placeholder="BVI IPv6 Address (e.g., ${subnet.relay || '2001:b88:8005:f006::1'})" 
                                        class="cin-ip text-sm border-gray-300 rounded-md w-full mt-1" data-index="${index}" 
                                        value="${subnet.relay || ''}">
-                                <p class="text-xs text-gray-500 mt-1">Optional: Leave empty to create subnet only, fill to create CIN switch + BVI100</p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    ${subnet.suggested_cin_name ? '<span class="text-green-600">✓ Name suggested from config comments</span>' : 'Optional: Leave empty to create subnet only, fill to create CIN switch + BVI100'}
+                                </p>
                             </div>
                         </td>
                     </tr>

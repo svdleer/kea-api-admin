@@ -134,7 +134,30 @@ class AdminController
             $file = $_FILES['config'];
             $content = file_get_contents($file['tmp_name']);
             
-            // Parse JSON (remove comments first)
+            // Extract CIN/Router names from comments BEFORE removing comments
+            // Pattern: ##### CCAP-NAME - ROUTER-NAME #####
+            $cinNameMap = [];
+            if (preg_match_all('/^#####\s*(.+?)\s*-\s*(.+?)\s*#####/m', $content, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    $ccapName = trim($match[1]);
+                    $routerName = trim($match[2]);
+                    
+                    // Try to find the subnet that follows this comment
+                    // Look for the next subnet definition after this comment
+                    $commentPos = strpos($content, $match[0]);
+                    $nextSubnetPattern = '/"subnet"\s*:\s*"([^"]+)"/';
+                    if (preg_match($nextSubnetPattern, substr($content, $commentPos), $subnetMatch)) {
+                        $cinNameMap[$subnetMatch[1]] = [
+                            'ccap' => $ccapName,
+                            'router' => $routerName
+                        ];
+                    }
+                }
+            }
+            
+            error_log("Extracted CIN name map: " . json_encode($cinNameMap, JSON_PRETTY_PRINT));
+            
+            // Parse JSON (remove comments now)
             $configJson = preg_replace('/\/\*.*?\*\//s', '', $content);
             $configJson = preg_replace('/^\s*#.*$/m', '', $configJson);
             $configJson = preg_replace('/^\s*\/\/.*$/m', '', $configJson);
@@ -185,7 +208,9 @@ class AdminController
                     'ccap_core' => $ccapCore,
                     'valid_lifetime' => $subnet['valid-lifetime'] ?? 7200,
                     'preferred_lifetime' => $subnet['preferred-lifetime'] ?? 3600,
-                    'reservations_count' => isset($subnet['reservations']) ? count($subnet['reservations']) : 0
+                    'reservations_count' => isset($subnet['reservations']) ? count($subnet['reservations']) : 0,
+                    'suggested_cin_name' => $cinNameMap[$subnet['subnet']]['router'] ?? null,
+                    'suggested_ccap_name' => $cinNameMap[$subnet['subnet']]['ccap'] ?? null
                 ];
             }
             
