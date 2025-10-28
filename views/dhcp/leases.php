@@ -975,7 +975,7 @@ async function loadSubnets() {
             </tr>
         `;
 
-        const response = await fetch('/api/dhcp/subnet/list', {
+        const response = await fetch('/api/dhcp/subnets', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -986,8 +986,7 @@ async function loadSubnets() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        const subnets = result.data || [];
+        const subnets = await response.json();
         
         // Clear the loading state
         tableBody.innerHTML = '';        
