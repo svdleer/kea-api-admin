@@ -270,13 +270,15 @@ class CinSwitch
             foreach ($bviInterfaces as $bvi) {
                 // Delete DHCP subnet
                 try {
-                    $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE id = ?");
+                    // Use bvi_interface_id to find the correct DHCP core record
+                    $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
                     $stmt->execute([$bvi['id']]);
                     $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
                     
                     if ($subnet && $subnet['kea_subnet_id']) {
                         error_log("Deleting DHCP subnet (Kea ID: {$subnet['kea_subnet_id']}) for BVI {$bvi['id']} via API");
-                        $this->dhcpModel->deleteSubnet($bvi['id']);
+                        // Pass the kea_subnet_id to deleteSubnet
+                        $this->dhcpModel->deleteSubnet($subnet['kea_subnet_id']);
                     }
                 } catch (\Exception $e) {
                     error_log("Warning: Could not delete DHCP subnet for BVI {$bvi['id']}: " . $e->getMessage());
