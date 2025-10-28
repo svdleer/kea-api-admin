@@ -23,15 +23,15 @@ require BASE_PATH . '/views/dhcp-menu.php';
 ?>
 
 <div class="container mx-auto px-4 py-8">
-    <div class="bg-white shadow-md rounded my-6">
+    <div class="bg-white shadow-md rounded my-6 overflow-x-auto">
         <table id="leasesTable" class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DUID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CIN Switch</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BVI Interface</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BVI IPv6 Address</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DHCP Subnet</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pool Range</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
@@ -39,9 +39,6 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <!-- Table content will be dynamically inserted here -->
             </tbody>
         </table>
-        <div id="pagination" class="px-6 py-3 flex items-center justify-between border-t border-gray-200">
-            <!-- Pagination will be dynamically inserted here -->
-        </div>
     </div>
 </div>
 
@@ -52,27 +49,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    let lastFromAddress = 'start';
-    const itemsPerPage = 10;
-
     // Initial load
-    loadLeases();
+    loadSubnets();
 
-    function loadLeases() {
+    function loadSubnets() {
         const tableBody = document.querySelector('#leasesTable tbody');
         showLoading(tableBody);
 
-        fetch(`/api/dhcp/leases?from=${lastFromAddress}&per_page=${itemsPerPage}`)
+        fetch(`/api/dhcp/subnet/list`)
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    renderLeases(data.data);
-                    updatePagination(data.data.next_from !== null);
+                    renderSubnets(data.data);
                 } else {
-                    showError(tableBody, data.message || 'Failed to load leases');
+                    showError(tableBody, data.message || 'Failed to load subnets');
                 }
             })
             .catch(error => {
@@ -90,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Loading leases...
+                        Loading subnets...
                     </div>
                 </td>
             </tr>
@@ -110,41 +103,54 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    function renderLeases(data) {
+    function renderSubnets(subnets) {
         const tableBody = document.querySelector('#leasesTable tbody');
         
-        if (!data.leases || data.leases.length === 0) {
+        if (!subnets || subnets.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                        No leases found
+                        No subnets configured
                     </td>
                 </tr>
             `;
             return;
         }
 
-        tableBody.innerHTML = data.leases.map(lease => `
+        tableBody.innerHTML = subnets.map(subnet => {
+            const bviNumber = subnet.interface_number !== null ? 'BVI' + (100 + parseInt(subnet.interface_number)) : 'N/A';
+            const poolStart = subnet.pool?.start || 'N/A';
+            const poolEnd = subnet.pool?.end || 'N/A';
+            
+            return `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.ip_address)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.duid)}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStateClass(lease.state)}">
-                        ${escapeHtml(lease.state)}
-                    </span>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${escapeHtml(subnet.switch_hostname || 'N/A')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateTime(lease.start_time)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDateTime(lease.end_time)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${escapeHtml(bviNumber)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${escapeHtml(subnet.ipv6_address || 'N/A')}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${escapeHtml(subnet.subnet || 'N/A')}
+                </td>
+                <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                    <div class="flex flex-col">
+                        <span class="mb-1">${escapeHtml(poolStart)}</span>
+                        <span>${escapeHtml(poolEnd)}</span>
+                    </div>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onclick="deleteLease('${escapeHtml(lease.ip_address)}')" 
-                            class="text-red-600 hover:text-red-900">
-                        Delete
-                    </button>
+                    <a href="/dhcp/subnet/${subnet.id}/leases" 
+                       class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        View Leases
+                    </a>
                 </td>
             </tr>
-        `).join('');
-
-        lastFromAddress = data.next_from || 'start';
+        `;
+        }).join('');
     }
 
     function deleteLease(ipAddress) {
@@ -227,12 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function formatDateTime(timestamp) {
-        return new Date(timestamp * 1000).toLocaleString();
-    }
-
     function escapeHtml(unsafe) {
-        return unsafe
+        if (!unsafe) return '';
+        return String(unsafe)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
