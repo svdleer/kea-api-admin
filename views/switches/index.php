@@ -180,8 +180,8 @@ ob_start();
 
 
     <script>
-function deleteSwitch(switchId, hostname) {
-    Swal.fire({
+async function deleteSwitch(switchId, hostname) {
+    const result = await Swal.fire({
         title: 'Delete Switch?',
         html: `
             <div class="text-left">
@@ -211,44 +211,46 @@ function deleteSwitch(switchId, hostname) {
             }
             return true;
         }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/api/switches/${switchId}`, {
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/api/switches/${switchId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                 }
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Switch deleted successfully',
-                        icon: 'success',
-                        confirmButtonColor: '#3B82F6'
-                    });
-                    window.location.reload();
-                } else {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: result.error || 'Error deleting switch',
-                        icon: 'error',
-                        confirmButtonColor: '#3B82F6'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: `Switch ${hostname} and all associated data have been deleted successfully.`,
+                    icon: 'success',
+                    confirmButtonColor: '#3B82F6'
+                });
+                // Reload the page to refresh the list
+                window.location.reload();
+            } else {
                 Swal.fire({
                     title: 'Error!',
-                    text: 'Error deleting switch',
+                    text: data.error || 'Error deleting switch',
                     icon: 'error',
                     confirmButtonColor: '#3B82F6'
                 });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'Error deleting switch',
+                icon: 'error',
+                confirmButtonColor: '#3B82F6'
             });
         }
-    });
+    }
 }
 
 // Search functionality
