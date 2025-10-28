@@ -400,7 +400,7 @@ class AdminController
                         }
                         
                         // Create BVI100 interface (stored as 0, displayed as BVI100)
-                        $cinSwitchModel->createBviInterface($switchId, [
+                        $bviId = $cinSwitchModel->createBviInterface($switchId, [
                             'interface_number' => 0, // Store as 0, display shows BVI + (100 + 0) = BVI100
                             'ipv6_address' => $subnet['relay'] // Use relay address as BVI address
                         ]);
@@ -416,10 +416,11 @@ class AdminController
                         
                         $stmt = $this->db->prepare("
                             INSERT INTO cin_bvi_dhcp_core 
-                            (switch_id, kea_subnet_id, interface_number, ipv6_address, start_address, end_address, ccap_core)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            (bvi_interface_id, switch_id, kea_subnet_id, interface_number, ipv6_address, start_address, end_address, ccap_core)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         ");
                         $stmt->execute([
+                            $bviId,
                             $switchId,
                             $subnet['id'],
                             0, // Store as 0 for BVI100
@@ -462,10 +463,11 @@ class AdminController
                     // Link subnet
                     $stmt = $this->db->prepare("
                         INSERT INTO cin_bvi_dhcp_core 
-                        (switch_id, kea_subnet_id, interface_number, ipv6_address, start_address, end_address, ccap_core)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (bvi_interface_id, switch_id, kea_subnet_id, interface_number, ipv6_address, start_address, end_address, ccap_core)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([
+                        $config['bvi_id'], // Add the BVI interface ID
                         $bvi['switch_id'],
                         $subnet['id'],
                         $bvi['interface_number'],
