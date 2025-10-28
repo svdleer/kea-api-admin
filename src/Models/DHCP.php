@@ -542,8 +542,17 @@ class DHCP
                 $poolEnd = '';
                 if (isset($subnet['pools']) && is_array($subnet['pools']) && !empty($subnet['pools'])) {
                     $poolParts = explode('-', $subnet['pools'][0]['pool'] ?? '');
-                    $poolStart = $poolParts[0] ?? '';
-                    $poolEnd = $poolParts[1] ?? '';
+                    $poolStart = trim($poolParts[0] ?? '');
+                    $poolEnd = trim($poolParts[1] ?? '');
+                }
+
+                // Get switch hostname if we have a switch_id
+                $switchHostname = null;
+                if (!empty($customConfig['switch_id'])) {
+                    $switchStmt = $this->db->prepare("SELECT hostname FROM cin_switches WHERE id = ?");
+                    $switchStmt->execute([$customConfig['switch_id']]);
+                    $switchData = $switchStmt->fetch(PDO::FETCH_ASSOC);
+                    $switchHostname = $switchData['hostname'] ?? null;
                 }
 
                 $enrichedSubnet = [
@@ -554,10 +563,12 @@ class DHCP
                         'end' => $customConfig['end_address'] ?? $poolEnd
                     ],
                     'bvi_interface' => $customConfig['interface_number'] ?? null,
-                    'bvi_interface_id' => $customConfig['bvi_interface_id'] ?? null,  // FIXED: Use bvi_interface_id not id
+                    'interface_number' => $customConfig['interface_number'] ?? null,  // Add for BVI calculation
+                    'bvi_interface_id' => $customConfig['bvi_interface_id'] ?? null,
                     'ccap_core' => $customConfig['ccap_core'] ?? null,
                     'ipv6_address' => $customConfig['ipv6_address'] ?? null,
                     'switch_id' => $customConfig['switch_id'] ?? null,
+                    'switch_hostname' => $switchHostname,  // Add switch hostname
                     'created_at' => $customConfig['created_at'] ?? null,
                     'updated_at' => $customConfig['updated_at'] ?? null
                 ];
