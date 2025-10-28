@@ -327,18 +327,41 @@ class AdminController
                     // Convert "start-end" to "start - end" (with spaces)
                     $pool = str_replace('-', ' - ', $subnet['pool']);
                     
+                    // Build complete subnet config with pool, relay, and options
+                    $completeSubnet = [
+                        "id" => $subnet['id'],
+                        "subnet" => $subnet['subnet'],
+                        "shared-network-name" => null,
+                        "client-class" => "RPD",
+                        "pools" => [["pool" => $pool]],
+                        "valid-lifetime" => $subnet['valid_lifetime'],
+                        "preferred-lifetime" => $subnet['preferred_lifetime']
+                    ];
+                    
+                    // Re-add relay (important! otherwise it gets removed)
+                    if ($subnet['relay']) {
+                        $completeSubnet['relay'] = ["ip-addresses" => [$subnet['relay']]];
+                    }
+                    
+                    // Re-add CCAP core option (important! otherwise it gets removed)
+                    if ($subnet['ccap_core']) {
+                        $completeSubnet['option-data'] = [[
+                            "name" => "ccap-core",
+                            "code" => 61,
+                            "space" => "vendor-4491",
+                            "csv-format" => true,
+                            "data" => $subnet['ccap_core'],
+                            "always-send" => true
+                        ]];
+                    }
+                    
                     $poolData = [
                         "command" => 'remote-subnet6-set',
                         "service" => ['dhcp6'],
                         "arguments" => [
                             "remote" => ["type" => "mysql"],
                             "server-tags" => ["all"],
-                            "subnets" => [[
-                                "id" => $subnet['id'],
-                                "subnet" => $subnet['subnet'],
-                                "shared-network-name" => null,
-                                "pools" => [["pool" => $pool]]
-                            ]]
+                            "subnets" => [$completeSubnet]
                         ]
                     ];
                     
@@ -356,7 +379,7 @@ class AdminController
                     
                     $poolKeaResponse = json_decode($poolResponse, true);
                     
-                    error_log("=== STEP 2 Response: Pool Added ===");
+                    error_log("=== STEP 2 Response: Pool Added (with relay and options) ===");
                     error_log("HTTP Code: " . $poolHttpCode);
                     error_log("Response: " . json_encode($poolKeaResponse, JSON_PRETTY_PRINT));
                     
