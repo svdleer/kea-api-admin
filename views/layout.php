@@ -148,7 +148,7 @@ error_log('isAdmin result: ' . ($auth->isAdmin() ? 'true' : 'false'));
                                 BVI Interfaces
                             </a>
                             <a href="/dhcp" class="<?php echo $currentPage === 'dhcp' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                DHCPv6
+                                IPv6 Leases
                             </a>
                             <a href="/radius" class="<?php echo $currentPage === 'radius' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 RADIUS (802.1X)
