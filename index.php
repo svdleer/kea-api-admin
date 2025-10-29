@@ -1,5 +1,8 @@
 <?php
 
+// Start output buffering early for API routes to prevent HTML errors in JSON
+ob_start();
+
 define('BASE_PATH', __DIR__);
 
 require_once BASE_PATH . '/vendor/autoload.php';
@@ -489,8 +492,13 @@ try {
     
     // If result is an array (API response), output as JSON
     if (is_array($result)) {
+        // Clean output buffer for API responses to prevent HTML errors in JSON
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
         header('Content-Type: application/json');
         echo json_encode($result);
+        exit;
     }
 
 } catch (\Exception $e) {
