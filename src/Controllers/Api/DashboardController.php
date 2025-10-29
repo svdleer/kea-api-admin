@@ -23,6 +23,12 @@ class DashboardController
      */
     public function getStats()
     {
+        // Clear any output buffers and suppress errors
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
         try {
             $switches = $this->cinSwitch->getAllSwitches();
             $totalSwitches = count($switches);
@@ -45,6 +51,9 @@ class DashboardController
             // Get RADIUS statistics
             $radiusStats = $this->getRadiusStatistics();
             
+            // Clean output buffer before sending JSON
+            ob_end_clean();
+            
             ApiResponse::success([
                 'total_switches' => $totalSwitches,
                 'total_bvi' => $totalBVI,
@@ -54,6 +63,10 @@ class DashboardController
                 'radius' => $radiusStats
             ]);
         } catch (\Exception $e) {
+            // Clean output buffer before sending error
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
             ApiResponse::error('Failed to retrieve dashboard statistics: ' . $e->getMessage(), 500);
         }
     }
@@ -206,17 +219,30 @@ class DashboardController
      */
     public function getKeaStatus()
     {
+        // Clear any output buffers and suppress errors
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
         try {
             $keaConfig = require BASE_PATH . '/config/kea.php';
             $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
             $keaServers = $keaMonitor->getServersStatus();
             $haStatus = $keaMonitor->getHAStatus();
             
+            // Clean output buffer before sending JSON
+            ob_end_clean();
+            
             ApiResponse::success([
                 'servers' => $keaServers,
                 'ha_status' => $haStatus
             ]);
         } catch (\Exception $e) {
+            // Clean output buffer before sending error
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
             ApiResponse::error('Failed to retrieve Kea status: ' . $e->getMessage(), 500);
         }
     }
