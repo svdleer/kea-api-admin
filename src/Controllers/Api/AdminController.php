@@ -1521,6 +1521,7 @@ class AdminController
                     'arguments' => [
                         'ip-address' => $lease['address'],
                         'duid' => $lease['duid'],
+                        'iaid' => $lease['iaid'] ?? 1,
                         'subnet-id' => $lease['subnet_id'],
                         'valid-lft' => $lease['valid_lifetime']
                     ]
