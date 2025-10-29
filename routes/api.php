@@ -2,6 +2,7 @@
 
 use App\Controllers\Api\SwitchController;
 use App\Controllers\Api\NetworkController;
+use App\Controllers\Api\DHCPv6OptionsController;
 
 // CIN Switch routes
 $router->get('/api/switches', [SwitchController::class, 'getAll']);
@@ -12,6 +13,12 @@ $router->get('/api/switches/check-ipv6', [SwitchController::class, 'checkIpv6'])
 $router->post('/api/switches', [SwitchController::class, 'create']);
 $router->put('/api/switches/{id}', [SwitchController::class, 'update']);
 $router->delete('/api/switches/{id}', [SwitchController::class, 'delete']);
+
+// DHCP Options routes
+$router->get('/api/dhcp/options', [DHCPv6OptionsController::class, 'list']);
+$router->post('/api/dhcp/options', [DHCPv6OptionsController::class, 'create']);
+$router->put('/api/dhcp/options/{code}', [DHCPv6OptionsController::class, 'update']);
+$router->delete('/api/dhcp/options/{code}', [DHCPv6OptionsController::class, 'delete']);
 
 // Network routes
 $router->post('/api/subnets', [NetworkController::class, 'createSubnet']);
