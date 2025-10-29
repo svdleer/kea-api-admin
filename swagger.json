@@ -127,6 +127,12 @@
     "/dhcp/orphaned-subnets/{keaId}": {
       "delete": {"summary": "Delete orphaned subnet", "tags": ["DHCP Subnets"]}
     },
+    "/dhcp/link-orphaned-subnet": {
+      "post": {"summary": "Link orphaned subnet to BVI", "tags": ["DHCP Subnets"], "description": "Link an existing orphaned Kea subnet to a BVI interface"}
+    },
+    "/dhcp/create-cin-and-link": {
+      "post": {"summary": "Create CIN and link subnet", "tags": ["DHCP Subnets"], "description": "Create new CIN switch, BVI interface, and link to orphaned subnet"}
+    },
     "/dhcp/optionsdef": {
       "get": {"summary": "List option definitions", "tags": ["DHCPv6 Options Definitions"]},
       "post": {"summary": "Create option definition", "tags": ["DHCPv6 Options Definitions"]}

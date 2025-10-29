@@ -1,0 +1,485 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "KEA DHCP API Admin - Administrative Tools",
+    "version": "2.0.0",
+    "description": "Advanced administrative API for managing backups, imports, exports, and system maintenance. These endpoints require administrator privileges and are intended for system management tasks."
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API Key authentication (Admin read/write key required)"
+      },
+      "SessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "PHPSESSID",
+        "description": "Session-based authentication (Admin user required)"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    },
+    {
+      "SessionAuth": []
+    }
+  ],
+  "tags": [
+    {"name": "Kea Config Management", "description": "Import, export, and manage Kea DHCP configuration"},
+    {"name": "Backup & Restore", "description": "Database backup and restore operations"},
+    {"name": "Export Operations", "description": "Export data in various formats"},
+    {"name": "System Maintenance", "description": "System cleanup and maintenance tasks"},
+    {"name": "RADIUS Maintenance", "description": "RADIUS database maintenance and orphan cleanup"}
+  ],
+  "paths": {
+    "/admin/export/kea-config": {
+      "get": {
+        "summary": "Export Kea configuration",
+        "description": "Export current Kea DHCPv6 configuration as JSON",
+        "tags": ["Kea Config Management"],
+        "responses": {
+          "200": {
+            "description": "Kea configuration exported successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "data": {"type": "object"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/import/kea-config": {
+      "post": {
+        "summary": "Import Kea configuration",
+        "description": "Import Kea DHCPv6 configuration from JSON file",
+        "tags": ["Kea Config Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Kea configuration JSON file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Configuration imported successfully"}
+        }
+      }
+    },
+    "/admin/import/kea-config/preview": {
+      "post": {
+        "summary": "Preview Kea config import",
+        "description": "Preview changes before importing Kea configuration",
+        "tags": ["Kea Config Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config_file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Preview generated successfully"}
+        }
+      }
+    },
+    "/admin/import/kea-config/execute": {
+      "post": {
+        "summary": "Execute Kea config import",
+        "description": "Execute the import after preview confirmation",
+        "tags": ["Kea Config Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preview_data": {"type": "object"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Import executed successfully"}
+        }
+      }
+    },
+    "/admin/kea-config/view": {
+      "get": {
+        "summary": "View Kea configuration",
+        "description": "View current Kea DHCPv6 configuration",
+        "tags": ["Kea Config Management"],
+        "responses": {
+          "200": {"description": "Configuration retrieved successfully"}
+        }
+      }
+    },
+    "/admin/kea-config/download-conf": {
+      "get": {
+        "summary": "Download Kea .conf file",
+        "description": "Download Kea DHCPv6 configuration as .conf file",
+        "tags": ["Kea Config Management"],
+        "responses": {
+          "200": {
+            "description": "Configuration file downloaded",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/backup/kea-database": {
+      "get": {
+        "summary": "Backup Kea database",
+        "description": "Create a backup of the Kea DHCPv6 database",
+        "tags": ["Backup & Restore"],
+        "responses": {
+          "200": {
+            "description": "Database backup created",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/backup/kea-leases": {
+      "get": {
+        "summary": "Backup Kea leases",
+        "description": "Create a backup of all DHCPv6 leases",
+        "tags": ["Backup & Restore"],
+        "responses": {
+          "200": {
+            "description": "Leases backup created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/backup/radius-database/{type}": {
+      "get": {
+        "summary": "Backup RADIUS database",
+        "description": "Create a backup of RADIUS database (primary or secondary)",
+        "tags": ["Backup & Restore"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["primary", "secondary"]
+            },
+            "description": "RADIUS server type to backup"
+          }
+        ],
+        "responses": {
+          "200": {"description": "RADIUS database backup created"}
+        }
+      }
+    },
+    "/admin/backup/full-system": {
+      "get": {
+        "summary": "Full system backup",
+        "description": "Create a complete backup of all databases and configurations",
+        "tags": ["Backup & Restore"],
+        "responses": {
+          "200": {
+            "description": "Full system backup created",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/backups/list": {
+      "get": {
+        "summary": "List all backups",
+        "description": "Get a list of all available backup files",
+        "tags": ["Backup & Restore"],
+        "responses": {
+          "200": {
+            "description": "Backup list retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "backups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "filename": {"type": "string"},
+                          "size": {"type": "integer"},
+                          "date": {"type": "string"},
+                          "type": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/backup/download/{filename}": {
+      "get": {
+        "summary": "Download backup file",
+        "description": "Download a specific backup file",
+        "tags": ["Backup & Restore"],
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"},
+            "description": "Backup filename to download"
+          }
+        ],
+        "responses": {
+          "200": {"description": "Backup file downloaded"}
+        }
+      }
+    },
+    "/admin/backup/delete/{filename}": {
+      "delete": {
+        "summary": "Delete backup file",
+        "description": "Delete a specific backup file from the server",
+        "tags": ["Backup & Restore"],
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"},
+            "description": "Backup filename to delete"
+          }
+        ],
+        "responses": {
+          "200": {"description": "Backup file deleted successfully"}
+        }
+      }
+    },
+    "/admin/restore/kea-database": {
+      "post": {
+        "summary": "Restore Kea database",
+        "description": "Restore Kea database from backup file",
+        "tags": ["Backup & Restore"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "backup_file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Database restored successfully"}
+        }
+      }
+    },
+    "/admin/restore/server-backup/{filename}": {
+      "post": {
+        "summary": "Restore from server backup",
+        "description": "Restore database from an existing backup on the server",
+        "tags": ["Backup & Restore"],
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {"description": "Restore completed successfully"}
+        }
+      }
+    },
+    "/admin/export/kea-leases-csv": {
+      "get": {
+        "summary": "Export leases to CSV",
+        "description": "Export all DHCPv6 leases to CSV format",
+        "tags": ["Export Operations"],
+        "responses": {
+          "200": {
+            "description": "Leases exported to CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/export/radius-clients": {
+      "get": {
+        "summary": "Export RADIUS clients",
+        "description": "Export all RADIUS clients configuration",
+        "tags": ["Export Operations"],
+        "responses": {
+          "200": {
+            "description": "RADIUS clients exported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/clear-cin-data": {
+      "post": {
+        "summary": "Clear CIN switch data",
+        "description": "Delete all CIN switches and BVI interfaces (dangerous operation)",
+        "tags": ["System Maintenance"],
+        "responses": {
+          "200": {"description": "CIN data cleared successfully"}
+        }
+      }
+    },
+    "/admin/import-leases": {
+      "post": {
+        "summary": "Import leases",
+        "description": "Import DHCPv6 leases from CSV file",
+        "tags": ["System Maintenance"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lease_file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CSV file containing lease data"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Leases imported successfully"}
+        }
+      }
+    },
+    "/admin/radius/check-orphans": {
+      "get": {
+        "summary": "Check for RADIUS orphans",
+        "description": "Scan for orphaned RADIUS client entries without corresponding BVI interfaces",
+        "tags": ["RADIUS Maintenance"],
+        "responses": {
+          "200": {
+            "description": "Orphan check completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "orphans": {
+                      "type": "array",
+                      "items": {"type": "object"}
+                    },
+                    "count": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/radius/clean-orphans": {
+      "post": {
+        "summary": "Clean RADIUS orphans",
+        "description": "Remove orphaned RADIUS client entries",
+        "tags": ["RADIUS Maintenance"],
+        "responses": {
+          "200": {"description": "Orphans cleaned successfully"}
+        }
+      }
+    }
+  }
+}
