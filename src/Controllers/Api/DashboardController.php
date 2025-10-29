@@ -88,8 +88,10 @@ class DashboardController
             
             // Only use statistics from the PRIMARY/ACTIVE server, not standby
             // In HA setup, both servers share the same lease database
+            $primaryFound = false;
             foreach ($keaServers as $server) {
                 if ($server['online'] && isset($server['name']) && strtolower($server['name']) === 'primary') {
+                    error_log("Using PRIMARY server stats");
                     // Get subnet count from Kea
                     if (isset($server['subnets'])) {
                         $totalSubnets = intval($server['subnets']);
@@ -100,7 +102,26 @@ class DashboardController
                         $totalLeases = intval($server['leases']['total'] ?? 0);
                         $assignedLeases = intval($server['leases']['assigned'] ?? 0);
                     }
+                    $primaryFound = true;
                     break; // Only use primary server stats
+                }
+            }
+            
+            // Fallback: if primary not found, use first online server
+            if (!$primaryFound) {
+                error_log("Primary server not found, using first online server");
+                foreach ($keaServers as $server) {
+                    if ($server['online']) {
+                        error_log("Using server: " . ($server['name'] ?? 'unknown'));
+                        if (isset($server['subnets'])) {
+                            $totalSubnets = intval($server['subnets']);
+                        }
+                        if (isset($server['leases']) && is_array($server['leases'])) {
+                            $totalLeases = intval($server['leases']['total'] ?? 0);
+                            $assignedLeases = intval($server['leases']['assigned'] ?? 0);
+                        }
+                        break;
+                    }
                 }
             }
             
