@@ -1230,30 +1230,62 @@ class AdminController
                 error_log("Manual subnet mapping: " . json_encode($subnetMapping));
             }
             
-            // Apply subnet mapping
+            // Apply subnet mapping and filter unmapped leases
+            $mappedLeases = [];
+            $unmappedCount = 0;
+            $unmappedSubnets = [];
+            
             if (!empty($subnetMapping)) {
-                foreach ($leases as &$lease) {
+                foreach ($leases as $lease) {
                     $oldSubnetId = strval($lease['subnet_id']);
+                    
                     if (isset($subnetMapping[$oldSubnetId])) {
+                        // Map to new subnet ID
                         $newSubnetId = intval($subnetMapping[$oldSubnetId]);
                         error_log("Mapping subnet ID: $oldSubnetId → $newSubnetId for lease {$lease['address']}");
                         $lease['subnet_id'] = $newSubnetId;
+                        $mappedLeases[] = $lease;
+                    } else {
+                        // Skip unmapped leases - they don't belong to any configured subnet
+                        $unmappedCount++;
+                        $unmappedSubnets[$oldSubnetId] = ($unmappedSubnets[$oldSubnetId] ?? 0) + 1;
+                        error_log("SKIPPING unmapped lease {$lease['address']} (CSV subnet_id: $oldSubnetId has no matching Kea subnet)");
                     }
                 }
+                
+                // Log summary of unmapped subnets
+                if ($unmappedCount > 0) {
+                    error_log("Skipped $unmappedCount unmapped leases from non-existent subnets: " . json_encode($unmappedSubnets));
+                }
+                
+                $leases = $mappedLeases;
             }
 
             // Import leases
             $result = $this->importLeasesToStatic($leases);
             
-            $this->jsonResponse([
+            // Add unmapped info to response
+            $responseData = [
                 'success' => true,
                 'message' => 'Leases imported successfully',
-                'total' => count($leases),
+                'total' => count($leases) + $unmappedCount,
                 'imported' => $result['imported'],
-                'skipped' => $result['skipped'],
+                'skipped' => $result['skipped'] + $unmappedCount,
+                'unmapped' => $unmappedCount,
                 'errors' => $result['errors'],
                 'subnet_mapping' => $subnetMapping
-            ]);
+            ];
+            
+            // Add info about unmapped subnets if any
+            if ($unmappedCount > 0) {
+                $unmappedInfo = [];
+                foreach ($unmappedSubnets as $subnetId => $count) {
+                    $unmappedInfo[] = "Subnet $subnetId: $count leases";
+                }
+                $responseData['unmapped_info'] = $unmappedInfo;
+            }
+            
+            $this->jsonResponse($responseData);
 
         } catch (\Exception $e) {
             error_log("Import leases error: " . $e->getMessage());
@@ -1355,8 +1387,14 @@ class AdminController
             $keaSubnets = $keaResponse[0]['arguments']['subnets'];
             error_log("Found " . count($keaSubnets) . " Kea subnets for matching");
             
+            // Log all available Kea subnets for debugging
+            foreach ($keaSubnets as $ks) {
+                error_log("Available Kea Subnet: ID={$ks['id']}, Prefix={$ks['subnet']}");
+            }
+            
             // NEW APPROACH: Map each lease directly to correct subnet based on IP
             // This handles cases where subnet IDs are completely different
+            $unmappedLeases = [];
             foreach ($leases as $lease) {
                 $ipAddress = $lease['address'];
                 $oldSubnetId = strval($lease['subnet_id']);
@@ -1367,21 +1405,32 @@ class AdminController
                 }
                 
                 // Find which Kea subnet this IP belongs to
+                $found = false;
+                error_log("Trying to map IP: $ipAddress (CSV subnet_id: $oldSubnetId)");
+                
                 foreach ($keaSubnets as $keaSubnet) {
                     $keaSubnetId = $keaSubnet['id'];
                     $subnetPrefix = $keaSubnet['subnet'];
                     
+                    error_log("  Checking against Kea subnet: $subnetPrefix (id=$keaSubnetId)");
+                    
                     if ($this->ipBelongsToSubnet($ipAddress, $subnetPrefix)) {
                         $mapping[$oldSubnetId] = $keaSubnetId;
-                        error_log("Auto-mapped: CSV Subnet $oldSubnetId → Kea Subnet $keaSubnetId (IP $ipAddress belongs to $subnetPrefix)");
+                        error_log("  ✓ MATCH! Auto-mapped: CSV Subnet $oldSubnetId → Kea Subnet $keaSubnetId");
+                        $found = true;
                         break; // Found match, move to next lease
                     }
                 }
                 
                 // If no match found, log warning
-                if (!isset($mapping[$oldSubnetId])) {
-                    error_log("WARNING: No matching Kea subnet found for IP $ipAddress (CSV subnet_id: $oldSubnetId)");
+                if (!$found) {
+                    error_log("  ✗ WARNING: No matching Kea subnet found for IP $ipAddress (CSV subnet_id: $oldSubnetId)");
+                    $unmappedLeases[] = $ipAddress;
                 }
+            }
+            
+            if (!empty($unmappedLeases)) {
+                error_log("UNMAPPED IPs (will be skipped): " . implode(', ', $unmappedLeases));
             }
             
             error_log("Auto-mapping complete. Total mappings: " . count($mapping));
@@ -1395,41 +1444,44 @@ class AdminController
 
     /**
      * Check if an IPv6 address belongs to a subnet
+     * Simple and clean implementation using PHP's inet functions
      */
     private function ipBelongsToSubnet($ip, $subnet)
     {
         // Parse subnet (e.g., "2001:db8::/32")
         list($subnetAddr, $prefixLen) = explode('/', $subnet);
+        $prefixLen = (int)$prefixLen;
         
-        // Convert both to binary representation and compare
+        // Validate inputs
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return false;
+        }
+        
+        if (filter_var($subnetAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return false;
+        }
+        
+        // Use Symfony's IpUtils if available, otherwise use inet_pton
+        if (class_exists('\Symfony\Component\HttpFoundation\IpUtils')) {
+            return \Symfony\Component\HttpFoundation\IpUtils::checkIp6($ip, $subnet);
+        }
+        
+        // Fallback: Simple binary comparison
         $ipBin = inet_pton($ip);
         $subnetBin = inet_pton($subnetAddr);
         
-        if ($ipBin === false || $subnetBin === false) {
-            return false;
+        // Create mask for the prefix length
+        $mask = str_repeat('f', $prefixLen >> 2);
+        switch ($prefixLen & 3) {
+            case 1: $mask .= '8'; break;
+            case 2: $mask .= 'c'; break;
+            case 3: $mask .= 'e'; break;
         }
+        $mask = str_pad($mask, 32, '0');
+        $mask = pack('H*', $mask);
         
-        // Calculate how many full bytes and bits to compare
-        $fullBytes = floor($prefixLen / 8);
-        $remainingBits = $prefixLen % 8;
-        
-        // Compare full bytes
-        if (substr($ipBin, 0, $fullBytes) !== substr($subnetBin, 0, $fullBytes)) {
-            return false;
-        }
-        
-        // Compare remaining bits if any
-        if ($remainingBits > 0) {
-            $mask = 0xFF << (8 - $remainingBits);
-            $ipByte = ord($ipBin[$fullBytes]);
-            $subnetByte = ord($subnetBin[$fullBytes]);
-            
-            if (($ipByte & $mask) !== ($subnetByte & $mask)) {
-                return false;
-            }
-        }
-        
-        return true;
+        // Apply mask and compare
+        return ($ipBin & $mask) === ($subnetBin & $mask);
     }
 
     /**

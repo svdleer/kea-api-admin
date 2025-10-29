@@ -1092,9 +1092,24 @@ async function autoMapAndImportLeases(file) {
             if (data.subnet_mapping && Object.keys(data.subnet_mapping).length > 0) {
                 mappingInfo = '<div class="mt-3 p-3 bg-blue-50 rounded"><p class="text-sm font-semibold text-blue-900 mb-1">Subnet Mappings Applied:</p><ul class="text-xs text-blue-800 list-disc list-inside">';
                 for (const [oldId, newId] of Object.entries(data.subnet_mapping)) {
-                    mappingInfo += `<li>Subnet ${oldId} → ${newId}</li>`;
+                    mappingInfo += `<li>CSV Subnet ${oldId} → Kea Subnet ${newId}</li>`;
                 }
                 mappingInfo += '</ul></div>';
+            }
+            
+            let unmappedInfo = '';
+            if (data.unmapped && data.unmapped > 0) {
+                unmappedInfo = '<div class="mt-3 p-3 bg-orange-50 rounded"><p class="text-sm font-semibold text-orange-900 mb-1">⚠️ Leases from Non-Existent Subnets (Auto-Skipped):</p>';
+                if (data.unmapped_info && data.unmapped_info.length > 0) {
+                    unmappedInfo += '<ul class="text-xs text-orange-800 list-disc list-inside">';
+                    data.unmapped_info.forEach(info => {
+                        unmappedInfo += `<li>${info}</li>`;
+                    });
+                    unmappedInfo += '</ul>';
+                } else {
+                    unmappedInfo += `<p class="text-xs text-orange-800">${data.unmapped} leases had no matching subnet in your Kea configuration</p>`;
+                }
+                unmappedInfo += '<p class="text-xs text-orange-700 mt-2">These IPs don\'t belong to any configured subnet and were automatically skipped.</p></div>';
             }
             
             await Swal.fire({
@@ -1103,8 +1118,9 @@ async function autoMapAndImportLeases(file) {
                     <div class="text-left">
                         <p class="mb-2">✓ Processed ${data.total || 0} leases from CSV</p>
                         <p class="mb-2">✓ Imported ${data.imported || 0} active leases</p>
-                        <p class="mb-2">⊘ Skipped ${data.skipped || 0} (expired or invalid)</p>
+                        <p class="mb-2">⊘ Skipped ${data.skipped || 0} (expired, invalid, or no matching subnet)</p>
                         ${mappingInfo}
+                        ${unmappedInfo}
                         ${data.errors && data.errors.length > 0 ? `
                             <div class="mt-3 p-3 bg-yellow-50 rounded">
                                 <p class="text-sm font-semibold text-yellow-900 mb-1">Warnings:</p>
