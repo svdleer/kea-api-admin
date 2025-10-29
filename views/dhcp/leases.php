@@ -341,17 +341,19 @@ async function populateDhcpOptions() {
         console.log('DHCP options data:', data); // Debug log
 
         if (data.success && Array.isArray(data.data)) {
-            // Sort options by code
-            data.data.sort((a, b) => a.option.code - b.option.code);
-            data.data.forEach(item => {
+            // Filter out items with null option and sort by code
+            const validOptions = data.data.filter(item => item && item.option && item.option.code);
+            validOptions.sort((a, b) => a.option.code - b.option.code);
+            
+            validOptions.forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = JSON.stringify({
                     code: item.option.code,
-                    type: item.definition.type,
-                    name: item.option.name,
+                    type: item.definition?.type || 'string',
+                    name: item.option.name || `Option ${item.option.code}`,
                     space: item.option.space || 'dhcp6'
                 });
-                opt.textContent = `${item.option.code} - ${item.option.name}`;
+                opt.textContent = `${item.option.code} - ${item.option.name || 'Unknown'}`;
                 dhcpOptionsSelect.appendChild(opt);
             });
 
@@ -514,16 +516,19 @@ async function populateDhcpOptionsForRow(row) {
         const data = await response.json();
         
         if (data.success && Array.isArray(data.data)) {
-            // Sort options by code
-            data.data.sort((a, b) => a.option.code - b.option.code);
-            data.data.forEach(item => {
+            // Filter out items with null option and sort by code
+            const validOptions = data.data.filter(item => item && item.option && item.option.code);
+            validOptions.sort((a, b) => a.option.code - b.option.code);
+            
+            validOptions.forEach(item => {
                 const opt = document.createElement('option');
                 opt.value = JSON.stringify({
                     code: item.option.code,
-                    type: item.definition.type,
-                    name: item.option.name
+                    type: item.definition?.type || 'string',
+                    name: item.option.name || `Option ${item.option.code}`,
+                    space: item.option.space || 'dhcp6'
                 });
-                opt.textContent = `${item.option.code} - ${item.option.name}`;
+                opt.textContent = `${item.option.code} - ${item.option.name || 'Unknown'}`;
                 select.appendChild(opt);
             });
         }
