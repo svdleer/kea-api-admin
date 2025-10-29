@@ -221,14 +221,16 @@ function displayBviData(bviInterfaces) {
                     ${escapeHtml(bvi.ipv6_address)}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <a href="/switches/${bvi.switch_id}/bvi/${bvi.bvi_id}/edit" 
-                       class="text-indigo-600 hover:text-indigo-900 mr-4">
-                        Edit
-                    </a>
-                    <button onclick="deleteBvi(${bvi.switch_id}, ${bvi.bvi_id}, 'BVI${100 + parseInt(bvi.interface_number)}', '${escapeHtml(bvi.switch_hostname)}')"
-                            class="text-red-600 hover:text-red-900">
-                        Delete
-                    </button>
+                    <div class="flex justify-end space-x-2">
+                        <a href="/switches/${bvi.switch_id}/bvi/${bvi.bvi_id}/edit" 
+                           class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                            Edit
+                        </a>
+                        <button onclick="deleteBvi(${bvi.switch_id}, ${bvi.bvi_id}, 'BVI${100 + parseInt(bvi.interface_number)}', '${escapeHtml(bvi.switch_hostname)}')"
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            Delete
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;

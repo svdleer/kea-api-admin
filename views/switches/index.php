@@ -152,18 +152,18 @@ ob_start();
                                         ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div class="flex space-x-4">
+                                        <div class="flex space-x-2">
                                             <a href="/switches/edit/<?php echo htmlspecialchars($switch['id']); ?>"     
-                                               class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded-md">
-                                                Edit Switch
+                                               class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                                                Edit
                                             </a>
                                             <a href="/switches/bvi/list/<?php echo htmlspecialchars($switch['id']); ?>" 
-                                            class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md">
-                                                Edit BVI Interfaces
+                                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                                BVI Interfaces
                                             </a>
                                             <button onclick="deleteSwitch(<?php echo htmlspecialchars($switch['id']); ?>, '<?php echo htmlspecialchars($switch['hostname']); ?>')" 
-                                            class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded-md cursor-pointer">
-                                                Delete Switch
+                                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer">
+                                                Delete
                                             </button>
                                         </div>
                                     </td>

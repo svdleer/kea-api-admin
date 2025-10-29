@@ -200,21 +200,23 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
-                                    <button onclick="showEditSubnetModal('<?= htmlspecialchars(json_encode($switch['subnet']), ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>')"
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2">
-                                        Edit
-                                    </button>
-                                    <button onclick="deleteSubnet('<?= $switch['subnet']['id'] ?>', '<?= htmlspecialchars(json_encode($switch['subnet']['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                        Delete
-                                    </button>
-                                <?php else: ?>
-                                    <button onclick="showCreateSubnetModal('<?= htmlspecialchars($switch['switch_id'] ?? '') ?>','<?= htmlspecialchars($switch['bvi_interface'] ?? '') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '') ?>', '<?= htmlspecialchars($switch['bvi_interface_id'] ?? '') ?>')" 
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                        Configure
-                                    </button>
-                                <?php endif; ?>
+                                <div class="flex justify-end space-x-2">
+                                    <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
+                                        <button onclick="showEditSubnetModal('<?= htmlspecialchars(json_encode($switch['subnet']), ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>')"
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                                            Edit
+                                        </button>
+                                        <button onclick="deleteSubnet('<?= $switch['subnet']['id'] ?>', '<?= htmlspecialchars(json_encode($switch['subnet']['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            Delete
+                                        </button>
+                                    <?php else: ?>
+                                        <button onclick="showCreateSubnetModal('<?= htmlspecialchars($switch['switch_id'] ?? '') ?>','<?= htmlspecialchars($switch['bvi_interface'] ?? '') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '') ?>', '<?= htmlspecialchars($switch['bvi_interface_id'] ?? '') ?>')" 
+                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                                            Configure
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
