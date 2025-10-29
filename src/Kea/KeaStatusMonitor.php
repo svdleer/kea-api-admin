@@ -239,6 +239,11 @@ class KeaStatusMonitor {
                         $value = $firstEntry;
                     }
                 }
+                
+                // Debug specific statistics
+                if (strpos($name, 'assigned-nas') !== false && strpos($name, 'cumulative') === false) {
+                    error_log("PARSING $name - stat array count: " . (is_array($stat) ? count($stat) : 'not array') . ", firstEntry: " . json_encode($firstEntry ?? null) . ", extracted value: " . var_export($value, true));
+                }
             }
             
             if ($name && is_string($name)) {
