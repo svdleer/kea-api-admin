@@ -143,11 +143,11 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         Add Option +
                     </button>
                 </div>
-                <div id="dhcpOptionsContainer" class="hidden">
+                <div id="dhcpOptionsContainer">
                 <div class="flex gap-4 mb-4 items-end option-row" id="option-row-initial">
                         <div class="flex-1">
                             <label for="dhcpOptions" class="block text-lg font-semibold mb-2">DHCP Option</label>
-                            <select id="dhcpOptions" name="dhcpOptions[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" required>
+                            <select id="dhcpOptions" name="dhcpOptions[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                                 <option value="">Select Option</option>
                             </select>
                             <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
@@ -159,8 +159,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                    name="optionValues[]" 
                                    list="ccapCoreList"
                                    class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
-                                   placeholder="Option Value" 
-                                   required>
+                                   placeholder="Option Value">
                             <datalist id="ccapCoreList"></datalist>
                             <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
                         </div>
