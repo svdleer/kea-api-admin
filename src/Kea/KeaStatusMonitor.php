@@ -203,6 +203,12 @@ class KeaStatusMonitor {
         ];
 
         error_log("Parsing lease stats with " . count($statistics) . " entries");
+        
+        // Log which keys contain assigned-nas
+        $assignedNasKeys = array_filter(array_keys($statistics), function($key) {
+            return strpos($key, 'assigned-nas') !== false && strpos($key, 'cumulative') === false;
+        });
+        error_log("Keys with assigned-nas (non-cumulative): " . json_encode($assignedNasKeys));
 
         foreach ($statistics as $key => $stat) {
             // Handle both array format [name, [[value, timestamp], ...]] and object format  
