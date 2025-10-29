@@ -129,11 +129,23 @@ class DashboardController
             
             error_log("Kea stats - Subnets: $totalSubnets, Total leases: $totalLeases, Assigned: $assignedLeases, Reservations: $totalReservations");
             
+            // For IPv6, calculate utilization with more precision or use count display
+            $utilizationPercent = 0;
+            if ($totalLeases > 0) {
+                $utilizationPercent = ($assignedLeases / $totalLeases) * 100;
+                // If percentage is very small (< 0.01%), show more decimals
+                if ($utilizationPercent > 0 && $utilizationPercent < 0.01) {
+                    $utilizationPercent = round($utilizationPercent, 6);
+                } else {
+                    $utilizationPercent = round($utilizationPercent, 2);
+                }
+            }
+            
             return [
                 'total_subnets' => $totalSubnets,
                 'total_leases' => $totalLeases,
                 'assigned_leases' => $assignedLeases,
-                'utilization_percent' => $totalLeases > 0 ? round(($assignedLeases / $totalLeases) * 100, 1) : 0,
+                'utilization_percent' => $utilizationPercent,
                 'total_reservations' => $totalReservations
             ];
         } catch (\Exception $e) {
