@@ -1055,9 +1055,9 @@ async function loadSwitches() {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${subnets.map(subnet => subnet.subnet).join(', ')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-4 text-sm text-gray-900">
                     ${subnets.map(subnet => 
-                        subnet.pool ? `${subnet.pool.start} - ${subnet.pool.end}` : 'No pool'
+                        subnet.pool ? `<div class="flex flex-col"><span>${subnet.pool.start}</span><span>${subnet.pool.end}</span></div>` : 'No pool'
                     ).join(', ')}
                 </td>
                 <!-- other cells -->
