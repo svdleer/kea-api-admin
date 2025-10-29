@@ -97,8 +97,15 @@ class KeaStatusMonitor {
                 
                 // Try to get lease statistics
                 $leaseStats = $this->sendCommand($server['url'], 'statistic-get-all');
-                if ($leaseStats && isset($leaseStats['arguments'])) {
-                    $status['leases'] = $this->parseLeaseStats($leaseStats['arguments']);
+                if ($leaseStats) {
+                    error_log("Kea lease stats raw response for {$server['name']}: " . json_encode($leaseStats));
+                    
+                    if (isset($leaseStats['arguments'])) {
+                        $status['leases'] = $this->parseLeaseStats($leaseStats['arguments']);
+                    } elseif (is_array($leaseStats) && isset($leaseStats[0]['arguments'])) {
+                        // Sometimes response is nested in array
+                        $status['leases'] = $this->parseLeaseStats($leaseStats[0]['arguments']);
+                    }
                 }
                 
                 // Try to get subnet information
@@ -191,20 +198,42 @@ class KeaStatusMonitor {
             'available' => 0
         ];
 
-        foreach ($statistics as $stat) {
-            if (isset($stat[0]) && isset($stat[1])) {
+        error_log("Parsing lease stats with " . count($statistics) . " entries");
+
+        foreach ($statistics as $key => $stat) {
+            // Handle both array format [name, [value]] and object format
+            $name = null;
+            $value = null;
+            
+            if (is_array($stat) && isset($stat[0]) && isset($stat[1])) {
+                // Format: ["stat-name", [value]]
                 $name = $stat[0];
-                $value = $stat[1];
+                $value = is_array($stat[1]) ? ($stat[1][0] ?? 0) : $stat[1];
+            } elseif (is_string($key)) {
+                // Format: {"stat-name": [value]} or {"stat-name": value}
+                $name = $key;
+                $value = is_array($stat) ? ($stat[0] ?? 0) : $stat;
+            }
+            
+            if ($name) {
+                error_log("Stat: $name = $value");
                 
-                if (strpos($name, 'assigned-nas') !== false) {
-                    $leaseInfo['assigned'] += $value[0] ?? 0;
-                } elseif (strpos($name, 'total-nas') !== false) {
-                    $leaseInfo['total'] += $value[0] ?? 0;
+                // Match various Kea statistic naming patterns
+                if (preg_match('/assigned-(nas|addresses|pd)/i', $name)) {
+                    $leaseInfo['assigned'] += intval($value);
+                } elseif (preg_match('/total-(nas|addresses|pd)/i', $name)) {
+                    $leaseInfo['total'] += intval($value);
+                } elseif (preg_match('/declined-(addresses|pd)/i', $name)) {
+                    $leaseInfo['assigned'] += intval($value);
+                } elseif (preg_match('/reclaimed-(declined|leases)/i', $name)) {
+                    // Count reclaimed as available
                 }
             }
         }
         
         $leaseInfo['available'] = $leaseInfo['total'] - $leaseInfo['assigned'];
+        
+        error_log("Final lease stats - Total: {$leaseInfo['total']}, Assigned: {$leaseInfo['assigned']}, Available: {$leaseInfo['available']}");
         
         return $leaseInfo;
     }
