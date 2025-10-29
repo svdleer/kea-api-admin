@@ -72,54 +72,45 @@ class DashboardController
     }
     
     /**
-     * Get DHCP statistics from cin_bvi_dhcp_subnet and Kea
+     * Get DHCP statistics from Kea API
      */
     private function getDhcpStatistics()
     {
         try {
-            // Count configured subnets
-            $stmt = $this->db->query("SELECT COUNT(*) as total FROM cin_bvi_dhcp_subnet");
-            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $totalSubnets = $result ? intval($result['total']) : 0;
-            error_log("Total DHCP subnets: $totalSubnets");
+            $keaConfig = require BASE_PATH . '/config/kea.php';
+            $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
+            $keaServers = $keaMonitor->getServersStatus();
             
-            // Count active leases from Kea (if available)
+            $totalSubnets = 0;
             $totalLeases = 0;
             $assignedLeases = 0;
+            $totalReservations = 0;
             
-            try {
-                $keaConfig = require BASE_PATH . '/config/kea.php';
-                // Try to get lease stats from Kea
-                $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
-                $keaServers = $keaMonitor->getServersStatus();
-                
-                foreach ($keaServers as $server) {
-                    if ($server['online'] && isset($server['leases']) && is_array($server['leases'])) {
+            foreach ($keaServers as $server) {
+                if ($server['online']) {
+                    // Get subnet count from Kea
+                    if (isset($server['subnets'])) {
+                        $totalSubnets += intval($server['subnets']);
+                    }
+                    
+                    // Get lease stats from Kea
+                    if (isset($server['leases']) && is_array($server['leases'])) {
                         $totalLeases += intval($server['leases']['total'] ?? 0);
                         $assignedLeases += intval($server['leases']['assigned'] ?? 0);
                     }
                 }
-                error_log("Kea lease stats - Total: $totalLeases, Assigned: $assignedLeases");
-            } catch (\Exception $e) {
-                error_log("Could not fetch lease stats from Kea: " . $e->getMessage());
             }
             
-            // Count reservations - check if hosts table exists first
-            $totalReservations = 0;
-            $stmt = $this->db->query("SHOW TABLES LIKE 'hosts'");
-            if ($stmt->rowCount() > 0) {
-                // hosts table exists, try to count reservations
-                try {
-                    $stmt = $this->db->query("SELECT COUNT(*) as total FROM hosts");
-                    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-                    $totalReservations = $result ? intval($result['total']) : 0;
-                    error_log("Total reservations: $totalReservations");
-                } catch (\Exception $e) {
-                    error_log("Could not count hosts: " . $e->getMessage());
-                }
-            } else {
-                error_log("hosts table does not exist");
+            // Get reservations count from Kea database (hosts table)
+            try {
+                $stmt = $this->db->query("SELECT COUNT(*) as total FROM hosts");
+                $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $totalReservations = $result ? intval($result['total']) : 0;
+            } catch (\Exception $e) {
+                error_log("Could not count hosts from Kea DB: " . $e->getMessage());
             }
+            
+            error_log("Kea stats - Subnets: $totalSubnets, Total leases: $totalLeases, Assigned: $assignedLeases, Reservations: $totalReservations");
             
             return [
                 'total_subnets' => $totalSubnets,
