@@ -1045,7 +1045,12 @@ async function loadSwitches() {
                     ${switchName}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${subnets.map(subnet => `${subnet.bvi_interface} (${subnet.ipv6_address})`).join(', ')}
+                    ${subnets.map(subnet => {
+                        const bviNum = subnet.bvi_interface !== null && subnet.bvi_interface !== undefined 
+                            ? 'BVI' + (100 + parseInt(subnet.bvi_interface)) 
+                            : 'N/A';
+                        return bviNum;
+                    }).join(', ')}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${subnets.map(subnet => subnet.subnet).join(', ')}
