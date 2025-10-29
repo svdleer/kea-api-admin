@@ -66,23 +66,24 @@ class DashboardController
         try {
             // Count configured subnets
             $stmt = $this->db->query("SELECT COUNT(*) as total FROM cin_bvi_dhcp_subnet");
-            $totalSubnets = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $totalSubnets = $result ? intval($result['total']) : 0;
             error_log("Total DHCP subnets: $totalSubnets");
             
             // Count active leases from Kea (if available)
-            $keaConfig = require BASE_PATH . '/config/kea.php';
             $totalLeases = 0;
             $assignedLeases = 0;
             
             try {
+                $keaConfig = require BASE_PATH . '/config/kea.php';
                 // Try to get lease stats from Kea
                 $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
                 $keaServers = $keaMonitor->getServersStatus();
                 
                 foreach ($keaServers as $server) {
-                    if ($server['online'] && isset($server['leases'])) {
-                        $totalLeases += $server['leases']['total'] ?? 0;
-                        $assignedLeases += $server['leases']['assigned'] ?? 0;
+                    if ($server['online'] && isset($server['leases']) && is_array($server['leases'])) {
+                        $totalLeases += intval($server['leases']['total'] ?? 0);
+                        $assignedLeases += intval($server['leases']['assigned'] ?? 0);
                     }
                 }
                 error_log("Kea lease stats - Total: $totalLeases, Assigned: $assignedLeases");
@@ -97,7 +98,8 @@ class DashboardController
                 // hosts table exists, try to count reservations
                 try {
                     $stmt = $this->db->query("SELECT COUNT(*) as total FROM hosts");
-                    $totalReservations = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    $totalReservations = $result ? intval($result['total']) : 0;
                     error_log("Total reservations: $totalReservations");
                 } catch (\Exception $e) {
                     error_log("Could not count hosts: " . $e->getMessage());
