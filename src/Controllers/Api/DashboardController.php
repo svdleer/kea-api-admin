@@ -86,12 +86,20 @@ class DashboardController
             $assignedLeases = 0;
             $totalReservations = 0;
             
-            // Only use statistics from the PRIMARY/ACTIVE server, not standby
             // In HA setup, both servers share the same lease database
-            $primaryFound = false;
+            // Try primary first, then fall back to any online server that has valid stats
             foreach ($keaServers as $server) {
-                if ($server['online'] && isset($server['name']) && strtolower($server['name']) === 'primary') {
-                    error_log("Using PRIMARY server stats");
+                if ($server['online']) {
+                    $serverName = $server['name'] ?? 'unknown';
+                    $hasValidStats = isset($server['leases']['total']) && $server['leases']['total'] > 0;
+                    
+                    // Skip mock/secondary servers with fake data
+                    if (strtolower($serverName) === 'secondary' && !$hasValidStats) {
+                        continue;
+                    }
+                    
+                    error_log("Using server: $serverName (Total leases: " . ($server['leases']['total'] ?? 0) . ")");
+                    
                     // Get subnet count from Kea
                     if (isset($server['subnets'])) {
                         $totalSubnets = intval($server['subnets']);
@@ -102,24 +110,9 @@ class DashboardController
                         $totalLeases = intval($server['leases']['total'] ?? 0);
                         $assignedLeases = intval($server['leases']['assigned'] ?? 0);
                     }
-                    $primaryFound = true;
-                    break; // Only use primary server stats
-                }
-            }
-            
-            // Fallback: if primary not found, use first online server
-            if (!$primaryFound) {
-                error_log("Primary server not found, using first online server");
-                foreach ($keaServers as $server) {
-                    if ($server['online']) {
-                        error_log("Using server: " . ($server['name'] ?? 'unknown'));
-                        if (isset($server['subnets'])) {
-                            $totalSubnets = intval($server['subnets']);
-                        }
-                        if (isset($server['leases']) && is_array($server['leases'])) {
-                            $totalLeases = intval($server['leases']['total'] ?? 0);
-                            $assignedLeases = intval($server['leases']['assigned'] ?? 0);
-                        }
+                    
+                    // If we found valid statistics, stop looking
+                    if ($totalLeases > 0) {
                         break;
                     }
                 }
