@@ -86,18 +86,21 @@ class DashboardController
             $assignedLeases = 0;
             $totalReservations = 0;
             
+            // Only use statistics from the PRIMARY/ACTIVE server, not standby
+            // In HA setup, both servers share the same lease database
             foreach ($keaServers as $server) {
-                if ($server['online']) {
+                if ($server['online'] && isset($server['name']) && strtolower($server['name']) === 'primary') {
                     // Get subnet count from Kea
                     if (isset($server['subnets'])) {
-                        $totalSubnets += intval($server['subnets']);
+                        $totalSubnets = intval($server['subnets']);
                     }
                     
                     // Get lease stats from Kea
                     if (isset($server['leases']) && is_array($server['leases'])) {
-                        $totalLeases += intval($server['leases']['total'] ?? 0);
-                        $assignedLeases += intval($server['leases']['assigned'] ?? 0);
+                        $totalLeases = intval($server['leases']['total'] ?? 0);
+                        $assignedLeases = intval($server['leases']['assigned'] ?? 0);
                     }
+                    break; // Only use primary server stats
                 }
             }
             
