@@ -154,7 +154,14 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         </div>
                         <div class="flex-1">
                             <label for="optionValue" class="block text-lg font-semibold mb-2">Option Value</label>
-                            <input type="text" id="optionValue" name="optionValues[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Option Value" required>
+                            <input type="text" 
+                                   id="optionValue" 
+                                   name="optionValues[]" 
+                                   list="ccapCoreList"
+                                   class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   placeholder="Option Value" 
+                                   required>
+                            <datalist id="ccapCoreList"></datalist>
                             <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
                         </div>
                     </div>
@@ -342,7 +349,8 @@ async function populateDhcpOptions() {
                 opt.value = JSON.stringify({
                     code: item.option.code,
                     type: item.definition.type,
-                    name: item.option.name
+                    name: item.option.name,
+                    space: item.option.space || 'dhcp6'
                 });
                 opt.textContent = `${item.option.code} - ${item.option.name}`;
                 dhcpOptionsSelect.appendChild(opt);
@@ -354,11 +362,52 @@ async function populateDhcpOptions() {
                 console.log('Setting up validation for initial row');
                 setupOptionRowValidation(initialRow);
             }
+            
+            // Load CCAP cores for option 61
+            await loadCcapCores();
         } else {
             throw new Error('Failed to load DHCP options');
         }
     } catch (error) {
         console.error('Error loading DHCP options:', error);
+    }
+}
+
+// Load known CCAP cores from cin_bvi_dhcp_core table
+async function loadCcapCores() {
+    try {
+        const response = await fetch('/api/dhcp/subnets', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const subnets = await response.json();
+        const ccapCoreList = document.getElementById('ccapCoreList');
+        
+        // Get unique CCAP cores
+        const uniqueCcapCores = [...new Set(
+            subnets
+                .map(subnet => subnet.ccap_core)
+                .filter(core => core && core.trim() !== '')
+        )];
+        
+        // Clear and populate datalist
+        ccapCoreList.innerHTML = '';
+        uniqueCcapCores.forEach(core => {
+            const option = document.createElement('option');
+            option.value = core;
+            ccapCoreList.appendChild(option);
+        });
+        
+        console.log('Loaded CCAP cores:', uniqueCcapCores);
+    } catch (error) {
+        console.error('Error loading CCAP cores:', error);
     }
 }
 
