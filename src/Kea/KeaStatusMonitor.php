@@ -237,6 +237,12 @@ class KeaStatusMonitor {
             } elseif (is_string($key)) {
                 // Format: {"stat-name": [[value, timestamp], ...]}
                 $name = $key;
+                
+                // Debug specific statistics - LOG ENTRY
+                if (strpos($name, 'assigned-nas') !== false && strpos($name, 'cumulative') === false) {
+                    error_log("ENTERING elseif block for $name - stat type: " . gettype($stat) . ", is_array: " . (is_array($stat) ? 'yes' : 'no') . ", count: " . (is_array($stat) ? count($stat) : 'N/A'));
+                }
+                
                 if (is_array($stat) && count($stat) > 0) {
                     $firstEntry = $stat[0]; // Get first time-series entry
                     if (is_array($firstEntry)) {
@@ -244,11 +250,11 @@ class KeaStatusMonitor {
                     } else {
                         $value = $firstEntry;
                     }
-                }
-                
-                // Debug specific statistics
-                if (strpos($name, 'assigned-nas') !== false && strpos($name, 'cumulative') === false) {
-                    error_log("PARSING $name - stat array count: " . (is_array($stat) ? count($stat) : 'not array') . ", firstEntry: " . json_encode($firstEntry ?? null) . ", extracted value: " . var_export($value, true));
+                    
+                    // Debug specific statistics - AFTER EXTRACTION
+                    if (strpos($name, 'assigned-nas') !== false && strpos($name, 'cumulative') === false) {
+                        error_log("EXTRACTED for $name - firstEntry: " . json_encode($firstEntry ?? null) . ", value: " . var_export($value, true));
+                    }
                 }
             }
             
