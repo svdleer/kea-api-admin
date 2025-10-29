@@ -1388,6 +1388,11 @@ class AdminController
             $keaSubnets = $keaResponse[0]['arguments']['subnets'];
             error_log("Found " . count($keaSubnets) . " Kea subnets for IP matching");
             
+            // Log available subnets for debugging
+            foreach ($keaSubnets as $ks) {
+                error_log("  Available: {$ks['subnet']} (id={$ks['id']})");
+            }
+            
             // Match each lease's IP to the correct Kea subnet
             // The CSV subnet_id is irrelevant - we only match by IP address
             foreach ($leases as $lease) {
@@ -1399,14 +1404,23 @@ class AdminController
                     continue;
                 }
                 
+                error_log("Testing IP: $ipAddress");
+                
                 // Find which Kea subnet this IP actually belongs to
                 foreach ($keaSubnets as $keaSubnet) {
-                    if ($this->ipBelongsToSubnet($ipAddress, $keaSubnet['subnet'])) {
+                    $testResult = $this->ipBelongsToSubnet($ipAddress, $keaSubnet['subnet']);
+                    error_log("  vs {$keaSubnet['subnet']}: " . ($testResult ? 'MATCH' : 'no match'));
+                    
+                    if ($testResult) {
                         // Found it! CSV subnet_id → correct Kea subnet_id
                         $mapping[$csvSubnetId] = $keaSubnet['id'];
-                        error_log("Matched IP $ipAddress to subnet {$keaSubnet['subnet']} (id={$keaSubnet['id']})");
+                        error_log("✓ Mapped CSV subnet $csvSubnetId to Kea subnet {$keaSubnet['id']}");
                         break;
                     }
+                }
+                
+                if (!isset($mapping[$csvSubnetId])) {
+                    error_log("✗ No match found for IP $ipAddress");
                 }
             }
             
@@ -1425,40 +1439,59 @@ class AdminController
      */
     private function ipBelongsToSubnet($ip, $subnet)
     {
-        // Parse subnet (e.g., "2001:db8::/32")
-        list($subnetAddr, $prefixLen) = explode('/', $subnet);
-        $prefixLen = (int)$prefixLen;
-        
-        // Validate inputs
-        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+        try {
+            // Parse subnet (e.g., "2001:db8::/32")
+            $parts = explode('/', $subnet);
+            if (count($parts) !== 2) {
+                error_log("ERROR: Invalid subnet format: $subnet");
+                return false;
+            }
+            
+            list($subnetAddr, $prefixLen) = $parts;
+            $prefixLen = (int)$prefixLen;
+            
+            // Validate inputs
+            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+                error_log("ERROR: Invalid IPv6 address: $ip");
+                return false;
+            }
+            
+            if (filter_var($subnetAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+                error_log("ERROR: Invalid IPv6 subnet address: $subnetAddr");
+                return false;
+            }
+            
+            // Use Symfony's IpUtils if available, otherwise use inet_pton
+            if (class_exists('\Symfony\Component\HttpFoundation\IpUtils')) {
+                return \Symfony\Component\HttpFoundation\IpUtils::checkIp6($ip, $subnet);
+            }
+            
+            // Fallback: Simple binary comparison
+            $ipBin = inet_pton($ip);
+            $subnetBin = inet_pton($subnetAddr);
+            
+            if ($ipBin === false || $subnetBin === false) {
+                error_log("ERROR: Failed to convert to binary - IP: $ip, Subnet: $subnetAddr");
+                return false;
+            }
+            
+            // Create mask for the prefix length
+            $mask = str_repeat('f', $prefixLen >> 2);
+            switch ($prefixLen & 3) {
+                case 1: $mask .= '8'; break;
+                case 2: $mask .= 'c'; break;
+                case 3: $mask .= 'e'; break;
+            }
+            $mask = str_pad($mask, 32, '0');
+            $mask = pack('H*', $mask);
+            
+            // Apply mask and compare - use == not === (binary strings!)
+            return ($ipBin & $mask) == ($subnetBin & $mask);
+            
+        } catch (\Exception $e) {
+            error_log("ERROR in ipBelongsToSubnet: " . $e->getMessage());
             return false;
         }
-        
-        if (filter_var($subnetAddr, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
-            return false;
-        }
-        
-        // Use Symfony's IpUtils if available, otherwise use inet_pton
-        if (class_exists('\Symfony\Component\HttpFoundation\IpUtils')) {
-            return \Symfony\Component\HttpFoundation\IpUtils::checkIp6($ip, $subnet);
-        }
-        
-        // Fallback: Simple binary comparison
-        $ipBin = inet_pton($ip);
-        $subnetBin = inet_pton($subnetAddr);
-        
-        // Create mask for the prefix length
-        $mask = str_repeat('f', $prefixLen >> 2);
-        switch ($prefixLen & 3) {
-            case 1: $mask .= '8'; break;
-            case 2: $mask .= 'c'; break;
-            case 3: $mask .= 'e'; break;
-        }
-        $mask = str_pad($mask, 32, '0');
-        $mask = pack('H*', $mask);
-        
-        // Apply mask and compare
-        return ($ipBin & $mask) === ($subnetBin & $mask);
     }
 
     /**
