@@ -22,9 +22,6 @@ class DHCPv6OptionsDefController extends KeaController
         try {
             $result = $this->optionsDefModel->getOptionsDef();
             
-            // Debug logging
-            error_log("DHCPv6Options response: " . print_r($result, true));
-            
             header('Content-Type: application/json');
             
             if (empty($result)) {

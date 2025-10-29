@@ -20,7 +20,6 @@ class User {
             $stmt->execute();
             
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            error_log("Query results: " . print_r($results, true));
             
             return $results ?: [];
             
@@ -109,7 +108,6 @@ class User {
 
     public function updateUser(int $id, array $data): bool {
         try {
-            error_log("Updating user ID: " . $id . " with data: " . print_r($data, true));
             
             $updates = [];
             $values = [];

@@ -15,7 +15,6 @@ class KeaController
 
     protected function sendKEACommand( $command,  $arguments = [])
     {
-        error_log("Sending KEA command: " . $command . " with arguments: " . print_r($arguments, true));
         return $this->keaModel->sendKEACommand($command, $arguments);
     }
 }

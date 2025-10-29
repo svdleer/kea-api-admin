@@ -57,7 +57,6 @@ class DHCPv6OptionsDefModel extends KeaModel
         ];
 
         $response = $this->sendKeaCommand("remote-option-def6-set", $createOptionsDefArguments);
-        error_log("createOption raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'create option');
         return $optionData;
@@ -80,7 +79,6 @@ class DHCPv6OptionsDefModel extends KeaModel
         ];
 
         $response = $this->sendKeaCommand("remote-option-def6-set", $updateOptionsDefArguments);
-        error_log("updateOption raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'update option');
         return $optionData;
@@ -98,9 +96,7 @@ class DHCPv6OptionsDefModel extends KeaModel
                 ]
             ]
         ];
-        error_log("deleteOption arguments: " . print_r($deleteOptionsDefArguments, true));
         $response = $this->sendKeaCommand("remote-option-def6-del", $deleteOptionsDefArguments);
-        error_log("deleteOption raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'delete option');
         return ['code' => $data['code']];  // Return the code from the input data
@@ -116,7 +112,6 @@ class DHCPv6OptionsDefModel extends KeaModel
         ];
 
         $response = $this->sendKeaCommand("remote-option-def6-get-all", $getOptionsDefsArguments);
-        error_log("getOptions raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'get options');
         

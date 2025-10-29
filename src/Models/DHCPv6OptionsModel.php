@@ -85,7 +85,6 @@ class DHCPv6OptionsModel extends KeaModel
         ];
 
         $response = $this->sendKeaCommand("remote-option6-global-set", $updateOptionsArguments);
-        error_log("updateOption raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'update option');
         return $optionData;
@@ -103,9 +102,7 @@ class DHCPv6OptionsModel extends KeaModel
                 ]
             ]
         ];
-        error_log("deleteOption arguments: " . print_r($deleteOptionsArguments, true));
         $response = $this->sendKeaCommand("remote-option6-global-del", $deleteOptionsArguments);
-        error_log("KEA deleteOption raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'delete option');
         return ['code' => $data['code']];  // Return the code from the input data
@@ -121,7 +118,6 @@ class DHCPv6OptionsModel extends KeaModel
         ];
 
         $response = $this->sendKeaCommand("remote-option6-global-get-all", $getOptionsArguments);
-        error_log("getOptions raw response: " . print_r($response, true));
         
         $result = $this->validateKeaResponse($response, 'get options');
         

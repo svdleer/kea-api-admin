@@ -122,7 +122,6 @@ class DHCPController
     {
         try {
             $data = json_decode(file_get_contents('php://input'), true);
-            error_log("Received data: " . print_r($data, true));  // Debug log
 
             // Validate required fields
             $validation = $this->validateSubnetData($data);
@@ -178,7 +177,6 @@ class DHCPController
     {
         try {
             $data = json_decode(file_get_contents('php://input'), true);
-            error_log("Received data: " . print_r($data, true));  // Debug log
 
             // Validate required fields
             $validation = $this->validateSubnetData($data);

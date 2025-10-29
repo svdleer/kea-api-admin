@@ -17,14 +17,9 @@ class DHCPv6LeaseModel extends KEAModel
     {
         try {
             error_log("DHCPv6LeaseModel::getLeases called with parameters:");
-            error_log("from: " . print_r($from, true));
-            error_log("limit: " . print_r($limit, true));
-            error_log("switchId: " . print_r($switchId, true));
-            error_log("bviId: " . print_r($bviId, true));
 
             // Input validation
             if (!is_numeric($limit)) {
-                error_log("Limit validation failed - not numeric: " . print_r($limit, true));
                 throw new Exception('Limit must be a numeric value');
             }
 

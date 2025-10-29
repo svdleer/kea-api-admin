@@ -16,13 +16,10 @@ class UserController {
 
     public function list() {
         try {
-            // Debug point 1
             error_log("Starting list method in UserController");
     
             $users = $this->userModel->getAllUsers();
             
-            // Debug point 2
-            error_log("Users from database: " . print_r($users, true));
     
             // Set proper headers
             header('Content-Type: application/json');
@@ -30,13 +27,10 @@ class UserController {
             // Create response array
             $response = ['users' => $users];
             
-            // Debug point 3
-            error_log("Response before encoding: " . print_r($response, true));
             
             // Encode and output
             $jsonResponse = json_encode($response);
             
-            // Debug point 4
             error_log("Final JSON response: " . $jsonResponse);
             
             // Make sure to actually output the response
@@ -44,7 +38,6 @@ class UserController {
             exit; // Add explicit exit to prevent any additional output
             
         } catch (\Exception $e) {
-            // Debug point 5
             error_log("Error in list method: " . $e->getMessage());
             
             header('Content-Type: application/json');
@@ -100,7 +93,6 @@ class UserController {
             error_log("Starting update method for user ID: " . $userId);
             
             $data = json_decode(file_get_contents('php://input'), true);
-            error_log("Received update data: " . print_r($data, true));
             
             if (empty($data)) {
                 http_response_code(400);

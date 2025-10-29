@@ -134,8 +134,7 @@ class KeaStatusMonitor {
             }
         } catch (\Exception $e) {
             $status['error'] = $e->getMessage();
-            // Log detailed error for debugging
-            error_log("Kea Status Error for {$server['name']} ({$server['url']}): " . $e->getMessage());
+            error_log("Kea Status Error for {$server['name']}: " . $e->getMessage());
         }
 
         return $status;
@@ -217,25 +216,9 @@ class KeaStatusMonitor {
             'assigned' => 0
         ];
 
-        error_log("Parsing lease stats with " . count($statistics) . " entries");
-        
-        // Log which keys contain assigned-nas
-        $assignedNasKeys = array_filter(array_keys($statistics), function($key) {
-            return strpos($key, 'assigned-nas') !== false && strpos($key, 'cumulative') === false;
-        });
-        error_log("Keys with assigned-nas (non-cumulative): " . json_encode($assignedNasKeys));
-
         foreach ($statistics as $key => $stat) {
-            // Handle both array format [name, [[value, timestamp], ...]] and object format  
             $name = null;
             $value = null;
-            
-            // Log the first 5 iterations to debug
-            static $debugCount = 0;
-            if ($debugCount < 5) {
-                error_log("DEBUG iteration $debugCount - key type: " . gettype($key) . ", key value: " . (is_string($key) ? $key : json_encode($key)) . ", stat type: " . gettype($stat) . ", stat preview: " . json_encode(is_array($stat) ? array_slice($stat, 0, 2) : $stat));
-                $debugCount++;
-            }
             
             if (is_array($stat) && isset($stat[0]) && isset($stat[1]) && is_string($stat[0])) {
                 // Format: ["stat-name", [[value1, timestamp1], [value2, timestamp2], ...]]
@@ -250,36 +233,21 @@ class KeaStatusMonitor {
                     }
                 }
             } elseif (is_string($key)) {
-                // Format: {"stat-name": [[value, timestamp], ...]}
                 $name = $key;
                 
-                // Debug specific statistics - LOG ENTRY
-                if (strpos($name, 'assigned-nas') !== false && strpos($name, 'cumulative') === false) {
-                    error_log("ENTERING elseif block for $name - stat type: " . gettype($stat) . ", is_array: " . (is_array($stat) ? 'yes' : 'no') . ", count: " . (is_array($stat) ? count($stat) : 'N/A'));
-                }
-                
                 if (is_array($stat) && count($stat) > 0) {
-                    $firstEntry = $stat[0]; // Get first time-series entry
+                    $firstEntry = $stat[0];
                     if (is_array($firstEntry)) {
-                        $value = $firstEntry[0] ?? 0; // Extract value from [value, timestamp]
+                        $value = $firstEntry[0] ?? 0;
                     } else {
                         $value = $firstEntry;
-                    }
-                    
-                    // Debug specific statistics - AFTER EXTRACTION
-                    if (strpos($name, 'assigned-nas') !== false && strpos($name, 'cumulative') === false) {
-                        error_log("EXTRACTED for $name - firstEntry: " . json_encode($firstEntry ?? null) . ", value: " . var_export($value, true));
                     }
                 }
             }
             
             if ($name && is_string($name)) {
                 if (is_numeric($value)) {
-                    error_log("Stat: $name = $value");
-                    
                     // Match Kea DHCPv6 statistic naming patterns
-                    // Address statistics (NA = Non-temporary Addresses)
-                    // Only count subnet-level stats to avoid double-counting (pools are included in subnet totals)
                     if (preg_match('/^subnet\[\d+\]\.total-nas$/i', $name)) {
                         $addresses['total'] += intval($value);
                     }
@@ -289,16 +257,12 @@ class KeaStatusMonitor {
                     elseif (preg_match('/^(subnet\[\d+\]\.)?declined-addresses$/i', $name)) {
                         $addresses['assigned'] += intval($value);
                     }
-                    // Prefix delegation statistics (PD)
-                    // Only count subnet-level stats to avoid double-counting
                     elseif (preg_match('/^subnet\[\d+\]\.total-pds?$/i', $name)) {
                         $prefixes['total'] += intval($value);
                     }
                     elseif (preg_match('/^subnet\[\d+\]\.assigned-pds?$/i', $name)) {
                         $prefixes['assigned'] += intval($value);
                     }
-                } else {
-                    error_log("SKIPPED (not numeric): $name, value type: " . gettype($value) . ", value: " . var_export($value, true));
                 }
             }
         }
@@ -311,10 +275,6 @@ class KeaStatusMonitor {
         ];
         
         $leaseInfo['available'] = max(0, $leaseInfo['total'] - $leaseInfo['assigned']);
-        
-        error_log("Address stats - Total: {$addresses['total']}, Assigned: {$addresses['assigned']}");
-        error_log("Prefix stats - Total: {$prefixes['total']}, Assigned: {$prefixes['assigned']}");
-        error_log("Combined lease stats - Total: {$leaseInfo['total']}, Assigned: {$leaseInfo['assigned']}, Available: {$leaseInfo['available']}");
         
         return $leaseInfo;
     }

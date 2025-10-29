@@ -24,7 +24,6 @@ class Authentication
         try {
             // error_log("=== Starting login attempt for user: " . $username . " ===");
             // error_log("Current Session ID: " . session_id());
-            // error_log("Current Session Data: " . print_r($_SESSION, true));
             
             $stmt = $this->db->prepare(
                 "SELECT id, username, password, is_admin, email 
@@ -69,7 +68,6 @@ class Authentication
                     'user_agent' => $_SERVER['HTTP_USER_AGENT']
                 ];
                 
-                // error_log("Session data after login: " . print_r($_SESSION, true));
                 
                 // Update last login timestamp
                 $this->updateLastLogin($user['id']);
@@ -97,7 +95,6 @@ class Authentication
         // error_log("=== Checking login status ===");
         // error_log("Session status: " . session_status());
         // error_log("Session ID: " . session_id());
-        // error_log("Session data: " . print_r($_SESSION, true));
     
         if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
             // error_log("No valid session data found");
@@ -131,7 +128,6 @@ class Authentication
     public function logout(): void
     {
         // error_log("=== Logging out user ===");
-        // error_log("Session before logout: " . print_r($_SESSION, true));
         
         // Unset all session variables
         $_SESSION = array();
@@ -151,7 +147,6 @@ class Authentication
      */
     public function isAdmin(): bool
     {
-        // error_log('Session data in isAdmin: ' . print_r($_SESSION, true));
         // error_log('User ID in session: ' . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set'));
         // error_log('Is admin in session: ' . (isset($_SESSION['is_admin']) ? $_SESSION['is_admin'] : 'not set'));
         
@@ -160,7 +155,6 @@ class Authentication
                 $stmt = $this->db->prepare("SELECT is_admin FROM users WHERE id = :user_id");
                 $stmt->execute(['user_id' => $_SESSION['user_id']]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                // error_log('Database user data: ' . print_r($result, true));
                 
                 return isset($result['is_admin']) && $result['is_admin'] == true;
             } catch (\PDOException $e) {

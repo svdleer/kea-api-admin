@@ -20,14 +20,9 @@ class DHCPv6LeaseController
         try {
             // Log incoming parameters
             error_log("getLeases called with parameters:");
-            error_log("switchId: " . print_r($switchId, true));
-            error_log("bviId: " . print_r($bviId, true));
-            error_log("from: " . print_r($from, true));
-            error_log("limit: " . print_r($limit, true));
 
             // Validate and cast limit parameter
             if (!is_numeric($limit) || (int)$limit <= 0) {
-                error_log("Invalid limit parameter: " . print_r($limit, true));
                 throw new Exception('Limit must be a positive integer');
             }
             
@@ -129,7 +124,6 @@ class DHCPv6LeaseController
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             
-            error_log("Received data in controller: " . print_r($data, true));
 
             if (!isset($data['duid']) || !isset($data['ipAddress']) || !isset($data['subnetId'])) {
                 $result = [
@@ -148,7 +142,6 @@ class DHCPv6LeaseController
             error_log("DUID: " . $data['duid']);
             error_log("IP Address: " . $data['ipAddress']);
             error_log("Subnet ID: " . $data['subnetId']);
-            error_log("Options: " . print_r($options, true));
             
             $keaResponse = $this->leaseModel->addStaticLease(
                 $data['subnetId'],
@@ -177,7 +170,6 @@ class DHCPv6LeaseController
     {   
         try {
             // Log incoming parameter
-            error_log("getStaticLeases called with subnetId: " . print_r($subnetId, true));
     
             // Validate subnet ID
             if (!is_numeric($subnetId)) {

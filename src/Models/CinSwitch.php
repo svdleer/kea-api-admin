@@ -116,7 +116,6 @@ class CinSwitch
     
             if (!$stmt->execute([$switchId])) {
                 $error = $stmt->errorInfo();
-                error_log("Database error in getBviInterfaces(): " . print_r($error, true));
                 throw new \RuntimeException('Failed to execute BVI interfaces query');
             }
     
