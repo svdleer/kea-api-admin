@@ -205,27 +205,32 @@ class KeaStatusMonitor {
         error_log("Parsing lease stats with " . count($statistics) . " entries");
 
         foreach ($statistics as $key => $stat) {
-            // Handle both array format [name, [value, timestamp]] and object format
+            // Handle both array format [name, [[value, timestamp], ...]] and object format  
             $name = null;
             $value = null;
             
             if (is_array($stat) && isset($stat[0]) && isset($stat[1])) {
-                // Format: ["stat-name", [value, timestamp]]
+                // Format: ["stat-name", [[value1, timestamp1], [value2, timestamp2], ...]]
                 $name = $stat[0];
-                // Extract value from nested array [value, timestamp]
-                if (is_array($stat[1])) {
-                    $value = $stat[1][0] ?? 0;
-                } else {
-                    $value = $stat[1];
+                // Kea returns time-series data - get the FIRST (most recent) value
+                if (is_array($stat[1]) && count($stat[1]) > 0) {
+                    $firstEntry = $stat[1][0]; // Get first time-series entry
+                    if (is_array($firstEntry)) {
+                        $value = $firstEntry[0] ?? 0; // Extract value from [value, timestamp]
+                    } else {
+                        $value = $firstEntry;
+                    }
                 }
             } elseif (is_string($key)) {
-                // Format: {"stat-name": [value, timestamp]} or {"stat-name": value}
+                // Format: {"stat-name": [[value, timestamp], ...]}
                 $name = $key;
-                if (is_array($stat)) {
-                    // Extract value from array [value, timestamp]
-                    $value = $stat[0] ?? 0;
-                } else {
-                    $value = $stat;
+                if (is_array($stat) && count($stat) > 0) {
+                    $firstEntry = $stat[0]; // Get first time-series entry
+                    if (is_array($firstEntry)) {
+                        $value = $firstEntry[0] ?? 0; // Extract value from [value, timestamp]
+                    } else {
+                        $value = $firstEntry;
+                    }
                 }
             }
             
