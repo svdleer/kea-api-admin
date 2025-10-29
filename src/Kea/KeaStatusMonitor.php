@@ -216,6 +216,12 @@ class KeaStatusMonitor {
             }
             
             if ($name) {
+                // Ensure $name is a string before using preg_match or error_log
+                if (!is_string($name)) {
+                    error_log("Skipping non-string stat name: " . json_encode($name));
+                    continue;
+                }
+                
                 error_log("Stat: $name = $value");
                 
                 // Match various Kea statistic naming patterns
