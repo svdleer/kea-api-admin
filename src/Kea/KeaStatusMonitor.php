@@ -110,12 +110,13 @@ class KeaStatusMonitor {
                 
                 // Try to get subnet information
                 $subnetResponse = $this->sendCommand($server['url'], 'subnet6-list');
-                error_log("Subnet6-list response for {$server['name']}: " . json_encode($subnetResponse));
                 if ($subnetResponse && isset($subnetResponse['arguments']['subnets'])) {
                     $status['subnets'] = count($subnetResponse['arguments']['subnets']);
                     error_log("Subnet count for {$server['name']}: " . $status['subnets']);
+                } elseif ($subnetResponse) {
+                    error_log("No subnets array in response for {$server['name']}. Keys: " . implode(', ', array_keys($subnetResponse)));
                 } else {
-                    error_log("No subnets found in response for {$server['name']}");
+                    error_log("No subnet response from {$server['name']}");
                 }
             } else {
                 $status['error'] = $response['text'] ?? ($response[0]['text'] ?? 'Unknown error');
