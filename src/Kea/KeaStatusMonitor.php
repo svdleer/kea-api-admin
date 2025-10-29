@@ -209,6 +209,13 @@ class KeaStatusMonitor {
             $name = null;
             $value = null;
             
+            // Log the first 5 iterations to debug
+            static $debugCount = 0;
+            if ($debugCount < 5) {
+                error_log("DEBUG iteration $debugCount - key type: " . gettype($key) . ", key value: " . (is_string($key) ? $key : json_encode($key)) . ", stat type: " . gettype($stat) . ", stat preview: " . json_encode(is_array($stat) ? array_slice($stat, 0, 2) : $stat));
+                $debugCount++;
+            }
+            
             if (is_array($stat) && isset($stat[0]) && isset($stat[1])) {
                 // Format: ["stat-name", [[value1, timestamp1], [value2, timestamp2], ...]]
                 $name = $stat[0];
