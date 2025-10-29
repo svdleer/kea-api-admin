@@ -24,37 +24,34 @@ require BASE_PATH . '/views/dhcp-menu.php';
 <div class="container mx-auto px-4 py-6">
     <!-- Page Header -->
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">IPv6 Leases Overview</h1>
-        <p class="mt-2 text-sm text-gray-600">View all configured DHCP subnets and their pool ranges</p>
+        <h1 class="text-2xl font-semibold text-gray-900">DHCP Leases & Reservations </h1>
+        <p class="mt-2 text-sm text-gray-600">Manage active DHCP leases & Reservations for switch and interface</p>
     </div>
 
-    <!-- Subnets Table Container -->
+    <!-- Switches Table Container -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            CIN Switch
+                            Switch
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            BVI Interface
+                            Interfaces
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            BVI IPv6 Address
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            DHCP Subnet
+                            Subnet
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Pool Range
                         </th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody id="subnetsTableBody" class="bg-white divide-y divide-gray-200">
+                <tbody id="switchesTableBody" class="bg-white divide-y divide-gray-200">
                     <!-- Content will be dynamically inserted here -->
                 </tbody>
             </table>
@@ -953,9 +950,12 @@ async function getSwitchName(switchId) {
 
 
 
-async function loadSubnets() {
-    const tableBody = document.getElementById('subnetsTableBody');
+async function loadSwitches() {
+
+    
+    const tableBody = document.getElementById('switchesTableBody');
     if (!tableBody) {
+
         return;
     }
 
@@ -963,13 +963,13 @@ async function loadSubnets() {
         // Show loading state
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-6 py-4 text-center">
+                <td colspan="5" class="px-6 py-4 text-center">
                     <div class="flex justify-center items-center">
                         <svg class="animate-spin h-5 w-5 text-blue-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Loading subnets...
+                        Loading switches...
                     </div>
                 </td>
             </tr>
@@ -986,81 +986,108 @@ async function loadSubnets() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const subnets = await response.json();
+        const data = await response.json();
+        console.log('Subnets data:', data); // Debug log
         
+        // Group subnets by switch_id
+        const groupedSubnets = data.reduce((acc, subnet) => {
+            // Add debug logging
+
+            
+            // Ensure switch_id is correctly set
+            const switchId = subnet.switch_id !== undefined ? subnet.switch_id : null;
+            if (switchId === null || switchId === undefined) {
+
+                return acc;
+            }
+
+            // Convert switchId to string to ensure consistent handling
+            const switchIdKey = switchId.toString();
+            
+            if (!acc[switchIdKey]) {
+                acc[switchIdKey] = [];
+            }
+            acc[switchIdKey].push(subnet);
+            return acc;
+        }, {});
+
+        console.log('Grouped subnets:', groupedSubnets); // Debug log
+
         // Clear the loading state
         tableBody.innerHTML = '';        
         
         // If no data
-        if (subnets.length === 0) {
+        if (Object.keys(groupedSubnets).length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                        No subnets configured
+                        No switches found
                     </td>
                 </tr>
             `;
             return;
         }
 
-        // Render subnets
-        subnets.forEach(subnet => {
-            const bviNumber = subnet.interface_number !== null ? 'BVI' + (100 + parseInt(subnet.interface_number)) : 'N/A';
-            const poolStart = subnet.pool?.start || 'N/A';
-            const poolEnd = subnet.pool?.end || 'N/A';
+        // Render the grouped subnets
+        for (const [switchId, subnets] of Object.entries(groupedSubnets)) {
+            console.log('Processing switch:', switchId, subnets); // Debug log
             
             const row = document.createElement('tr');
-            row.className = "hover:bg-gray-50";
+            row.className = "border-b border-gray-200 hover:bg-gray-100";
+            
+            // Fetch switch name
+            console.log('Fetching switch name for ID:', switchId); // Debug log
+            const switchName = await getSwitchName(switchId);
+            console.log('Got switch name:', switchName); // Debug log
             
             row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${escapeHtml(subnet.switch_hostname || 'N/A')}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${switchName}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${escapeHtml(bviNumber)}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${subnets.map(subnet => `${subnet.bvi_interface} (${subnet.ipv6_address})`).join(', ')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${escapeHtml(subnet.ipv6_address || 'N/A')}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${subnets.map(subnet => subnet.subnet).join(', ')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${escapeHtml(subnet.subnet || 'N/A')}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${subnets.map(subnet => 
+                        subnet.pool ? `${subnet.pool.start} - ${subnet.pool.end}` : 'No pool'
+                    ).join(', ')}
                 </td>
-                <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
-                    <div class="flex flex-col">
-                        <span class="mb-1">${escapeHtml(poolStart)}</span>
-                        <span>${escapeHtml(poolEnd)}</span>
+                <!-- other cells -->
+                <td class="px-6 py-3">
+                    <div class="flex space-x-2">
+                        <button onclick="toggleLeases(this, '${switchId}', '${subnets[0].bvi_interface_id}')" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            View Leases
+                        </button>
+                        <button onclick="viewStaticLeases('${subnets[0].id}')" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                            View Reservations
+                        </button>
+                        <button onclick="toggleStaticLeaseForm()" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                            Add Reservation
+                        </button>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <a href="/dhcp/subnet/${subnet.id}/leases" 
-                       class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                        View Leases
-                    </a>
-                </td>
             `;
-            
+
+
             tableBody.appendChild(row);
-        });
+        }
 
     } catch (error) {
+
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-6 py-4 text-center text-red-500">
-                    Error loading subnets: ${error.message}
+                <td colspan="5" class="px-6 py-4 text-center text-red-500">
+                    Error loading switches: ${error.message}
                 </td>
             </tr>
         `;
     }
-}
-
-function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return String(unsafe)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
 }
 
 let poolRange = null;
@@ -1085,7 +1112,7 @@ function setValidationMessage(input, message, isError = true) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded - initializing validation');
 
-    loadSubnets();
+    loadSwitches();
     populateSubnetOptions();
     populateDhcpOptions();
     
@@ -1500,7 +1527,7 @@ async function viewStaticLeases(subnetId) {
                                         ${host.hostname || 'N/A'}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <button onclick="deleteStaticLease('${host['ip-addresses'][0]}', ${subnetId})" 
+                                        <button onclick="deleteStaticLease('${host['ip-addresses'][0]}')" 
                                                 class="text-red-600 hover:text-red-900">
                                             Delete
                                         </button>
@@ -1627,64 +1654,6 @@ function deleteLease(IPv6Address) {
             }
         }
     });
-}
-
-async function deleteStaticLease(ipAddress, subnetId) {
-    const result = await Swal.fire({
-        title: 'Delete Static Lease?',
-        text: `Are you sure you want to delete the static lease for ${ipAddress}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Yes, delete it',
-        cancelButtonText: 'Cancel'
-    });
-
-    if (!result.isConfirmed) {
-        return;
-    }
-
-    try {
-        const response = await fetch('/api/dhcp/leases', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                'ip-address': ipAddress,
-                'subnet-id': subnetId
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-            await Swal.fire({
-                icon: 'success',
-                title: 'Deleted!',
-                text: 'The static lease has been deleted.',
-                confirmButtonColor: '#4f46e5'
-            });
-            
-            // Reload the static leases table
-            location.reload();
-        } else {
-            throw new Error(data.message || 'Failed to delete static lease');
-        }
-    } catch (error) {
-        console.error('Error deleting static lease:', error);
-        await Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: error.message || 'An error occurred while deleting the static lease.',
-            confirmButtonColor: '#dc2626'
-        });
-    }
 }
 
 </script>
