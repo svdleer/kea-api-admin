@@ -108,15 +108,25 @@ class KeaStatusMonitor {
                     }
                 }
                 
-                // Try to get subnet information
-                $subnetResponse = $this->sendCommand($server['url'], 'subnet6-list');
-                if ($subnetResponse && isset($subnetResponse['arguments']['subnets'])) {
-                    $status['subnets'] = count($subnetResponse['arguments']['subnets']);
-                    error_log("Subnet count for {$server['name']}: " . $status['subnets']);
-                } elseif ($subnetResponse) {
-                    error_log("No subnets array in response for {$server['name']}. Keys: " . implode(', ', array_keys($subnetResponse)));
+                // Try to get subnet information using remote-subnet6-list
+                $subnetResponse = $this->sendCommand($server['url'], 'remote-subnet6-list', [
+                    'remote' => ['type' => 'mysql'],
+                    'server-tags' => ['all']
+                ]);
+                if ($subnetResponse) {
+                    // Check response structure
+                    if (isset($subnetResponse['arguments']['subnets'])) {
+                        $status['subnets'] = count($subnetResponse['arguments']['subnets']);
+                        error_log("{$server['name']}: Found {$status['subnets']} subnets via remote-subnet6-list");
+                    } elseif (is_array($subnetResponse) && isset($subnetResponse[0]['arguments']['subnets'])) {
+                        // Sometimes response is nested in array
+                        $status['subnets'] = count($subnetResponse[0]['arguments']['subnets']);
+                        error_log("{$server['name']}: Found {$status['subnets']} subnets via remote-subnet6-list (nested)");
+                    } else {
+                        error_log("{$server['name']}: No subnets in response structure from remote-subnet6-list");
+                    }
                 } else {
-                    error_log("No subnet response from {$server['name']}");
+                    error_log("{$server['name']}: No response from remote-subnet6-list");
                 }
             } else {
                 $status['error'] = $response['text'] ?? ($response[0]['text'] ?? 'Unknown error');
