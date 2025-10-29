@@ -222,7 +222,7 @@ class KeaStatusMonitor {
                 $debugCount++;
             }
             
-            if (is_array($stat) && isset($stat[0]) && isset($stat[1])) {
+            if (is_array($stat) && isset($stat[0]) && isset($stat[1]) && is_string($stat[0])) {
                 // Format: ["stat-name", [[value1, timestamp1], [value2, timestamp2], ...]]
                 $name = $stat[0];
                 // Kea returns time-series data - get the FIRST (most recent) value
