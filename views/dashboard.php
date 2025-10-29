@@ -56,7 +56,7 @@ ob_start();
         <!-- Infrastructure Statistics -->
         <div class="px-4 sm:px-0 mb-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Infrastructure Overview</h3>
-            <div id="stats-cards" class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div id="stats-cards" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Stats will be inserted here -->
             </div>
         </div>
@@ -64,7 +64,7 @@ ob_start();
         <!-- DHCP Statistics -->
         <div class="px-4 sm:px-0 mb-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">DHCP Statistics</h3>
-            <div id="dhcp-stats" class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+            <div id="dhcp-stats" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- DHCP stats will be inserted here -->
             </div>
         </div>
@@ -72,7 +72,7 @@ ob_start();
         <!-- RADIUS Statistics -->
         <div class="px-4 sm:px-0 mb-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">RADIUS Statistics</h3>
-            <div id="radius-stats" class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+            <div id="radius-stats" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- RADIUS stats will be inserted here -->
             </div>
         </div>
@@ -197,6 +197,12 @@ function renderStats(data) {
     statsHtml += '<div class="px-4 py-5 sm:p-6">';
     statsHtml += '<dt class="text-sm font-medium text-gray-500 truncate">Total BVI Interfaces</dt>';
     statsHtml += '<dd class="mt-1 text-3xl font-semibold text-gray-900">' + (data.total_bvi || 0) + '</dd>';
+    statsHtml += '</div></div>';
+    
+    statsHtml += '<div class="bg-white overflow-hidden shadow-sm rounded-lg">';
+    statsHtml += '<div class="px-4 py-5 sm:p-6">';
+    statsHtml += '<dt class="text-sm font-medium text-gray-500 truncate">Configured Subnets</dt>';
+    statsHtml += '<dd class="mt-1 text-3xl font-semibold text-gray-900">' + (data.dhcp?.total_subnets || 0) + '</dd>';
     statsHtml += '</div></div>';
     
     statsHtml += '<div class="bg-white overflow-hidden shadow-sm rounded-lg">';
