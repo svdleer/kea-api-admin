@@ -67,6 +67,7 @@ class DashboardController
             // Count configured subnets
             $stmt = $this->db->query("SELECT COUNT(*) as total FROM cin_bvi_dhcp_subnet");
             $totalSubnets = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+            error_log("Total DHCP subnets: $totalSubnets");
             
             // Count active leases from Kea (if available)
             $keaConfig = require BASE_PATH . '/config/kea.php';
@@ -84,13 +85,26 @@ class DashboardController
                         $assignedLeases += $server['leases']['assigned'] ?? 0;
                     }
                 }
+                error_log("Kea lease stats - Total: $totalLeases, Assigned: $assignedLeases");
             } catch (\Exception $e) {
                 error_log("Could not fetch lease stats from Kea: " . $e->getMessage());
             }
             
-            // Count reservations
-            $stmt = $this->db->query("SELECT COUNT(*) as total FROM hosts WHERE ip_reservations_mode = 'out-of-pool'");
-            $totalReservations = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+            // Count reservations - check if hosts table exists first
+            $totalReservations = 0;
+            $stmt = $this->db->query("SHOW TABLES LIKE 'hosts'");
+            if ($stmt->rowCount() > 0) {
+                // hosts table exists, try to count reservations
+                try {
+                    $stmt = $this->db->query("SELECT COUNT(*) as total FROM hosts");
+                    $totalReservations = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    error_log("Total reservations: $totalReservations");
+                } catch (\Exception $e) {
+                    error_log("Could not count hosts: " . $e->getMessage());
+                }
+            } else {
+                error_log("hosts table does not exist");
+            }
             
             return [
                 'total_subnets' => $totalSubnets,
@@ -117,34 +131,61 @@ class DashboardController
     private function getRadiusStatistics()
     {
         try {
+            // Check if RADIUS tables exist
+            $tables = ['nas', 'radcheck', 'radacct', 'radpostauth'];
+            $existingTables = [];
+            
+            foreach ($tables as $table) {
+                $stmt = $this->db->query("SHOW TABLES LIKE '$table'");
+                if ($stmt->rowCount() > 0) {
+                    $existingTables[] = $table;
+                }
+            }
+            
+            error_log("RADIUS tables found: " . implode(', ', $existingTables));
+            
             // Count total NAS devices
-            $stmt = $this->db->query("SELECT COUNT(*) as total FROM nas");
-            $totalNas = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+            $totalNas = 0;
+            if (in_array('nas', $existingTables)) {
+                $stmt = $this->db->query("SELECT COUNT(*) as total FROM nas");
+                $totalNas = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                error_log("NAS count: $totalNas");
+            }
             
             // Count RADIUS users
-            $stmt = $this->db->query("SELECT COUNT(*) as total FROM radcheck");
-            $totalUsers = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+            $totalUsers = 0;
+            if (in_array('radcheck', $existingTables)) {
+                $stmt = $this->db->query("SELECT COUNT(*) as total FROM radcheck");
+                $totalUsers = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                error_log("RADIUS users: $totalUsers");
+            }
             
             // Count active sessions (radacct entries with acctstoptime IS NULL)
-            $stmt = $this->db->query("SELECT COUNT(*) as total FROM radacct WHERE acctstoptime IS NULL");
-            $activeSessions = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+            $activeSessions = 0;
+            if (in_array('radacct', $existingTables)) {
+                $stmt = $this->db->query("SELECT COUNT(*) as total FROM radacct WHERE acctstoptime IS NULL");
+                $activeSessions = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                error_log("Active sessions: $activeSessions");
+            }
             
             // Get today's authentication attempts
-            $stmt = $this->db->query("
-                SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN authdate >= CURDATE() THEN 1 ELSE 0 END) as today
-                FROM radpostauth 
-                WHERE authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-            ");
-            $authStats = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $totalAuth24h = $authStats['total'] ?? 0;
+            $totalAuth24h = 0;
+            if (in_array('radpostauth', $existingTables)) {
+                $stmt = $this->db->query("
+                    SELECT COUNT(*) as total
+                    FROM radpostauth 
+                    WHERE authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                ");
+                $totalAuth24h = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                error_log("Auth last 24h: $totalAuth24h");
+            }
             
             return [
                 'total_nas' => $totalNas,
                 'total_users' => $totalUsers,
                 'active_sessions' => $activeSessions,
-                'auth_last_24h' => $totalAuth24h
+                'auth_last_24h' => $totalAuth24h,
+                'tables_available' => $existingTables
             ];
         } catch (\Exception $e) {
             error_log("RADIUS stats error: " . $e->getMessage());
@@ -152,7 +193,8 @@ class DashboardController
                 'total_nas' => 0,
                 'total_users' => 0,
                 'active_sessions' => 0,
-                'auth_last_24h' => 0
+                'auth_last_24h' => 0,
+                'error' => $e->getMessage()
             ];
         }
     }
