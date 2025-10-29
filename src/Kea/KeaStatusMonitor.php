@@ -264,20 +264,22 @@ class KeaStatusMonitor {
                     
                     // Match Kea DHCPv6 statistic naming patterns
                     // Address statistics (NA = Non-temporary Addresses)
-                    if (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?total-nas$/i', $name)) {
+                    // Only count subnet-level stats to avoid double-counting (pools are included in subnet totals)
+                    if (preg_match('/^subnet\[\d+\]\.total-nas$/i', $name)) {
                         $addresses['total'] += intval($value);
                     }
-                    elseif (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?assigned-nas$/i', $name)) {
+                    elseif (preg_match('/^subnet\[\d+\]\.assigned-nas$/i', $name)) {
                         $addresses['assigned'] += intval($value);
                     }
                     elseif (preg_match('/^(subnet\[\d+\]\.)?declined-addresses$/i', $name)) {
                         $addresses['assigned'] += intval($value);
                     }
                     // Prefix delegation statistics (PD)
-                    elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?total-pds?$/i', $name)) {
+                    // Only count subnet-level stats to avoid double-counting
+                    elseif (preg_match('/^subnet\[\d+\]\.total-pds?$/i', $name)) {
                         $prefixes['total'] += intval($value);
                     }
-                    elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?assigned-pds?$/i', $name)) {
+                    elseif (preg_match('/^subnet\[\d+\]\.assigned-pds?$/i', $name)) {
                         $prefixes['assigned'] += intval($value);
                     }
                 } else {
