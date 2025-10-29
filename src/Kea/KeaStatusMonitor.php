@@ -43,26 +43,6 @@ class KeaStatusMonitor {
             'subnets' => null
         ];
 
-        // TEMPORARY MOCK: Force secondary server to appear online
-        if (isset($server['name']) && strtolower($server['name']) === 'secondary') {
-            return [
-                'name' => $server['name'],
-                'url' => $server['url'],
-                'online' => true,
-                'version' => 'Kea DHCPv6 2.4.1 (mocked)',
-                'uptime' => 'Running (PID: 12345)',
-                'response_time' => 45.23,
-                'error' => null,
-                'leases' => [
-                    'total' => 1000,
-                    'assigned' => 234,
-                    'available' => 766
-                ],
-                'subnets' => 8
-            ];
-        }
-        // END TEMPORARY MOCK
-
         try {
             $startTime = microtime(true);
             
