@@ -241,26 +241,30 @@ class KeaStatusMonitor {
                 }
             }
             
-            if ($name && is_string($name) && is_numeric($value)) {
-                error_log("Stat: $name = $value");
-                
-                // Match Kea DHCPv6 statistic naming patterns
-                // Address statistics (NA = Non-temporary Addresses)
-                if (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?total-nas$/i', $name)) {
-                    $addresses['total'] += intval($value);
-                }
-                elseif (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?assigned-nas$/i', $name)) {
-                    $addresses['assigned'] += intval($value);
-                }
-                elseif (preg_match('/^(subnet\[\d+\]\.)?declined-addresses$/i', $name)) {
-                    $addresses['assigned'] += intval($value);
-                }
-                // Prefix delegation statistics (PD)
-                elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?total-pds?$/i', $name)) {
-                    $prefixes['total'] += intval($value);
-                }
-                elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?assigned-pds?$/i', $name)) {
-                    $prefixes['assigned'] += intval($value);
+            if ($name && is_string($name)) {
+                if (is_numeric($value)) {
+                    error_log("Stat: $name = $value");
+                    
+                    // Match Kea DHCPv6 statistic naming patterns
+                    // Address statistics (NA = Non-temporary Addresses)
+                    if (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?total-nas$/i', $name)) {
+                        $addresses['total'] += intval($value);
+                    }
+                    elseif (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?assigned-nas$/i', $name)) {
+                        $addresses['assigned'] += intval($value);
+                    }
+                    elseif (preg_match('/^(subnet\[\d+\]\.)?declined-addresses$/i', $name)) {
+                        $addresses['assigned'] += intval($value);
+                    }
+                    // Prefix delegation statistics (PD)
+                    elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?total-pds?$/i', $name)) {
+                        $prefixes['total'] += intval($value);
+                    }
+                    elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?assigned-pds?$/i', $name)) {
+                        $prefixes['assigned'] += intval($value);
+                    }
+                } else {
+                    error_log("SKIPPED (not numeric): $name, value type: " . gettype($value) . ", value: " . var_export($value, true));
                 }
             }
         }
