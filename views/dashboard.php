@@ -53,10 +53,27 @@ ob_start();
             </div>
         </div>
 
-        <!-- Statistics Cards -->
+        <!-- Infrastructure Statistics -->
         <div class="px-4 sm:px-0 mb-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Infrastructure Overview</h3>
             <div id="stats-cards" class="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <!-- Stats will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- DHCP Statistics -->
+        <div class="px-4 sm:px-0 mb-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">DHCP Statistics</h3>
+            <div id="dhcp-stats" class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+                <!-- DHCP stats will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- RADIUS Statistics -->
+        <div class="px-4 sm:px-0 mb-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">RADIUS Statistics</h3>
+            <div id="radius-stats" class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+                <!-- RADIUS stats will be inserted here -->
             </div>
         </div>
     </div>
@@ -85,6 +102,8 @@ async function loadDashboard() {
         if (statsData.success && keaData.success) {
             renderStats(statsData.data);
             renderKeaStatus(keaData.data);
+            renderDhcpStats(statsData.data.dhcp);
+            renderRadiusStats(statsData.data.radius);
             
             // Hide loading, show content
             document.getElementById('loading-spinner').classList.add('hidden');
@@ -194,6 +213,83 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function renderDhcpStats(data) {
+    if (!data) return;
+    
+    const dhcpStatsEl = document.getElementById('dhcp-stats');
+    let html = '';
+    
+    // Configured Subnets
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-indigo-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Configured Subnets</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-indigo-600">' + (data.total_subnets || 0) + '</dd>';
+    html += '</div></div>';
+    
+    // Active Leases
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-green-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Active Leases</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-green-600">';
+    html += (data.assigned_leases || 0) + ' / ' + (data.total_leases || 0);
+    html += '</dd></div></div>';
+    
+    // Lease Utilization
+    const utilization = data.utilization_percent || 0;
+    const utilizationColor = utilization > 80 ? 'red' : utilization > 60 ? 'amber' : 'green';
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-' + utilizationColor + '-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Lease Utilization</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-' + utilizationColor + '-600">' + utilization + '%</dd>';
+    html += '</div></div>';
+    
+    // Static Reservations
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-purple-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Static Reservations</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-purple-600">' + (data.total_reservations || 0) + '</dd>';
+    html += '</div></div>';
+    
+    dhcpStatsEl.innerHTML = html;
+}
+
+function renderRadiusStats(data) {
+    if (!data) return;
+    
+    const radiusStatsEl = document.getElementById('radius-stats');
+    let html = '';
+    
+    // NAS Devices
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-blue-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">NAS Devices</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-blue-600">' + (data.total_nas || 0) + '</dd>';
+    html += '</div></div>';
+    
+    // RADIUS Users
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-cyan-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-cyan-600">' + (data.total_users || 0) + '</dd>';
+    html += '</div></div>';
+    
+    // Active Sessions
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-teal-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Active Sessions</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-teal-600">' + (data.active_sessions || 0) + '</dd>';
+    html += '</div></div>';
+    
+    // Auth Last 24h
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-orange-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Auth (24h)</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-orange-600">' + (data.auth_last_24h || 0) + '</dd>';
+    html += '</div></div>';
+    
+    radiusStatsEl.innerHTML = html;
 }
 </script>
 
