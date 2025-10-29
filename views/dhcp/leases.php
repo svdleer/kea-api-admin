@@ -341,19 +341,25 @@ async function populateDhcpOptions() {
         console.log('DHCP options data:', data); // Debug log
 
         if (data.success && Array.isArray(data.data)) {
-            // Filter out items with null option and sort by code
-            const validOptions = data.data.filter(item => item && item.option && item.option.code);
-            validOptions.sort((a, b) => a.option.code - b.option.code);
+            // Filter out completely invalid items, but keep items with definitions even if option is null
+            const validOptions = data.data.filter(item => item && item.definition && item.definition.code);
+            validOptions.sort((a, b) => a.definition.code - b.definition.code);
             
             validOptions.forEach(item => {
                 const opt = document.createElement('option');
+                // Use definition data if option is null
+                const code = item.option?.code || item.definition.code;
+                const name = item.option?.name || item.definition.name || `Option ${code}`;
+                const space = item.option?.space || item.definition.space || 'dhcp6';
+                const type = item.definition.type || 'string';
+                
                 opt.value = JSON.stringify({
-                    code: item.option.code,
-                    type: item.definition?.type || 'string',
-                    name: item.option.name || `Option ${item.option.code}`,
-                    space: item.option.space || 'dhcp6'
+                    code: code,
+                    type: type,
+                    name: name,
+                    space: space
                 });
-                opt.textContent = `${item.option.code} - ${item.option.name || 'Unknown'}`;
+                opt.textContent = `${code} - ${name}`;
                 dhcpOptionsSelect.appendChild(opt);
             });
 
@@ -516,19 +522,25 @@ async function populateDhcpOptionsForRow(row) {
         const data = await response.json();
         
         if (data.success && Array.isArray(data.data)) {
-            // Filter out items with null option and sort by code
-            const validOptions = data.data.filter(item => item && item.option && item.option.code);
-            validOptions.sort((a, b) => a.option.code - b.option.code);
+            // Filter out completely invalid items, but keep items with definitions even if option is null
+            const validOptions = data.data.filter(item => item && item.definition && item.definition.code);
+            validOptions.sort((a, b) => a.definition.code - b.definition.code);
             
             validOptions.forEach(item => {
                 const opt = document.createElement('option');
+                // Use definition data if option is null
+                const code = item.option?.code || item.definition.code;
+                const name = item.option?.name || item.definition.name || `Option ${code}`;
+                const space = item.option?.space || item.definition.space || 'dhcp6';
+                const type = item.definition.type || 'string';
+                
                 opt.value = JSON.stringify({
-                    code: item.option.code,
-                    type: item.definition?.type || 'string',
-                    name: item.option.name || `Option ${item.option.code}`,
-                    space: item.option.space || 'dhcp6'
+                    code: code,
+                    type: type,
+                    name: name,
+                    space: space
                 });
-                opt.textContent = `${item.option.code} - ${item.option.name || 'Unknown'}`;
+                opt.textContent = `${code} - ${name}`;
                 select.appendChild(opt);
             });
         }
