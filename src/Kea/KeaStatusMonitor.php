@@ -192,54 +192,79 @@ class KeaStatusMonitor {
      * @return array Parsed lease statistics
      */
     private function parseLeaseStats(array $statistics): array {
-        $leaseInfo = [
+        $addresses = [
             'total' => 0,
-            'assigned' => 0,
-            'available' => 0
+            'assigned' => 0
+        ];
+        
+        $prefixes = [
+            'total' => 0,
+            'assigned' => 0
         ];
 
         error_log("Parsing lease stats with " . count($statistics) . " entries");
 
         foreach ($statistics as $key => $stat) {
-            // Handle both array format [name, [value]] and object format
+            // Handle both array format [name, [value, timestamp]] and object format
             $name = null;
             $value = null;
             
             if (is_array($stat) && isset($stat[0]) && isset($stat[1])) {
-                // Format: ["stat-name", [value]]
+                // Format: ["stat-name", [value, timestamp]]
                 $name = $stat[0];
-                $value = is_array($stat[1]) ? ($stat[1][0] ?? 0) : $stat[1];
+                // Extract value from nested array [value, timestamp]
+                if (is_array($stat[1])) {
+                    $value = $stat[1][0] ?? 0;
+                } else {
+                    $value = $stat[1];
+                }
             } elseif (is_string($key)) {
-                // Format: {"stat-name": [value]} or {"stat-name": value}
+                // Format: {"stat-name": [value, timestamp]} or {"stat-name": value}
                 $name = $key;
-                $value = is_array($stat) ? ($stat[0] ?? 0) : $stat;
+                if (is_array($stat)) {
+                    // Extract value from array [value, timestamp]
+                    $value = $stat[0] ?? 0;
+                } else {
+                    $value = $stat;
+                }
             }
             
-            if ($name) {
-                // Ensure $name is a string before using preg_match or error_log
-                if (!is_string($name)) {
-                    error_log("Skipping non-string stat name: " . json_encode($name));
-                    continue;
-                }
-                
+            if ($name && is_string($name) && is_numeric($value)) {
                 error_log("Stat: $name = $value");
                 
-                // Match various Kea statistic naming patterns
-                if (preg_match('/assigned-(nas|addresses|pd)/i', $name)) {
-                    $leaseInfo['assigned'] += intval($value);
-                } elseif (preg_match('/total-(nas|addresses|pd)/i', $name)) {
-                    $leaseInfo['total'] += intval($value);
-                } elseif (preg_match('/declined-(addresses|pd)/i', $name)) {
-                    $leaseInfo['assigned'] += intval($value);
-                } elseif (preg_match('/reclaimed-(declined|leases)/i', $name)) {
-                    // Count reclaimed as available
+                // Match Kea DHCPv6 statistic naming patterns
+                // Address statistics (NA = Non-temporary Addresses)
+                if (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?total-nas$/i', $name)) {
+                    $addresses['total'] += intval($value);
+                }
+                elseif (preg_match('/^(subnet\[\d+\]\.)?(pool\[\d+\]\.)?assigned-nas$/i', $name)) {
+                    $addresses['assigned'] += intval($value);
+                }
+                elseif (preg_match('/^(subnet\[\d+\]\.)?declined-addresses$/i', $name)) {
+                    $addresses['assigned'] += intval($value);
+                }
+                // Prefix delegation statistics (PD)
+                elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?total-pds?$/i', $name)) {
+                    $prefixes['total'] += intval($value);
+                }
+                elseif (preg_match('/^(subnet\[\d+\]\.)?(pd-pool\[\d+\]\.)?assigned-pds?$/i', $name)) {
+                    $prefixes['assigned'] += intval($value);
                 }
             }
         }
         
-        $leaseInfo['available'] = $leaseInfo['total'] - $leaseInfo['assigned'];
+        // Combine addresses and prefixes
+        $leaseInfo = [
+            'total' => $addresses['total'] + $prefixes['total'],
+            'assigned' => $addresses['assigned'] + $prefixes['assigned'],
+            'available' => 0
+        ];
         
-        error_log("Final lease stats - Total: {$leaseInfo['total']}, Assigned: {$leaseInfo['assigned']}, Available: {$leaseInfo['available']}");
+        $leaseInfo['available'] = max(0, $leaseInfo['total'] - $leaseInfo['assigned']);
+        
+        error_log("Address stats - Total: {$addresses['total']}, Assigned: {$addresses['assigned']}");
+        error_log("Prefix stats - Total: {$prefixes['total']}, Assigned: {$prefixes['assigned']}");
+        error_log("Combined lease stats - Total: {$leaseInfo['total']}, Assigned: {$leaseInfo['assigned']}, Available: {$leaseInfo['available']}");
         
         return $leaseInfo;
     }
