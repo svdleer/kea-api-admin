@@ -161,6 +161,48 @@
     "/dhcp/static/{subnetId}": {
       "get": {"summary": "Get static leases", "tags": ["DHCPv6 Leases"]}
     },
+    "/dhcp/search-leases": {
+      "get": {
+        "summary": "Advanced lease search",
+        "description": "Search DHCPv6 leases with multiple filter criteria including IPv6 address, DUID, hostname, switch/BVI, subnet, lease type, state, and date range. Supports pagination and CSV export.",
+        "tags": ["DHCPv6 Leases"],
+        "parameters": [
+          {"name": "ipv6_address", "in": "query", "schema": {"type": "string"}, "description": "Filter by IPv6 address (partial match)"},
+          {"name": "duid", "in": "query", "schema": {"type": "string"}, "description": "Filter by DUID/MAC address"},
+          {"name": "hostname", "in": "query", "schema": {"type": "string"}, "description": "Filter by hostname (partial match)"},
+          {"name": "switch_id", "in": "query", "schema": {"type": "integer"}, "description": "Filter by switch ID"},
+          {"name": "bvi_id", "in": "query", "schema": {"type": "integer"}, "description": "Filter by BVI interface ID"},
+          {"name": "subnet_id", "in": "query", "schema": {"type": "integer"}, "description": "Filter by subnet ID"},
+          {"name": "lease_type", "in": "query", "schema": {"type": "integer", "enum": [0, 2]}, "description": "Lease type: 0=IA_NA, 2=IA_PD"},
+          {"name": "state", "in": "query", "schema": {"type": "integer", "enum": [0, 1, 2]}, "description": "Lease state: 0=Active, 1=Declined, 2=Expired"},
+          {"name": "date_from", "in": "query", "schema": {"type": "string", "format": "date-time"}, "description": "Filter by valid from date"},
+          {"name": "date_to", "in": "query", "schema": {"type": "string", "format": "date-time"}, "description": "Filter by valid until date"},
+          {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}, "description": "Page number for pagination"},
+          {"name": "page_size", "in": "query", "schema": {"type": "integer", "default": 50, "maximum": 500}, "description": "Results per page"},
+          {"name": "export", "in": "query", "schema": {"type": "string", "enum": ["csv"]}, "description": "Export results to CSV format"}
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "data": {"type": "array", "items": {"type": "object"}},
+                    "total": {"type": "integer"},
+                    "page": {"type": "integer"},
+                    "page_size": {"type": "integer"},
+                    "total_pages": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ipv6/subnets": {
       "get": {"summary": "List IPv6 subnets", "tags": ["IPv6 Subnets"]},
       "post": {"summary": "Create IPv6 subnet", "tags": ["IPv6 Subnets"]}

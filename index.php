@@ -240,6 +240,10 @@ try {
     $router->get('/api/dhcp/static/{subnetId}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'getStaticLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
+    // DHCPv6 Advanced Lease Search
+    $router->get('/api/dhcp/search-leases', [new \App\Controllers\Api\DHCPv6LeaseSearchController(), 'searchLeases'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+
     // IPv6 Subnets (Kea DHCP management)
     $router->get('/ipv6', function() use ($auth) {
         $currentPage = 'ipv6';
@@ -268,6 +272,10 @@ try {
 
     $router->get('/dhcp/optionsdef', function() {
         require BASE_PATH . '/views/dhcp/optionsdef.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    $router->get('/dhcp/search', function() {
+        require BASE_PATH . '/views/dhcp/search.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
     // Load configuration for Kea DHCPv6 servers
