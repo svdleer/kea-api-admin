@@ -1490,13 +1490,24 @@ async function viewStaticLeases(subnetId) {
 
         const data = await response.json();
         
+        // Check if response indicates no hosts found (this is not an error)
+        if (data.result === 3 || (data.text && data.text.includes('0 IPv6 host(s) found'))) {
+            // No reservations found - this is normal, not an error
+            detailsRow.innerHTML = `
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                    No static reservations found for this subnet
+                </td>
+            `;
+            return;
+        }
+        
         if (data.result === 0) {
             const hosts = data.hosts || [];
             
             if (hosts.length === 0) {
                 detailsRow.innerHTML = `
                     <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                        No static leases found for this subnet
+                        No static reservations found for this subnet
                     </td>
                 `;
                 return;
