@@ -630,27 +630,124 @@ async function backupRadiusDatabase(type) {
 }
 
 async function fullSystemBackup() {
-    Swal.fire({
+    const result = await Swal.fire({
         title: 'Full System Backup',
         html: `
             <p class="text-sm text-gray-600 mb-2">This will backup:</p>
             <ul class="text-sm text-left text-gray-700 mb-4">
-                <li>✓ Kea configuration database</li>
-                <li>✓ Kea leases database</li>
-                <li>✓ Primary RADIUS database</li>
-                <li>✓ Secondary RADIUS database</li>
+                <li>✓ Kea Database (complete)</li>
+                <li>✓ Primary RADIUS Database</li>
+                <li>✓ Secondary RADIUS Database</li>
             </ul>
-            <p class="text-sm text-gray-500">Backups will be combined into a ZIP file</p>
+            <p class="text-sm text-gray-500">Backups will be combined into a tar.gz archive</p>
         `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#DC2626',
         confirmButtonText: 'Create Full Backup'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = '/api/admin/backup/full-system';
-        }
     });
+
+    if (result.isConfirmed) {
+        // Show loading modal
+        Swal.fire({
+            title: 'Creating Backup...',
+            html: 'Please wait while we backup all databases',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const response = await fetch('/api/admin/backup/full-system');
+            const data = await response.json();
+
+            if (data.success) {
+                // Build component status HTML
+                let componentsHtml = '<div class="text-left mb-4">';
+                componentsHtml += '<p class="text-sm font-medium text-gray-700 mb-2">Backup Components:</p>';
+                componentsHtml += '<ul class="text-sm space-y-1">';
+                
+                data.components.forEach(comp => {
+                    const icon = comp.status === 'success' ? '✓' : '✗';
+                    const color = comp.status === 'success' ? 'text-green-600' : 'text-red-600';
+                    const sizeInfo = comp.size ? ` (${comp.size})` : '';
+                    componentsHtml += `<li class="${color}">${icon} ${comp.component}${sizeInfo}</li>`;
+                });
+                
+                componentsHtml += '</ul></div>';
+
+                // Build summary
+                let summaryHtml = '<div class="bg-gray-50 rounded p-3 text-sm mb-4">';
+                summaryHtml += `<p><strong>Archive:</strong> ${data.filename}</p>`;
+                summaryHtml += `<p><strong>Total Size:</strong> ${data.size}</p>`;
+                summaryHtml += `<p><strong>Status:</strong> ${data.summary.success}/${data.summary.total} successful</p>`;
+                summaryHtml += '</div>';
+
+                // Add download link
+                let downloadHtml = `<a href="${data.path}" class="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium" download>
+                    <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Download Backup
+                </a>`;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Backup Complete!',
+                    html: componentsHtml + summaryHtml + downloadHtml,
+                    width: '600px',
+                    confirmButtonText: 'Done'
+                });
+
+                // Refresh backup list
+                loadRecentBackups();
+            } else {
+                // Show errors
+                let errorHtml = '<div class="text-left mb-4">';
+                
+                if (data.components) {
+                    errorHtml += '<p class="text-sm font-medium text-gray-700 mb-2">Backup Status:</p>';
+                    errorHtml += '<ul class="text-sm space-y-1 mb-3">';
+                    data.components.forEach(comp => {
+                        const icon = comp.status === 'success' ? '✓' : '✗';
+                        const color = comp.status === 'success' ? 'text-green-600' : 'text-red-600';
+                        errorHtml += `<li class="${color}">${icon} ${comp.component}`;
+                        if (comp.error) {
+                            errorHtml += `<br><span class="text-xs text-gray-500 ml-4">${comp.error}</span>`;
+                        }
+                        errorHtml += '</li>';
+                    });
+                    errorHtml += '</ul>';
+                }
+
+                if (data.errors && data.errors.length > 0) {
+                    errorHtml += '<p class="text-sm font-medium text-red-700 mb-2">Errors:</p>';
+                    errorHtml += '<ul class="text-sm text-red-600 space-y-1">';
+                    data.errors.forEach(err => {
+                        errorHtml += `<li>• ${err}</li>`;
+                    });
+                    errorHtml += '</ul>';
+                }
+                
+                errorHtml += '</div>';
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Backup Failed',
+                    html: errorHtml,
+                    width: '600px'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to create backup: ' + error.message
+            });
+        }
+    }
 }
 
 async function loadRecentBackups() {
