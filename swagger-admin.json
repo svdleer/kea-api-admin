@@ -236,20 +236,52 @@
     "/admin/backup/full-system": {
       "get": {
         "summary": "Full system backup",
-        "description": "Create a complete backup of all databases and configurations",
+        "description": "Create a complete backup of all databases (Kea + RADIUS primary + RADIUS secondary) as a compressed tar.gz archive with manifest",
         "tags": ["Backup & Restore"],
         "responses": {
           "200": {
-            "description": "Full system backup created",
+            "description": "Full system backup created successfully",
             "content": {
-              "application/zip": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "filename": {"type": "string", "example": "full-system-2025-10-31-143022.tar.gz"},
+                    "size": {"type": "string", "example": "15.2 MB"},
+                    "path": {"type": "string", "example": "/backups/full-system-2025-10-31-143022.tar.gz"},
+                    "components": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "component": {"type": "string", "example": "Kea Database"},
+                          "status": {"type": "string", "enum": ["success", "failed"]},
+                          "filename": {"type": "string", "example": "kea-db.sql"},
+                          "size": {"type": "string", "example": "5.3 MB"},
+                          "error": {"type": "string"}
+                        }
+                      }
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "success": {"type": "integer"},
+                        "failed": {"type": "integer"},
+                        "total": {"type": "integer"}
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    }
+                  }
                 }
               }
             }
-          }
+          },
+          "500": {"description": "Backup failed"}
         }
       }
     },

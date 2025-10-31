@@ -774,13 +774,235 @@ class AdminController
     /**
      * Full system backup
      * GET /api/admin/backup/full-system
+     * Creates a complete backup including Kea database and RADIUS databases
      */
     public function fullSystemBackup()
     {
-        $this->jsonResponse([
-            'success' => false,
-            'message' => 'Full system backup coming soon'
-        ]);
+        $timestamp = date('Y-m-d-His');
+        $backupDir = BASE_PATH . '/backups/full-system-' . $timestamp;
+        $results = [];
+        $errors = [];
+        
+        // Create backup directory structure
+        if (!file_exists($backupDir)) {
+            mkdir($backupDir, 0755, true);
+        }
+
+        // 1. Backup Kea Database
+        try {
+            $keaFilename = 'kea-db.sql';
+            $keaFilepath = $backupDir . '/' . $keaFilename;
+            
+            $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
+            $dbName = $_ENV['DB_NAME'] ?? 'kea_db';
+            $dbUser = $_ENV['DB_USER'] ?? 'kea_db_user';
+            $dbPass = $_ENV['DB_PASSWORD'] ?? '';
+
+            $command = sprintf(
+                "mysqldump -h %s -u %s -p'%s' %s > %s 2>&1",
+                escapeshellarg($dbHost),
+                escapeshellarg($dbUser),
+                $dbPass,
+                escapeshellarg($dbName),
+                escapeshellarg($keaFilepath)
+            );
+
+            exec($command, $output, $returnCode);
+
+            if ($returnCode === 0 && file_exists($keaFilepath)) {
+                $results[] = [
+                    'component' => 'Kea Database',
+                    'status' => 'success',
+                    'filename' => $keaFilename,
+                    'size' => $this->formatFileSize(filesize($keaFilepath))
+                ];
+            } else {
+                throw new \Exception('Kea backup failed: ' . implode("\n", $output));
+            }
+        } catch (\Exception $e) {
+            $errors[] = 'Kea Database: ' . $e->getMessage();
+            $results[] = [
+                'component' => 'Kea Database',
+                'status' => 'failed',
+                'error' => $e->getMessage()
+            ];
+        }
+
+        // 2. Backup RADIUS Databases
+        require_once BASE_PATH . '/src/Models/RadiusServerConfig.php';
+        $configModel = new \App\Models\RadiusServerConfig($this->db);
+        
+        // Backup Primary RADIUS
+        try {
+            $primary = $configModel->getServerByOrder(0);
+            if ($primary) {
+                $radiusFilename = 'radius-primary.sql';
+                $radiusFilepath = $backupDir . '/' . $radiusFilename;
+
+                $command = sprintf(
+                    "mysqldump -h %s -P %d -u %s -p'%s' %s > %s 2>&1",
+                    escapeshellarg($primary['host']),
+                    $primary['port'],
+                    escapeshellarg($primary['username']),
+                    $primary['password'],
+                    escapeshellarg($primary['database']),
+                    escapeshellarg($radiusFilepath)
+                );
+
+                exec($command, $output, $returnCode);
+
+                if ($returnCode === 0 && file_exists($radiusFilepath)) {
+                    $results[] = [
+                        'component' => 'RADIUS Primary',
+                        'status' => 'success',
+                        'filename' => $radiusFilename,
+                        'size' => $this->formatFileSize(filesize($radiusFilepath))
+                    ];
+                } else {
+                    throw new \Exception('Primary RADIUS backup failed');
+                }
+            }
+        } catch (\Exception $e) {
+            $errors[] = 'RADIUS Primary: ' . $e->getMessage();
+            $results[] = [
+                'component' => 'RADIUS Primary',
+                'status' => 'failed',
+                'error' => $e->getMessage()
+            ];
+        }
+
+        // Backup Secondary RADIUS
+        try {
+            $secondary = $configModel->getServerByOrder(1);
+            if ($secondary) {
+                $radiusFilename = 'radius-secondary.sql';
+                $radiusFilepath = $backupDir . '/' . $radiusFilename;
+
+                $command = sprintf(
+                    "mysqldump -h %s -P %d -u %s -p'%s' %s > %s 2>&1",
+                    escapeshellarg($secondary['host']),
+                    $secondary['port'],
+                    escapeshellarg($secondary['username']),
+                    $secondary['password'],
+                    escapeshellarg($secondary['database']),
+                    escapeshellarg($radiusFilepath)
+                );
+
+                exec($command, $output, $returnCode);
+
+                if ($returnCode === 0 && file_exists($radiusFilepath)) {
+                    $results[] = [
+                        'component' => 'RADIUS Secondary',
+                        'status' => 'success',
+                        'filename' => $radiusFilename,
+                        'size' => $this->formatFileSize(filesize($radiusFilepath))
+                    ];
+                } else {
+                    throw new \Exception('Secondary RADIUS backup failed');
+                }
+            }
+        } catch (\Exception $e) {
+            $errors[] = 'RADIUS Secondary: ' . $e->getMessage();
+            $results[] = [
+                'component' => 'RADIUS Secondary',
+                'status' => 'failed',
+                'error' => $e->getMessage()
+            ];
+        }
+
+        // 3. Create manifest file
+        $manifest = [
+            'backup_date' => date('Y-m-d H:i:s'),
+            'timestamp' => $timestamp,
+            'components' => $results
+        ];
+        
+        file_put_contents(
+            $backupDir . '/manifest.json',
+            json_encode($manifest, JSON_PRETTY_PRINT)
+        );
+
+        // 4. Create tar.gz archive
+        $archiveName = 'full-system-' . $timestamp . '.tar.gz';
+        $archivePath = BASE_PATH . '/backups/' . $archiveName;
+        
+        $tarCommand = sprintf(
+            "cd %s && tar -czf %s %s 2>&1",
+            escapeshellarg(BASE_PATH . '/backups'),
+            escapeshellarg($archiveName),
+            escapeshellarg('full-system-' . $timestamp)
+        );
+        
+        exec($tarCommand, $tarOutput, $tarReturn);
+
+        if ($tarReturn === 0 && file_exists($archivePath)) {
+            // Remove temporary directory
+            $this->removeDirectory($backupDir);
+            
+            // Clean up old full backups (keep last 5)
+            $this->cleanupOldBackups('full-system', 5);
+            
+            $successCount = count(array_filter($results, function($r) {
+                return $r['status'] === 'success';
+            }));
+            
+            $totalCount = count($results);
+            
+            $this->jsonResponse([
+                'success' => empty($errors),
+                'message' => empty($errors) 
+                    ? 'Full system backup completed successfully' 
+                    : 'Backup completed with some errors',
+                'filename' => $archiveName,
+                'size' => $this->formatFileSize(filesize($archivePath)),
+                'path' => '/backups/' . $archiveName,
+                'components' => $results,
+                'summary' => [
+                    'success' => $successCount,
+                    'failed' => $totalCount - $successCount,
+                    'total' => $totalCount
+                ],
+                'errors' => $errors
+            ]);
+        } else {
+            // Cleanup on failure
+            if (file_exists($backupDir)) {
+                $this->removeDirectory($backupDir);
+            }
+            
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to create archive',
+                'components' => $results,
+                'errors' => array_merge($errors, ['Archive creation failed'])
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper method to recursively remove directory
+     */
+    private function removeDirectory($dir)
+    {
+        if (!file_exists($dir)) {
+            return true;
+        }
+
+        if (!is_dir($dir)) {
+            return unlink($dir);
+        }
+
+        foreach (scandir($dir) as $item) {
+            if ($item == '.' || $item == '..') {
+                continue;
+            }
+
+            if (!$this->removeDirectory($dir . DIRECTORY_SEPARATOR . $item)) {
+                return false;
+            }
+        }
+
+        return rmdir($dir);
     }
 
     /**
