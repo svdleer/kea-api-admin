@@ -107,14 +107,14 @@ function loadUsers() {
             data.users.forEach(user => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${user.username || ''}</p>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-900">
+                        ${user.username || ''}
                     </td>
-                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${user.email || ''}</p>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-900">
+                        ${user.email || ''}
                     </td>
-                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <p class="text-gray-900 whitespace-no-wrap">${user.is_admin ? 'Admin' : 'User'}</p>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-900">
+                        ${user.is_admin ? 'Admin' : 'User'}
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <span class="relative inline-block px-3 py-1 font-semibold ${user.active ? 'text-green-900' : 'text-red-900'} leading-tight">

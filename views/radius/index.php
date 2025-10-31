@@ -558,7 +558,7 @@ function displayRadiusClients(clients) {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(client.shortname || 'N/A')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                     ${maskedSecret}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -566,7 +566,7 @@ function displayRadiusClients(clients) {
                         ${escapeHtml(client.type || 'other')}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                     ${hasGlobalSecret ? `
                         <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-gray-400 bg-gray-100 cursor-not-allowed" 
                               title="Individual secrets are disabled when global secret is configured">

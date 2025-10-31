@@ -220,7 +220,7 @@ function displayBviData(bviInterfaces) {
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
                     ${escapeHtml(bvi.ipv6_address)}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                <td class="px-4 py-2 whitespace-nowrap text-right text-sm">
                     <div class="flex justify-end space-x-2">
                         <a href="/switches/${bvi.switch_id}/bvi/${bvi.bvi_id}/edit" 
                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">

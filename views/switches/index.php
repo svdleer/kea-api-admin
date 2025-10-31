@@ -138,10 +138,10 @@ ob_start();
             <tbody class="bg-white divide-y divide-gray-200">
                 <?php foreach ($switches as $switch): ?>
                                 <tr>
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                         <?php echo htmlspecialchars($switch['hostname'] ?? ''); ?>
                                     </td>
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                                         <?php 
                                         try {
                                             $bviCount = $cinSwitch->getBviCount($switch['id']);
@@ -151,7 +151,7 @@ ob_start();
                                         }
                                         ?>
                                     </td>
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm">
                                         <div class="flex space-x-2">
                                             <a href="/switches/edit/<?php echo htmlspecialchars($switch['id']); ?>"     
                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
