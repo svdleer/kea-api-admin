@@ -141,22 +141,22 @@ ob_start();
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Switch / BVI
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         NAS IP (IPv6)
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Short Name
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Shared Secret
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Type
                     </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                     </th>
                 </tr>
@@ -549,24 +549,24 @@ function displayRadiusClients(clients) {
         
         const row = `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${switchInfo}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
                     ${escapeHtml(client.nasname)}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(client.shortname || 'N/A')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
                     ${maskedSecret}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         ${escapeHtml(client.type || 'other')}
                     </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                <td class="px-4 py-2 whitespace-nowrap text-right text-sm">
                     ${hasGlobalSecret ? `
                         <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-gray-400 bg-gray-100 cursor-not-allowed" 
                               title="Individual secrets are disabled when global secret is configured">
