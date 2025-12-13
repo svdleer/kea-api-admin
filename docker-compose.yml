@@ -9,7 +9,7 @@ services:
     container_name: kea-api-admin
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${WEB_PORT:-8080}:80"
     volumes:
       # Mount application code (allows live updates without rebuild)
       - ./:/var/www/html:cached
@@ -20,17 +20,22 @@ services:
       # Mount logs directory
       - kea-logs:/var/www/html/logs
     environment:
-      # Database connection
-      - DB_HOST=kea-db
-      - DB_NAME=kea_db
-      - DB_USER=kea_user
-      - DB_PASSWORD=kea_secure_password
+      # Database connection (can be external or Docker MySQL)
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-kea_db}
+      - DB_USER=${DB_USER:-kea_user}
+      - DB_PASSWORD=${DB_PASSWORD:-kea_secure_password}
       # Application settings
-      - APP_ENV=production
-      - APP_DEBUG=false
-    depends_on:
-      kea-db:
-        condition: service_healthy
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+    # Only depend on kea-db if using Docker database
+    # depends_on:
+    #   kea-db:
+    #     condition: service_healthy
+    extra_hosts:
+      # Allow container to reach host services
+      - "host.docker.internal:host-gateway"
     networks:
       - kea-network
     healthcheck:
@@ -40,18 +45,20 @@ services:
       retries: 3
       start_period: 40s
 
-  # MySQL Database for Kea
+  # MySQL Database for Kea (OPTIONAL - use only if not using external database)
+  # To use this Docker database, uncomment the depends_on section in kea-api-admin service above
+  # and set DB_HOST=kea-db in your .env file
   kea-db:
     image: mysql:8.0
     container_name: kea-db
     restart: unless-stopped
     ports:
-      - "3307:3306"
+      - "${DB_PORT_EXTERNAL:-3307}:3306"
     environment:
-      MYSQL_DATABASE: kea_db
-      MYSQL_USER: kea_user
-      MYSQL_PASSWORD: kea_secure_password
-      MYSQL_ROOT_PASSWORD: root_secure_password
+      MYSQL_DATABASE: ${DB_NAME:-kea_db}
+      MYSQL_USER: ${DB_USER:-kea_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-kea_secure_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secure_password}
     volumes:
       # Persist database data
       - kea-db-data:/var/lib/mysql
@@ -60,27 +67,34 @@ services:
     networks:
       - kea-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secure_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_secure_password}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - with-db
+      - tools
 
   # Optional: phpMyAdmin for database management
+  # Works with both Docker database and external database
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: kea-phpmyadmin
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "${PHPMYADMIN_PORT:-8081}:80"
     environment:
-      PMA_HOST: kea-db
-      PMA_USER: root
-      PMA_PASSWORD: root_secure_password
+      # For Docker database: use kea-db
+      # For external database: use the host configured in .env
+      PMA_HOST: ${DB_HOST:-kea-db}
+      PMA_PORT: ${DB_PORT:-3306}
+      PMA_USER: ${DB_USER:-kea_user}
+      PMA_PASSWORD: ${DB_PASSWORD}
       UPLOAD_LIMIT: 100M
-    depends_on:
-      - kea-db
     networks:
       - kea-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     profiles:
       - tools
 
