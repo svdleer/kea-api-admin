@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PHP Application
+  kea-api-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kea-api-admin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Mount application code (allows live updates without rebuild)
+      - ./:/var/www/html:cached
+      # Mount external configuration
+      - ./config:/var/www/html/config:ro
+      # Mount backups directory
+      - kea-backups:/var/www/html/backups
+      # Mount logs directory
+      - kea-logs:/var/www/html/logs
+    environment:
+      # Database connection
+      - DB_HOST=kea-db
+      - DB_NAME=kea_db
+      - DB_USER=kea_user
+      - DB_PASSWORD=kea_secure_password
+      # Application settings
+      - APP_ENV=production
+      - APP_DEBUG=false
+    depends_on:
+      kea-db:
+        condition: service_healthy
+    networks:
+      - kea-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MySQL Database for Kea
+  kea-db:
+    image: mysql:8.0
+    container_name: kea-db
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: kea_db
+      MYSQL_USER: kea_user
+      MYSQL_PASSWORD: kea_secure_password
+      MYSQL_ROOT_PASSWORD: root_secure_password
+    volumes:
+      # Persist database data
+      - kea-db-data:/var/lib/mysql
+      # Optional: mount initialization scripts
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - kea-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secure_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: phpMyAdmin for database management
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: kea-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: kea-db
+      PMA_USER: root
+      PMA_PASSWORD: root_secure_password
+      UPLOAD_LIMIT: 100M
+    depends_on:
+      - kea-db
+    networks:
+      - kea-network
+    profiles:
+      - tools
+
+networks:
+  kea-network:
+    driver: bridge
+
+volumes:
+  kea-db-data:
+    driver: local
+  kea-backups:
+    driver: local
+  kea-logs:
+    driver: local

@@ -1,0 +1,64 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Old/backup directories
+old/
+backups/
+*.backup
+*.bak
+
+# Logs
+logs/
+*.log
+
+# Environment files (use docker-compose env instead)
+.env.local
+.env.*.local
+
+# Node modules (if any)
+node_modules/
+
+# Composer
+/vendor/
+
+# Test files
+tests/
+phpunit.xml
+*.test.php
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.cache
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Database files
+*.sql
+*.db
+*.sqlite
+*.csv
+
+# Editor files
+*.sublime-*
+*.code-workspace
