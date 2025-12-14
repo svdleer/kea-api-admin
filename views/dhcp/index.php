@@ -37,11 +37,21 @@ try {
     error_log("getEnrichedSubnets returned " . count($subnets) . " subnets");
     error_log("Subnets data: " . json_encode($subnets));
     error_log("====== DHCP View: Returned from DHCPModel->getEnrichedSubnets() ======");
+} catch (Exception $e) {
+    error_log("DHCP View Error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    $subnets = [];  // Initialize empty array to prevent fatal error
+    $switches = [];
+    $error = "Failed to load DHCP data: " . $e->getMessage();
+}
 
+if (!isset($subnets)) {
+    $subnets = [];
+}
 
-
-    // Create an expanded list of switches with their BVI interfaces
-    $expandedSwitches = [];
+// Create an expanded list of switches with their BVI interfaces
+$expandedSwitches = [];
+if (!empty($switches)) {
     foreach ($switches as $switch) {
         $bviInterfaces = $cinSwitch->getBVIInterfaces($switch['id']);
 
@@ -72,11 +82,13 @@ try {
                 $expandedSwitches[] = $expandedSwitch;
             }
        }
+}
     
     $switches = $expandedSwitches;
     error_log('Expanded switches: ' . json_encode($switches));
 } catch (\Exception $e) {
     $error = $e->getMessage();
+    error_log('DHCP View Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
 }
 
 // Start output buffering
