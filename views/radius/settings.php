@@ -69,6 +69,16 @@ ob_start();
             </div>
 
             <form id="primaryServerForm" class="space-y-4">
+                <div class="mb-4">
+                    <label for="primary_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Server Name
+                    </label>
+                    <input type="text" id="primary_name" name="name" required
+                           placeholder="FreeRADIUS Primary"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="mt-1 text-xs text-gray-500">This name will appear in logs and sync messages</p>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="primary_host" class="block text-sm font-medium text-gray-700 mb-2">
@@ -154,6 +164,16 @@ ob_start();
             </div>
 
             <form id="secondaryServerForm" class="space-y-4">
+                <div class="mb-4">
+                    <label for="secondary_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Server Name
+                    </label>
+                    <input type="text" id="secondary_name" name="name" required
+                           placeholder="FreeRADIUS Secondary"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="mt-1 text-xs text-gray-500">This name will appear in logs and sync messages</p>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="secondary_host" class="block text-sm font-medium text-gray-700 mb-2">
@@ -242,6 +262,7 @@ async function loadConfiguration() {
             if (data.servers[0]) {
                 const primary = data.servers[0];
                 $('#primary_enabled').prop('checked', primary.enabled);
+                $('#primary_name').val(primary.name);
                 $('#primary_host').val(primary.host);
                 $('#primary_port').val(primary.port);
                 $('#primary_database').val(primary.database);
@@ -253,6 +274,7 @@ async function loadConfiguration() {
             if (data.servers[1]) {
                 const secondary = data.servers[1];
                 $('#secondary_enabled').prop('checked', secondary.enabled);
+                $('#secondary_name').val(secondary.name);
                 $('#secondary_host').val(secondary.host);
                 $('#secondary_port').val(secondary.port);
                 $('#secondary_database').val(secondary.database);
@@ -367,7 +389,7 @@ $('#secondaryServerForm').on('submit', async function(e) {
 async function saveServer(serverType, index) {
     const prefix = serverType;
     const config = {
-        name: serverType === 'primary' ? 'FreeRADIUS Primary' : 'FreeRADIUS Secondary',
+        name: $(`#${prefix}_name`).val(),
         enabled: $(`#${prefix}_enabled`).is(':checked'),
         host: $(`#${prefix}_host`).val(),
         port: parseInt($(`#${prefix}_port`).val()),
