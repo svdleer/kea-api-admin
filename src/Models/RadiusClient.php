@@ -172,6 +172,58 @@ class RadiusClient
     }
 
     /**
+     * Create RADIUS client from array data (e.g., from import)
+     */
+    public function create($data)
+    {
+        try {
+            // Check if client with this IP already exists
+            if (isset($data['ip_address']) && $this->nasnameExists($data['ip_address'])) {
+                throw new \Exception("RADIUS client with IP {$data['ip_address']} already exists");
+            }
+
+            // Use global secret if configured and no secret provided
+            $secret = $data['secret'] ?? null;
+            if ($secret === null) {
+                $globalSecret = $this->getGlobalSecret();
+                $secret = $globalSecret ?: bin2hex(random_bytes(16));
+            }
+
+            $query = "INSERT INTO nas 
+                      (nasname, shortname, type, secret, description) 
+                      VALUES (?, ?, ?, ?, ?)";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([
+                $data['ip_address'] ?? '',
+                $data['name'] ?? 'Imported Client',
+                $data['type'] ?? 'other',
+                $secret,
+                $data['description'] ?? 'Imported from clients.conf'
+            ]);
+
+            $clientId = $this->db->lastInsertId();
+            
+            // Sync to all RADIUS servers
+            try {
+                $client = $this->getClientById($clientId);
+                if ($client) {
+                    $syncResults = $this->radiusSync->syncClientToAllServers($client, 'INSERT');
+                    error_log("RADIUS client synced to servers: " . json_encode($syncResults));
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to sync RADIUS client to servers: " . $e->getMessage());
+                // Don't fail the main operation if sync fails
+            }
+
+            return $clientId;
+        } catch (PDOException $e) {
+            error_log("Error creating RADIUS client: " . $e->getMessage());
+            throw new \Exception("Failed to create RADIUS client: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Update RADIUS client
      */
     public function updateClient($id, $data)
