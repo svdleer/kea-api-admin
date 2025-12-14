@@ -124,7 +124,54 @@ error_log('isAdmin result: ' . ($auth->isAdmin() ? 'true' : 'false'));
         border-color: #38a169 !important;
     }       
                 
-    </style>    
+    </style>
+    
+    <script>
+    // Global notification function using SweetAlert2
+    function showNotification(message, type = 'info', title = null) {
+        const icons = {
+            success: 'success',
+            error: 'error',
+            warning: 'warning',
+            info: 'info'
+        };
+        
+        const titles = {
+            success: title || 'Success',
+            error: title || 'Error',
+            warning: title || 'Warning',
+            info: title || 'Information'
+        };
+        
+        Swal.fire({
+            icon: icons[type] || 'info',
+            title: titles[type],
+            text: message,
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'OK'
+        });
+    }
+    
+    // Toast notification for less intrusive messages
+    function showToast(message, type = 'info') {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+        
+        Toast.fire({
+            icon: type,
+            title: message
+        });
+    }
+    </script>
     
 </head>
 <body class="h-full flex flex-col bg-gray-100">

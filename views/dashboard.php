@@ -115,7 +115,11 @@ async function loadDashboard() {
         console.error('Dashboard error:', error);
         document.getElementById('loading-spinner').classList.add('hidden');
         document.getElementById('error-message').classList.remove('hidden');
-        document.getElementById('error-text').textContent = 'Failed to load dashboard: ' + error.message;
+        const errorText = error.message || 'Unknown error occurred';
+        document.getElementById('error-text').textContent = errorText;
+        
+        // Also show a toast notification
+        showToast('Dashboard data could not be loaded. Some features may not work correctly.', 'warning');
     }
 }
 

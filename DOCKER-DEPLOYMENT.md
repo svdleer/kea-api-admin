@@ -143,7 +143,7 @@ DB_PASSWORD=your_actual_password
 KEA_API_ENDPOINT=http://host.docker.internal:8000
 ```
 
-**Note:** Kea DHCP servers are now configured via the database (`kea_servers` table). After importing the database schema, you can update server URLs directly in the database or via GUI (when implemented).
+**Note:** Kea DHCP servers are configured via the web GUI at `/admin/kea-servers` (stored in database `kea_servers` table). After importing the database schema, login as admin and navigate to Admin → Kea Servers to configure your Kea DHCP endpoints.
 
 2. **Start only the application container:**
 ```bash

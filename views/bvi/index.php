@@ -193,7 +193,7 @@ async function loadBviData() {
     } catch (error) {
         console.error('Error loading BVI data:', error);
         $('#loadingIndicator').hide();
-        alert('Error loading BVI interfaces. Please try again.');
+        showNotification('Failed to load BVI interfaces. Please refresh the page and try again.', 'error', 'Loading Error');
     }
 }
 
