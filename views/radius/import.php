@@ -188,7 +188,16 @@ async function saveEdits() {
             body: JSON.stringify({ clients: selectedClients })
         });
         
-        const result = await response.json();
+        let result;
+        try {
+            result = await response.json();
+        } catch (jsonError) {
+            const text = await response.text();
+            console.error('JSON parse error:', jsonError);
+            console.error('Response text:', text);
+            alert('Invalid response from server. Check console for details.');
+            return;
+        }
         
         if (!result.success) {
             alert('Import failed: ' + result.message);
@@ -196,10 +205,11 @@ async function saveEdits() {
         }
         
         // Show success and redirect
-        alert(result.message);
+        alert(result.message || 'Import completed successfully');
         window.location.href = '/radius';
         
     } catch (error) {
+        console.error('Import error:', error);
         alert('Error during import: ' + error.message);
     }
 }
