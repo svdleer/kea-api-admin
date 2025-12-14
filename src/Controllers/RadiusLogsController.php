@@ -47,15 +47,25 @@ class RadiusLogsController
                         ra.username,
                         ra.reply,
                         ra.authdate,
-                        COALESCE(n.nasname, 'Unknown') as nas_ip,
-                        COALESCE(n.shortname, 'Unknown') as nas_name
+                        COALESCE(
+                            (SELECT n.nasname 
+                             FROM radacct acc 
+                             JOIN nas n ON acc.nasipaddress = n.nasname 
+                             WHERE acc.username = ra.username 
+                             ORDER BY acc.acctstarttime DESC 
+                             LIMIT 1
+                            ), 'Unknown'
+                        ) as nas_ip,
+                        COALESCE(
+                            (SELECT n.shortname 
+                             FROM radacct acc 
+                             JOIN nas n ON acc.nasipaddress = n.nasname 
+                             WHERE acc.username = ra.username 
+                             ORDER BY acc.acctstarttime DESC 
+                             LIMIT 1
+                            ), 'Unknown'
+                        ) as nas_name
                     FROM radpostauth ra
-                    LEFT JOIN (
-                        SELECT DISTINCT nasname, shortname 
-                        FROM nas
-                    ) n ON ra.pass = n.secret OR ra.username IN (
-                        SELECT DISTINCT username FROM radacct WHERE nasipaddress = n.nasname
-                    )
                     WHERE ra.authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
                     ORDER BY ra.authdate DESC
                     LIMIT 200
@@ -77,14 +87,11 @@ class RadiusLogsController
                         SUM(CASE WHEN ra.reply = 'Access-Reject' THEN 1 ELSE 0 END) as failed_count,
                         COUNT(*) as total_count
                     FROM radpostauth ra
-                    LEFT JOIN nas n ON EXISTS (
-                        SELECT 1 FROM radacct 
-                        WHERE username = ra.username 
-                        AND nasipaddress = n.nasname 
-                        LIMIT 1
-                    )
+                    LEFT JOIN radacct acc ON ra.username = acc.username
+                    LEFT JOIN nas n ON acc.nasipaddress = n.nasname
                     WHERE ra.authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-                    GROUP BY nas_ip, nas_name
+                    GROUP BY n.nasname, n.shortname
+                    HAVING total_count > 0
                     ORDER BY total_count DESC
                 ");
                 
