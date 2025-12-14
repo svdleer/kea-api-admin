@@ -152,12 +152,34 @@ class RadiusClient
 
             $clientId = $this->db->lastInsertId();
             
-            // Sync to all RADIUS servers
+            // Sync to all RADIUS servers and store the returned RADIUS IDs
             try {
                 $client = $this->getClientById($clientId);
                 if ($client) {
                     $syncResults = $this->radiusSync->syncClientToAllServers($client, 'INSERT');
                     error_log("RADIUS client synced to servers: " . json_encode($syncResults));
+                    
+                    // Extract and store RADIUS server IDs
+                    $radiusPrimaryId = null;
+                    $radiusSecondaryId = null;
+                    
+                    foreach ($syncResults as $serverName => $result) {
+                        if ($result['success'] && isset($result['radius_id'])) {
+                            if (stripos($serverName, 'Primary') !== false) {
+                                $radiusPrimaryId = $result['radius_id'];
+                            } else if (stripos($serverName, 'Secondary') !== false) {
+                                $radiusSecondaryId = $result['radius_id'];
+                            }
+                        }
+                    }
+                    
+                    // Update the main DB with the RADIUS server IDs
+                    if ($radiusPrimaryId || $radiusSecondaryId) {
+                        $updateQuery = "UPDATE nas SET radius_primary_id = ?, radius_secondary_id = ? WHERE id = ?";
+                        $updateStmt = $this->db->prepare($updateQuery);
+                        $updateStmt->execute([$radiusPrimaryId, $radiusSecondaryId, $clientId]);
+                        error_log("Stored RADIUS IDs - Primary: $radiusPrimaryId, Secondary: $radiusSecondaryId");
+                    }
                 }
             } catch (\Exception $e) {
                 error_log("Failed to sync RADIUS client to servers: " . $e->getMessage());
