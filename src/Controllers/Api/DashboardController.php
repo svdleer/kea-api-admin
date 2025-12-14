@@ -77,9 +77,11 @@ class DashboardController
     private function getDhcpStatistics()
     {
         try {
-            // Get servers from database instead of config file
-            $keaServerModel = new \App\Models\KeaServer($this->db);
-            $dbServers = $keaServerModel->getActiveServers();
+            // Get active servers from database
+            $stmt = $this->db->query(
+                "SELECT * FROM kea_servers WHERE is_active = 1 ORDER BY priority ASC"
+            );
+            $dbServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             
             // Convert database servers to format expected by KeaStatusMonitor
             $servers = array_map(function($server) {
@@ -257,9 +259,11 @@ class DashboardController
         ob_start();
         
         try {
-            // Get servers from database instead of config file
-            $keaServerModel = new \App\Models\KeaServer($this->db);
-            $dbServers = $keaServerModel->getActiveServers();
+            // Get active servers from database
+            $stmt = $this->db->query(
+                "SELECT * FROM kea_servers WHERE is_active = 1 ORDER BY priority ASC"
+            );
+            $dbServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             
             // Convert database servers to format expected by KeaStatusMonitor
             $servers = array_map(function($server) {
