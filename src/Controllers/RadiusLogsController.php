@@ -15,6 +15,17 @@ class RadiusLogsController
 
     public function index()
     {
+        // Get filter parameters
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $perPage = isset($_GET['per_page']) ? min(200, max(10, intval($_GET['per_page']))) : 50;
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $nasFilter = isset($_GET['nas']) ? trim($_GET['nas']) : '';
+        $resultFilter = isset($_GET['result']) ? trim($_GET['result']) : '';
+        $serverFilter = isset($_GET['server']) ? trim($_GET['server']) : '';
+        $hours = isset($_GET['hours']) ? min(168, max(1, intval($_GET['hours']))) : 24;
+        
+        $offset = ($page - 1) * $perPage;
+
         // Get RADIUS servers
         $radiusConfigModel = new RadiusServerConfig($this->db);
         $radiusServers = $radiusConfigModel->getAllServers();
@@ -26,6 +37,9 @@ class RadiusLogsController
 
         $logs = [];
         $nasStats = [];
+        $totalRecords = 0;
+        $availableNas = [];
+        $availableServers = [];
 
         // Query each RADIUS server
         foreach ($radiusServers as $server) {
@@ -41,8 +55,33 @@ class RadiusLogsController
                     ]
                 );
 
-                // Get recent authentication logs (last 24 hours)
-                $stmt = $radiusDb->query("
+                // Build WHERE clause for search and filters
+                $whereConditions = ["ra.authdate >= DATE_SUB(NOW(), INTERVAL ? HOUR)"];
+                $params = [$hours];
+                
+                if (!empty($search)) {
+                    $whereConditions[] = "ra.username LIKE ?";
+                    $params[] = "%$search%";
+                }
+                
+                if (!empty($resultFilter)) {
+                    $whereConditions[] = "ra.reply = ?";
+                    $params[] = $resultFilter;
+                }
+                
+                $whereClause = implode(" AND ", $whereConditions);
+
+                // Get total count for pagination
+                $stmt = $radiusDb->prepare("
+                    SELECT COUNT(*) as total
+                    FROM radpostauth ra
+                    WHERE $whereClause
+                ");
+                $stmt->execute($params);
+                $totalRecords += $stmt->fetch(\PDO::FETCH_ASSOC)['total'];
+
+                // Get recent authentication logs with pagination
+                $stmt = $radiusDb->prepare("
                     SELECT 
                         ra.username,
                         ra.reply,
@@ -66,20 +105,34 @@ class RadiusLogsController
                             ), 'Unknown'
                         ) as nas_name
                     FROM radpostauth ra
-                    WHERE ra.authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                    WHERE $whereClause
                     ORDER BY ra.authdate DESC
-                    LIMIT 200
+                    LIMIT ? OFFSET ?
                 ");
+                $params[] = $perPage;
+                $params[] = $offset;
+                $stmt->execute($params);
                 
                 $serverLogs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 
                 foreach ($serverLogs as $log) {
                     $log['server'] = $server['name'];
-                    $logs[] = $log;
+                    
+                    // Apply NAS filter if set
+                    if (empty($nasFilter) || $log['nas_ip'] === $nasFilter || $log['nas_name'] === $nasFilter) {
+                        $logs[] = $log;
+                    }
+                    
+                    // Collect unique NAS for filter dropdown
+                    if ($log['nas_ip'] !== 'Unknown') {
+                        $availableNas[$log['nas_ip']] = $log['nas_name'];
+                    }
                 }
+                
+                $availableServers[] = $server['name'];
 
                 // Get NAS statistics
-                $stmt = $radiusDb->query("
+                $stmt = $radiusDb->prepare("
                     SELECT 
                         COALESCE(n.nasname, 'Unknown') as nas_ip,
                         COALESCE(n.shortname, 'Unknown') as nas_name,
@@ -89,11 +142,12 @@ class RadiusLogsController
                     FROM radpostauth ra
                     LEFT JOIN radacct acc ON ra.username = acc.username
                     LEFT JOIN nas n ON acc.nasipaddress = n.nasname
-                    WHERE ra.authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                    WHERE ra.authdate >= DATE_SUB(NOW(), INTERVAL ? HOUR)
                     GROUP BY n.nasname, n.shortname
                     HAVING total_count > 0
                     ORDER BY total_count DESC
                 ");
+                $stmt->execute([$hours]);
                 
                 $serverNasStats = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 
@@ -127,6 +181,9 @@ class RadiusLogsController
         usort($nasStats, function($a, $b) {
             return $b['total_count'] - $a['total_count'];
         });
+        
+        // Calculate pagination
+        $totalPages = ceil($totalRecords / $perPage);
 
         ob_start();
         include __DIR__ . '/../../views/radius/logs.php';
