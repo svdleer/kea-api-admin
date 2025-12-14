@@ -87,14 +87,29 @@ After creating the database and user, import the schema:
 # From your local machine
 mysql -h your-server -u kea_user -p kea_db < database/migrations/create_users_table.sql
 mysql -h your-server -u kea_user -p kea_db < database/migrations/create_api_keys_table.sql
-# ... import all migration files in order
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_cin_switch_bvi_interfaces_table.sql
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_ipv6_subnets_table.sql
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_radius_clients_table.sql
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_radius_server_config_table.sql
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_kea_servers_table.sql
+# ... import all other migration files as needed
 
-# Or if files are on the server
+# Or if files are on the server - import all migrations at once
 cd ~/git/kea-api-admin
-for file in database/migrations/*.sql; do
+for file in database/migrations/create_*.sql; do
+    echo "Importing $file..."
     mysql -u kea_user -p kea_db < "$file"
 done
 ```
+
+**Important migrations:**
+- `create_users_table.sql` - User authentication
+- `create_api_keys_table.sql` - API key management
+- `create_kea_servers_table.sql` - Kea DHCP server configuration (primary/secondary)
+- `create_radius_server_config_table.sql` - RADIUS server settings
+- `create_radius_clients_table.sql` - RADIUS NAS clients
+- `create_cin_switch_bvi_interfaces_table.sql` - Network switches and BVI interfaces
+- `create_ipv6_subnets_table.sql` - IPv6 subnet configuration
 
 ---
 
