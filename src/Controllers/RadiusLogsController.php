@@ -95,21 +95,11 @@ class RadiusLogsController
                         ra.username,
                         ra.reply,
                         ra.authdate,
-                        COALESCE(
-                            (SELECT n.nasname 
-                             FROM radacct acc2
-                             JOIN nas n ON acc2.nasipaddress = n.nasname 
-                             WHERE acc2.username = ra.username 
-                             ORDER BY acc2.acctstarttime DESC 
-                             LIMIT 1
-                            ), 'Unknown'
-                        ) as nas_ip,
+                        COALESCE(ra.nasipaddress, 'Unknown') as nas_ip,
                         COALESCE(
                             (SELECT n.shortname 
-                             FROM radacct acc2
-                             JOIN nas n ON acc2.nasipaddress = n.nasname 
-                             WHERE acc2.username = ra.username 
-                             ORDER BY acc2.acctstarttime DESC 
+                             FROM nas n 
+                             WHERE n.nasname = ra.nasipaddress 
                              LIMIT 1
                             ), 'Unknown'
                         ) as nas_name
