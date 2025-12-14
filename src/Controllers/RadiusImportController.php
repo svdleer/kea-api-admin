@@ -185,8 +185,8 @@ class RadiusImportController
             // Parse client attributes if we're in a block
             if ($inClientBlock && $currentClient) {
                 // More flexible parsing - handles various spacing
-                // ipaddr = 192.168.1.1 or ipaddr=192.168.1.1
-                if (preg_match('/^\s*ipaddr\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
+                // ipaddr = 192.168.1.1 or ipaddr=192.168.1.1 or ipv6addr = 2001::/128
+                if (preg_match('/^\s*(?:ipaddr|ipv6addr)\s*=\s*["\']?([^"\'\s\/]+)(?:\/\d+)?["\']?/', $line, $matches)) {
                     $currentClient['ip_address'] = trim($matches[1], '"\'');
                 }
                 // secret = mysecret or secret=mysecret
@@ -197,8 +197,8 @@ class RadiusImportController
                 elseif (preg_match('/^\s*shortname\s*=\s*["\']?(.+?)["\']?\s*$/', $line, $matches)) {
                     $currentClient['name'] = trim($matches[1], '"\'');
                 }
-                // nastype = other
-                elseif (preg_match('/^\s*nastype\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
+                // nastype = other or nas_type = other
+                elseif (preg_match('/^\s*(?:nastype|nas_type)\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
                     $currentClient['type'] = trim($matches[1], '"\'');
                 }
                 // require_message_authenticator = no (just ignore these)
