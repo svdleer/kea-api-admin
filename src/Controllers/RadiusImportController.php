@@ -80,10 +80,18 @@ class RadiusImportController
             $radiusClientModel = new RadiusClient($this->db);
             $imported = 0;
             $bviCreated = 0;
+            $skipped = 0;
             $errors = [];
 
             foreach ($clients as $client) {
                 try {
+                    // Check if client already exists
+                    if ($radiusClientModel->nasnameExists($client['ip_address'])) {
+                        $skipped++;
+                        error_log("Skipping duplicate client: {$client['name']} ({$client['ip_address']})");
+                        continue;
+                    }
+                    
                     // Create RADIUS client
                     $radiusClientModel->create($client);
                     $imported++;
@@ -103,6 +111,9 @@ class RadiusImportController
             }
 
             $message = "Successfully imported $imported RADIUS clients";
+            if ($skipped > 0) {
+                $message .= " ($skipped skipped as duplicates)";
+            }
             if ($bviCreated > 0) {
                 $message .= " and created $bviCreated BVI interfaces";
             }
@@ -112,6 +123,7 @@ class RadiusImportController
                 'success' => true,
                 'message' => $message,
                 'imported' => $imported,
+                'skipped' => $skipped,
                 'bviCreated' => $bviCreated,
                 'errors' => $errors
             ]);
