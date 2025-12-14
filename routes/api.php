@@ -4,7 +4,6 @@ use App\Controllers\Api\SwitchController;
 use App\Controllers\Api\NetworkController;
 use App\Controllers\Api\DHCPv6OptionsController;
 use App\Controllers\Api\RadiusController;
-use App\Controllers\Api\BVIController;
 use App\Controllers\KeaServerController;
 
 // Kea Server Management API routes
@@ -25,15 +24,6 @@ $router->put('/api/switches/{id}', [SwitchController::class, 'update']);
 $router->delete('/api/switches/{id}', [SwitchController::class, 'delete']);
 
 // BVI Interface routes
-$router->get('/api/switches/{switchId}/bvi', [BVIController::class, 'index']);
-$router->get('/api/switches/{switchId}/bvi/{bviId}', [BVIController::class, 'show']);
-$router->post('/api/switches/{switchId}/bvi', [BVIController::class, 'create']);
-$router->put('/api/switches/{switchId}/bvi/{bviId}', [BVIController::class, 'update']);
-$router->delete('/api/switches/{switchId}/bvi/{bviId}', [BVIController::class, 'delete']);
-$router->get('/api/switches/{switchId}/bvi/check-exists', [BVIController::class, 'checkBVIExists']);
-$router->get('/api/bvi/check-ipv6', [BVIController::class, 'checkIPv6Exists']);
-
-// RADIUS Client routes
 $router->get('/api/radius/clients', [RadiusController::class, 'getAllClients']);
 $router->get('/api/radius/clients/{id}', [RadiusController::class, 'getClientById']);
 $router->post('/api/radius/clients', [RadiusController::class, 'createClient']);
