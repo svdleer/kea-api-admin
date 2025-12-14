@@ -238,7 +238,11 @@ class CinSwitch
             if ($result && $oldHostname && $oldHostname !== $newHostname) {
                 // Update RADIUS client shortnames for all BVI interfaces of this switch
                 require_once BASE_PATH . '/src/Models/RadiusClient.php';
+                require_once BASE_PATH . '/src/Helpers/RadiusDatabaseSync.php';
+                
                 $radiusModel = new \App\Models\RadiusClient($this->db);
+                
+                error_log("Switch hostname changed from '$oldHostname' to '$newHostname' - updating RADIUS clients");
                 
                 // Get all BVI interfaces for this switch
                 $stmt = $this->db->prepare("
@@ -248,6 +252,8 @@ class CinSwitch
                 ");
                 $stmt->execute([$id]);
                 $bviInterfaces = $stmt->fetchAll();
+                
+                error_log("Found " . count($bviInterfaces) . " BVI interfaces for switch ID $id");
                 
                 foreach ($bviInterfaces as $bvi) {
                     // Find RADIUS client by BVI ID
@@ -260,6 +266,8 @@ class CinSwitch
                         $displayBvi = $bvi['interface_number'] + 100;
                         $newShortname = strtolower($newHostname) . '-bvi' . $displayBvi;
                         
+                        error_log("Updating RADIUS client ID {$radiusClient['id']}: BVI {$bvi['id']} -> shortname: $newShortname");
+                        
                         // Update shortname in main database
                         $stmt = $this->db->prepare("UPDATE nas SET shortname = ? WHERE id = ?");
                         $stmt->execute([$newShortname, $radiusClient['id']]);
@@ -268,7 +276,10 @@ class CinSwitch
                         $updatedClient = $radiusModel->getClientById($radiusClient['id']);
                         if ($updatedClient) {
                             $radiusSync = new \App\Helpers\RadiusDatabaseSync();
-                            $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
+                            $syncResult = $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
+                            error_log("Sync result for client {$radiusClient['id']}: " . json_encode($syncResult));
+                        } else {
+                            error_log("Failed to retrieve updated client {$radiusClient['id']} from database");
                         }
                     }
                 }
