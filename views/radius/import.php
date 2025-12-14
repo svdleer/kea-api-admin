@@ -188,13 +188,15 @@ async function saveEdits() {
             body: JSON.stringify({ clients: selectedClients })
         });
         
+        // Read response text first, then parse as JSON
+        const responseText = await response.text();
         let result;
+        
         try {
-            result = await response.json();
+            result = JSON.parse(responseText);
         } catch (jsonError) {
-            const text = await response.text();
             console.error('JSON parse error:', jsonError);
-            console.error('Response text:', text);
+            console.error('Response text:', responseText);
             alert('Invalid response from server. Check console for details.');
             return;
         }
