@@ -54,6 +54,62 @@ class RadiusImportController
         require_once __DIR__ . '/../../views/layout.php';
     }
 
+    public function updateNames()
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $edits = $input['edits'] ?? [];
+            
+            if (empty($edits)) {
+                echo json_encode(['success' => true, 'message' => 'No changes to save']);
+                return;
+            }
+            
+            $radiusClient = new \App\Models\RadiusClient($this->db);
+            $updated = 0;
+            
+            foreach ($edits as $edit) {
+                try {
+                    // Find client by IP address (nasname)
+                    $stmt = $this->db->prepare("SELECT id FROM nas WHERE nasname = ?");
+                    $stmt->execute([$edit['ip']]);
+                    $client = $stmt->fetch();
+                    
+                    if ($client) {
+                        // Update shortname in main database
+                        $stmt = $this->db->prepare("UPDATE nas SET shortname = ? WHERE id = ?");
+                        $stmt->execute([$edit['newName'], $client['id']]);
+                        
+                        // Sync to RADIUS servers
+                        $updatedClient = $radiusClient->getClientById($client['id']);
+                        if ($updatedClient) {
+                            $radiusSync = new \App\Helpers\RadiusDatabaseSync();
+                            $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
+                        }
+                        
+                        $updated++;
+                    }
+                } catch (\Exception $e) {
+                    error_log("Failed to update client {$edit['ip']}: " . $e->getMessage());
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'message' => "Updated $updated client name(s)"
+            ]);
+            
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to update names: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function import()
     {
         // Disable error display to prevent breaking JSON

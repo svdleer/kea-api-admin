@@ -127,18 +127,18 @@ client switch2 {
             </div>
             
             <div class="mt-5">
-                <h4 class="text-sm font-medium text-gray-900 mb-3">Imported RADIUS Clients:</h4>
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Imported RADIUS Clients (click to edit names):</h4>
                 <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
                     <div id="clientsList" class="space-y-2"></div>
                 </div>
             </div>
             
             <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                <button type="button" onclick="window.location.href='/radius'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm">
-                    Go to RADIUS Clients
+                <button type="button" onclick="saveEdits()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm">
+                    Save & Go to RADIUS Clients
                 </button>
-                <button type="button" onclick="closeModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
-                    Import More
+                <button type="button" onclick="window.location.href='/radius'" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    Skip & Go to RADIUS Clients
                 </button>
             </div>
         </div>
@@ -146,10 +146,50 @@ client switch2 {
 </div>
 
 <script>
+let importedClientsData = [];
+
 function closeModal() {
     document.getElementById('successModal').classList.add('hidden');
     document.getElementById('importForm').reset();
     document.getElementById('fileName').textContent = '';
+    importedClientsData = [];
+}
+
+async function saveEdits() {
+    const edits = [];
+    importedClientsData.forEach((client, index) => {
+        const inputElement = document.getElementById(`client-name-${index}`);
+        const newName = inputElement.value.trim();
+        if (newName !== client.name) {
+            edits.push({
+                ip: client.ip,
+                oldName: client.name,
+                newName: newName
+            });
+        }
+    });
+    
+    if (edits.length > 0) {
+        try {
+            const response = await fetch('/radius/update-names', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ edits })
+            });
+            
+            if (!response.ok) {
+                alert('Failed to save name changes');
+                return;
+            }
+        } catch (error) {
+            alert('Error saving changes: ' + error.message);
+            return;
+        }
+    }
+    
+    window.location.href = '/radius';
 }
 
 document.getElementById('clients_conf').addEventListener('change', function(e) {
@@ -188,21 +228,30 @@ document.getElementById('importForm').addEventListener('submit', async function(
             
             modalMessage.textContent = result.message;
             
-            // Clear and populate clients list
+            // Store client data for editing
+            importedClientsData = result.clients || [];
+            
+            // Clear and populate clients list with editable names
             clientsList.innerHTML = '';
-            if (result.clients && result.clients.length > 0) {
-                result.clients.forEach(client => {
+            if (importedClientsData.length > 0) {
+                importedClientsData.forEach((client, index) => {
                     const clientDiv = document.createElement('div');
                     clientDiv.className = 'flex items-center justify-between p-3 bg-white rounded border border-gray-200';
                     clientDiv.innerHTML = `
                         <div class="flex-1">
                             <div class="flex items-center">
-                                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-5 w-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="font-medium text-gray-900">${client.name}</span>
+                                <input 
+                                    type="text" 
+                                    id="client-name-${index}"
+                                    value="${client.name}" 
+                                    class="font-medium text-gray-900 border-0 border-b-2 border-transparent hover:border-indigo-300 focus:border-indigo-500 focus:ring-0 bg-transparent px-2 py-1 -ml-2"
+                                    placeholder="Client name"
+                                />
                             </div>
-                            <div class="mt-1 text-sm text-gray-500">
+                            <div class="mt-1 text-sm text-gray-500 ml-7">
                                 Switch: ${client.switch} | IP: ${client.ip}
                             </div>
                         </div>
