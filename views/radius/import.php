@@ -145,7 +145,7 @@ document.getElementById('importForm').addEventListener('submit', async function(
             
             // Redirect after 2 seconds
             setTimeout(() => {
-                window.location.href = '/admin/radius';
+                window.location.href = '/radius';
             }, 2000);
         } else {
             successIcon.classList.add('hidden');
