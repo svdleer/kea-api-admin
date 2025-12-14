@@ -3,6 +3,8 @@
 use App\Controllers\Api\SwitchController;
 use App\Controllers\Api\NetworkController;
 use App\Controllers\Api\DHCPv6OptionsController;
+use App\Controllers\Api\RadiusController;
+use App\Controllers\Api\BVIController;
 use App\Controllers\KeaServerController;
 
 // Kea Server Management API routes
@@ -21,6 +23,30 @@ $router->get('/api/switches/check-ipv6', [SwitchController::class, 'checkIpv6'])
 $router->post('/api/switches', [SwitchController::class, 'create']);
 $router->put('/api/switches/{id}', [SwitchController::class, 'update']);
 $router->delete('/api/switches/{id}', [SwitchController::class, 'delete']);
+
+// BVI Interface routes
+$router->get('/api/switches/{switchId}/bvi', [BVIController::class, 'index']);
+$router->get('/api/switches/{switchId}/bvi/{bviId}', [BVIController::class, 'show']);
+$router->post('/api/switches/{switchId}/bvi', [BVIController::class, 'create']);
+$router->put('/api/switches/{switchId}/bvi/{bviId}', [BVIController::class, 'update']);
+$router->delete('/api/switches/{switchId}/bvi/{bviId}', [BVIController::class, 'delete']);
+$router->get('/api/switches/{switchId}/bvi/check-exists', [BVIController::class, 'checkBVIExists']);
+$router->get('/api/bvi/check-ipv6', [BVIController::class, 'checkIPv6Exists']);
+
+// RADIUS Client routes
+$router->get('/api/radius/clients', [RadiusController::class, 'getAllClients']);
+$router->get('/api/radius/clients/{id}', [RadiusController::class, 'getClientById']);
+$router->post('/api/radius/clients', [RadiusController::class, 'createClient']);
+$router->put('/api/radius/clients/{id}', [RadiusController::class, 'updateClient']);
+$router->delete('/api/radius/clients/{id}', [RadiusController::class, 'deleteClient']);
+$router->post('/api/radius/sync-bvi', [RadiusController::class, 'syncBviInterfaces']);
+$router->get('/api/radius/global-secret', [RadiusController::class, 'getGlobalSecret']);
+$router->put('/api/radius/global-secret', [RadiusController::class, 'updateGlobalSecret']);
+$router->get('/api/radius/servers/status', [RadiusController::class, 'getServersStatus']);
+$router->post('/api/radius/servers/sync', [RadiusController::class, 'forceSyncServers']);
+$router->get('/api/radius/servers/config', [RadiusController::class, 'getServersConfig']);
+$router->put('/api/radius/servers/config', [RadiusController::class, 'updateServerConfig']);
+$router->post('/api/radius/servers/test', [RadiusController::class, 'testServerConnection']);
 
 // DHCP Options routes
 $router->get('/api/dhcp/options', [DHCPv6OptionsController::class, 'list']);

@@ -4,14 +4,23 @@ namespace App\Controllers;
 
 use App\Models\RadiusClient;
 use App\Models\RadiusServerConfig;
+use App\Controllers\Api\SwitchController;
+use App\Controllers\Api\BVIController;
+use App\Controllers\Api\RadiusController;
 
 class RadiusImportController
 {
     private $db;
+    private $switchController;
+    private $bviController;
+    private $radiusController;
 
     public function __construct($db)
     {
         $this->db = $db;
+        $this->switchController = new SwitchController();
+        $this->bviController = new BVIController();
+        $this->radiusController = new RadiusController(new RadiusClient($db), new \App\Auth\Authentication());
     }
 
     public function showImportForm()
@@ -86,15 +95,31 @@ class RadiusImportController
             foreach ($clients as $client) {
                 try {
                     // Check if client already exists
+                    $radiusClientModel = new RadiusClient($this->db);
                     if ($radiusClientModel->nasnameExists($client['ip_address'])) {
                         $skipped++;
                         error_log("Skipping duplicate client: {$client['name']} ({$client['ip_address']})");
                         continue;
                     }
                     
-                    // Create RADIUS client
-                    $radiusClientModel->create($client);
-                    $imported++;
+                    // Create RADIUS client using API
+                    $_POST['name'] = $client['name'];
+                    $_POST['ip_address'] = $client['ip_address'];
+                    $_POST['secret'] = $client['secret'] ?? '';
+                    $_POST['type'] = $client['type'] ?? 'other';
+                    $_POST['description'] = $client['description'] ?? 'Imported from clients.conf';
+                    
+                    ob_start();
+                    $this->radiusController->createClient();
+                    $radiusResponse = ob_get_clean();
+                    $radiusData = json_decode($radiusResponse, true);
+                    
+                    if (isset($radiusData['success']) && $radiusData['success']) {
+                        $imported++;
+                    } else {
+                        $errors[] = "Failed to import {$client['name']}: " . ($radiusData['message'] ?? 'Unknown error');
+                        continue;
+                    }
                     
                     // Also create BVI interface entry since the NAS IP is the BVI interface
                     try {
@@ -146,65 +171,48 @@ class RadiusImportController
         // BVI is always BVI100
         $bviNumber = 100;
 
-        // Check if BVI interface already exists with this IP
-        $stmt = $this->db->prepare("
-            SELECT id FROM cin_switch_bvi_interfaces 
-            WHERE ipv6_address = ?
-        ");
-        $stmt->execute([$client['ip_address']]);
-        
-        if ($stmt->fetch()) {
-            // BVI already exists, skip
-            return;
-        }
-
         // Extract switch hostname from client name
-        // Example: "asdar151-bvi100" -> "asd-gt0004-ar151"
-        // Pattern: extract base name before "-bvi" or use the whole name
+        // Example: "asdar151-bvi100" -> "asdar151"
         $switchHostname = $client['name'];
         if (preg_match('/^(.+?)-bvi\d+/i', $client['name'], $matches)) {
             $switchHostname = $matches[1];
         }
         
-        // Create or get switch entry
-        $stmt = $this->db->prepare("
-            SELECT id FROM cin_switches 
-            WHERE hostname = ?
-        ");
-        $stmt->execute([$switchHostname]);
-        $switch = $stmt->fetch();
+        // Use API to create or get switch
+        $_POST['hostname'] = $switchHostname;
+        $_SERVER['REQUEST_METHOD'] = 'POST';
         
-        if (!$switch) {
-            // Create new switch
-            $stmt = $this->db->prepare("
-                INSERT INTO cin_switches 
-                (hostname, ip_address, description, created_at, updated_at)
-                VALUES (?, ?, ?, NOW(), NOW())
-            ");
+        ob_start();
+        $this->switchController->create();
+        $switchResponse = ob_get_clean();
+        $switchData = json_decode($switchResponse, true);
+        
+        if (!isset($switchData['id'])) {
+            // Switch might already exist, try to get it
+            $stmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+            $stmt->execute([$switchHostname]);
+            $existingSwitch = $stmt->fetch();
             
-            $stmt->execute([
-                $switchHostname,
-                $client['ip_address'], // Use BVI IP as switch management IP
-                'Imported from clients.conf'
-            ]);
-            
-            $switchId = $this->db->lastInsertId();
+            if (!$existingSwitch) {
+                throw new \Exception("Failed to create or find switch: $switchHostname");
+            }
+            $switchId = $existingSwitch['id'];
         } else {
-            $switchId = $switch['id'];
+            $switchId = $switchData['id'];
         }
 
-        // Create BVI interface entry linked to switch
-        $stmt = $this->db->prepare("
-            INSERT INTO cin_switch_bvi_interfaces 
-            (switch_id, interface_number, ipv6_address, created_at, updated_at)
-            VALUES (?, ?, ?, NOW(), NOW())
-        ");
+        // Use API to create BVI interface
+        $_POST['interface_number'] = $bviNumber;
+        $_POST['ipv6_address'] = $client['ip_address'];
         
-        $stmt->execute([
-            $switchId,
-            $bviNumber,
-            $client['ip_address']
-        ]);
+        ob_start();
+        $this->bviController->create($switchId);
+        $bviResponse = ob_get_clean();
+        $bviData = json_decode($bviResponse, true);
+        
+        if (!isset($bviData['id']) && !isset($bviData['success'])) {
+            error_log("Failed to create BVI interface: " . print_r($bviData, true));
+        }
     }
 
     private function parseClientsConf($content)
