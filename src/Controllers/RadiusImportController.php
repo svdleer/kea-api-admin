@@ -450,8 +450,13 @@ class RadiusImportController
             if ($inClientBlock && $currentClient) {
                 // More flexible parsing - handles various spacing
                 // ipaddr = 192.168.1.1 or ipaddr=192.168.1.1 or ipv6addr = 2001::/128
-                if (preg_match('/^\s*(?:ipaddr|ipv6addr)\s*=\s*["\']?([^"\'\s\/]+)(?:\/\d+)?["\']?/', $line, $matches)) {
-                    $currentClient['ip_address'] = trim($matches[1], '"\'');
+                if (preg_match('/^\s*(?:ipaddr|ipv6addr)\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
+                    $ipAddress = trim($matches[1], '"\'');
+                    // Ensure IPv6 addresses have /128 suffix
+                    if (strpos($ipAddress, ':') !== false && strpos($ipAddress, '/') === false) {
+                        $ipAddress .= '/128';
+                    }
+                    $currentClient['ip_address'] = $ipAddress;
                 }
                 // secret = mysecret or secret=mysecret
                 elseif (preg_match('/^\s*secret\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
