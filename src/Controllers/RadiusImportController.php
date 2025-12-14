@@ -250,9 +250,7 @@ class RadiusImportController
         // Start output buffering and disable error display
         ob_start();
         ini_set('display_errors', '0');
-        
-        try {
-            header('Content-Type: application/json');
+        header('Content-Type: application/json');
         
         try {
             $input = json_decode(file_get_contents('php://input'), true);
