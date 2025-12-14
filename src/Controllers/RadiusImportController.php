@@ -27,9 +27,13 @@ class RadiusImportController
 
     public function import()
     {
+        // Ensure no output before JSON
+        ob_start();
+        
         header('Content-Type: application/json');
 
         if (!isset($_FILES['clients_conf'])) {
+            ob_end_clean();
             echo json_encode(['success' => false, 'message' => 'No file uploaded']);
             return;
         }
@@ -37,6 +41,7 @@ class RadiusImportController
         $file = $_FILES['clients_conf'];
         
         if ($file['error'] !== UPLOAD_ERR_OK) {
+            ob_end_clean();
             echo json_encode(['success' => false, 'message' => 'File upload error']);
             return;
         }
@@ -56,6 +61,7 @@ class RadiusImportController
             }
             
             if (empty($clients)) {
+                ob_end_clean();
                 echo json_encode([
                     'success' => false, 
                     'message' => 'No clients found in file. Please check the file format.',
@@ -88,6 +94,7 @@ class RadiusImportController
                     }
                 } catch (\Exception $e) {
                     $errors[] = "Failed to import {$client['name']}: " . $e->getMessage();
+                    error_log("Import error for {$client['name']}: " . $e->getMessage());
                 }
             }
 
@@ -96,6 +103,7 @@ class RadiusImportController
                 $message .= " and created $bviCreated BVI interfaces";
             }
 
+            ob_end_clean();
             echo json_encode([
                 'success' => true,
                 'message' => $message,
@@ -105,6 +113,8 @@ class RadiusImportController
             ]);
 
         } catch (\Exception $e) {
+            error_log("Import exception: " . $e->getMessage());
+            ob_end_clean();
             echo json_encode(['success' => false, 'message' => 'Parse error: ' . $e->getMessage()]);
         }
     }
