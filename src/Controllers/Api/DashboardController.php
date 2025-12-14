@@ -77,8 +77,19 @@ class DashboardController
     private function getDhcpStatistics()
     {
         try {
-            $keaConfig = require BASE_PATH . '/config/kea.php';
-            $keaMonitor = new KeaStatusMonitor($keaConfig['servers']);
+            // Get servers from database instead of config file
+            $keaServerModel = new \App\Models\KeaServer($this->db);
+            $dbServers = $keaServerModel->getActiveServers();
+            
+            // Convert database servers to format expected by KeaStatusMonitor
+            $servers = array_map(function($server) {
+                return [
+                    'name' => $server['name'],
+                    'url' => $server['api_url']
+                ];
+            }, $dbServers);
+            
+            $keaMonitor = new KeaStatusMonitor($servers);
             $keaServers = $keaMonitor->getServersStatus();
             
             $totalSubnets = 0;
