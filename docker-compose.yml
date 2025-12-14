@@ -8,8 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: kea-api-admin
     restart: unless-stopped
-    ports:
-      - "${WEB_PORT:-8080}:80"
+    network_mode: host
     volumes:
       # Mount application code (allows live updates without rebuild)
       - ./:/var/www/html:cached
