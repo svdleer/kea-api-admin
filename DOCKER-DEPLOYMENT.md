@@ -118,6 +118,12 @@ DB_PORT=3306
 DB_NAME=kea_db
 DB_USER=kea_user
 DB_PASSWORD=your_actual_password
+
+# Kea DHCP Server API endpoint
+KEA_API_ENDPOINT=http://your-kea-server:8000
+# Optional: if Kea API requires authentication
+KEA_API_USER=
+KEA_API_PASSWORD=
 ```
 
 2. **Start only the application container:**

@@ -26,6 +26,10 @@ services:
       - DB_NAME=${DB_NAME:-kea_db}
       - DB_USER=${DB_USER:-kea_user}
       - DB_PASSWORD=${DB_PASSWORD:-kea_secure_password}
+      # Kea DHCP Server API
+      - KEA_API_ENDPOINT=${KEA_API_ENDPOINT:-http://localhost:8000}
+      - KEA_API_USER=${KEA_API_USER:-}
+      - KEA_API_PASSWORD=${KEA_API_PASSWORD:-}
       # Application settings
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
