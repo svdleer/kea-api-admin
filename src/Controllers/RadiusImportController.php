@@ -110,6 +110,53 @@ class RadiusImportController
         }
     }
 
+    public function deleteClients()
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $ips = $input['ips'] ?? [];
+            
+            if (empty($ips)) {
+                echo json_encode(['success' => true, 'message' => 'No clients to delete']);
+                return;
+            }
+            
+            $radiusClient = new \App\Models\RadiusClient($this->db);
+            $deleted = 0;
+            
+            foreach ($ips as $ip) {
+                try {
+                    // Find client by IP address (nasname)
+                    $stmt = $this->db->prepare("SELECT id FROM nas WHERE nasname = ?");
+                    $stmt->execute([$ip]);
+                    $client = $stmt->fetch();
+                    
+                    if ($client) {
+                        // Delete using the model (handles syncing to remote servers)
+                        $radiusClient->delete($client['id']);
+                        $deleted++;
+                    }
+                } catch (\Exception $e) {
+                    error_log("Failed to delete client {$ip}: " . $e->getMessage());
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'message' => "Deleted $deleted client(s)"
+            ]);
+            
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to delete clients: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function import()
     {
         // Disable error display to prevent breaking JSON

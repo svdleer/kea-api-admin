@@ -195,6 +195,12 @@ try {
         $controller->updateNames();
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // RADIUS Delete Clients After Import
+    $router->post('/radius/delete-clients', function() use ($database, $auth) {
+        $controller = new \App\Controllers\RadiusImportController($database);
+        $controller->deleteClients();
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // RADIUS Authentication Logs
     $router->get('/radius/logs', function() use ($database, $auth) {
         $controller = new \App\Controllers\RadiusLogsController($database);
