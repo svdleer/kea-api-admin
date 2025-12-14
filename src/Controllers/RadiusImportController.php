@@ -20,7 +20,7 @@ class RadiusImportController
         $this->db = $db;
         $this->switchController = new CinSwitch($db);
         $this->bviController = new BVIController();
-        $this->radiusController = new RadiusController(new RadiusClient($db), new \App\Auth\Authentication());
+        $this->radiusController = new RadiusController(new RadiusClient($db), new \App\Auth\Authentication($db));
     }
 
     public function showImportForm()
