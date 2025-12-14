@@ -280,7 +280,13 @@ class RadiusImportController
                     error_log("Creating BVI for {$client['name']}");
                     // Step 1: Create BVI interface first (to get BVI ID for RADIUS client)
                     try {
-                        $bviData = $this->createBviInterface($client);
+                        // Prepare client data for createBviInterface (expects 'ip_address' key)
+                        $clientData = [
+                            'name' => $client['name'],
+                            'ip_address' => $client['ip'], // This should have /128
+                            'secret' => $client['secret'] ?? null
+                        ];
+                        $bviData = $this->createBviInterface($clientData);
                         $bviId = $bviData['bvi_id'];
                         $bviCreated++;
                         error_log("BVI created successfully for {$client['name']}, ID: $bviId");
@@ -293,9 +299,12 @@ class RadiusImportController
                     error_log("Creating RADIUS client for {$client['name']}");
                     // Step 2: Create RADIUS client using the model directly
                     try {
+                        // Strip /128 from IPv6 address for RADIUS nasname
+                        $nasnameIp = preg_replace('/\/\d+$/', '', $client['ip']);
+                        
                         $radiusClientModel->createFromBvi(
                             $bviId,
-                            $client['ip'],
+                            $nasnameIp,
                             $client['secret'] ?? null,
                             $client['name']
                         );
