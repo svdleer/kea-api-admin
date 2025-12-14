@@ -114,9 +114,7 @@ async function loadDashboard() {
     } catch (error) {
         console.error('Dashboard error:', error);
         document.getElementById('loading-spinner').classList.add('hidden');
-        document.getElementById('error-message').classList.remove('hidden');
-        const errorText = error.message || 'Unknown error occurred';
-        document.getElementById('error-text').textContent = errorText;
+        // Don't show the error div, only the toast
         
         // Show a helpful toast notification
         const Toast = Swal.mixin({
