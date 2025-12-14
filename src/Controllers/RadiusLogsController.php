@@ -88,7 +88,8 @@ class RadiusLogsController
                 $stmt->execute(empty($nasFilter) ? $countParams : $params);
                 $totalRecords += $stmt->fetch(\PDO::FETCH_ASSOC)['total'];
 
-                // Get recent authentication logs with pagination
+                // Get recent authentication logs (without pagination - we'll paginate after merging from all servers)
+                $queryParams = $params; // Copy params without limit/offset
                 $stmt = $radiusDb->prepare("
                     SELECT DISTINCT
                         ra.username,
@@ -116,11 +117,8 @@ class RadiusLogsController
                     $nasJoin
                     WHERE $whereClause
                     ORDER BY ra.authdate DESC
-                    LIMIT ? OFFSET ?
                 ");
-                $params[] = $perPage;
-                $params[] = $offset;
-                $stmt->execute($params);
+                $stmt->execute($queryParams);
                 
                 $serverLogs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 
@@ -190,6 +188,9 @@ class RadiusLogsController
         usort($logs, function($a, $b) {
             return strtotime($b['authdate']) - strtotime($a['authdate']);
         });
+
+        // Apply pagination after merging and sorting all results
+        $logs = array_slice($logs, $offset, $perPage);
 
         // Sort NAS stats by total count
         usort($nasStats, function($a, $b) {
