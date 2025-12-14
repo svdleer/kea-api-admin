@@ -217,6 +217,13 @@ class CinSwitch
                 return;
             }
 
+            // Get old hostname before update
+            $stmt = $this->db->prepare("SELECT hostname FROM cin_switches WHERE id = ?");
+            $stmt->execute([$id]);
+            $oldSwitch = $stmt->fetch();
+            $oldHostname = $oldSwitch ? $oldSwitch['hostname'] : null;
+            $newHostname = $data['hostname'];
+
             $stmt = $this->db->prepare("
                 UPDATE cin_switches 
                 SET hostname = ?
@@ -224,9 +231,48 @@ class CinSwitch
             ");
 
             $result = $stmt->execute([
-                $data['hostname'],
+                $newHostname,
                 $id
             ]);
+
+            if ($result && $oldHostname && $oldHostname !== $newHostname) {
+                // Update RADIUS client shortnames for all BVI interfaces of this switch
+                require_once BASE_PATH . '/src/Models/RadiusClient.php';
+                $radiusModel = new \App\Models\RadiusClient($this->db);
+                
+                // Get all BVI interfaces for this switch
+                $stmt = $this->db->prepare("
+                    SELECT id, interface_number 
+                    FROM cin_switch_bvi_interfaces 
+                    WHERE switch_id = ?
+                ");
+                $stmt->execute([$id]);
+                $bviInterfaces = $stmt->fetchAll();
+                
+                foreach ($bviInterfaces as $bvi) {
+                    // Find RADIUS client by BVI ID
+                    $stmt = $this->db->prepare("SELECT id FROM nas WHERE bvi_interface_id = ?");
+                    $stmt->execute([$bvi['id']]);
+                    $radiusClient = $stmt->fetch();
+                    
+                    if ($radiusClient) {
+                        // Generate new shortname: <hostname>-bvi<display_number>
+                        $displayBvi = $bvi['interface_number'] + 100;
+                        $newShortname = strtolower($newHostname) . '-bvi' . $displayBvi;
+                        
+                        // Update shortname in main database
+                        $stmt = $this->db->prepare("UPDATE nas SET shortname = ? WHERE id = ?");
+                        $stmt->execute([$newShortname, $radiusClient['id']]);
+                        
+                        // Sync to RADIUS servers
+                        $updatedClient = $radiusModel->getClientById($radiusClient['id']);
+                        if ($updatedClient) {
+                            $radiusSync = new \App\Helpers\RadiusDatabaseSync();
+                            $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
+                        }
+                    }
+                }
+            }
 
             if ($result) {
                 echo json_encode([
@@ -244,7 +290,7 @@ class CinSwitch
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Database error'
+                'error' => 'Database error: ' . $e->getMessage()
             ]);
         }
     }
