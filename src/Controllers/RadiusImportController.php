@@ -111,6 +111,7 @@ class RadiusImportController
             $bviCreated = 0;
             $skipped = 0;
             $errors = [];
+            $importedClients = []; // Track imported client details
 
             foreach ($clients as $client) {
                 error_log("Processing client {$client['name']} (loop iteration)");
@@ -126,7 +127,9 @@ class RadiusImportController
                     error_log("Creating BVI for {$client['name']}");
                     // Step 1: Create BVI interface first (to get BVI ID for RADIUS client)
                     try {
-                        $bviId = $this->createBviInterface($client);
+                        $bviData = $this->createBviInterface($client);
+                        $bviId = $bviData['bvi_id'];
+                        $switchHostname = $bviData['switch_hostname'];
                         $bviCreated++;
                         error_log("BVI created successfully for {$client['name']}, ID: $bviId");
                     } catch (\Exception $e) {
@@ -146,6 +149,11 @@ class RadiusImportController
                             $client['name']
                         );
                         $imported++;
+                        $importedClients[] = [
+                            'name' => $client['name'],
+                            'ip' => $client['ip_address'],
+                            'switch' => $switchHostname
+                        ];
                         error_log("Successfully imported {$client['name']}");
                     } catch (\Exception $e) {
                         $errors[] = "Failed to create RADIUS client for {$client['name']}: " . $e->getMessage();
@@ -175,7 +183,8 @@ class RadiusImportController
                 'imported' => $imported,
                 'skipped' => $skipped,
                 'bviCreated' => $bviCreated,
-                'errors' => $errors
+                'errors' => $errors,
+                'clients' => $importedClients
             ]);
 
         } catch (\Exception $e) {
@@ -217,7 +226,7 @@ class RadiusImportController
             $existingBvi = $stmt->fetch();
             
             if ($existingBvi) {
-                return $existingBvi['id'];
+                return ['bvi_id' => $existingBvi['id'], 'switch_hostname' => $switchHostname];
             }
             
             // Create BVI only
@@ -227,7 +236,7 @@ class RadiusImportController
                 VALUES (?, ?, ?, NOW(), NOW())
             ");
             $stmt->execute([$switchId, $bviNumber, $client['ip_address']]);
-            return $this->db->lastInsertId();
+            return ['bvi_id' => $this->db->lastInsertId(), 'switch_hostname' => $switchHostname];
         }
         
         // Create both switch and BVI in transaction
@@ -252,7 +261,7 @@ class RadiusImportController
             $bviId = $this->db->lastInsertId();
             
             $this->db->commit();
-            return $bviId;
+            return ['bvi_id' => $bviId, 'switch_hostname' => $switchHostname];
         } catch (\Exception $e) {
             $this->db->rollBack();
             throw new \Exception("Failed to create switch and BVI for $switchHostname: " . $e->getMessage());

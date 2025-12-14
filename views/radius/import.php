@@ -104,7 +104,54 @@ client switch2 {
     </div>
 </div>
 
+<!-- Success Modal -->
+<div id="successModal" class="hidden fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
+            <div>
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                    <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Import Successful!
+                    </h3>
+                    <div class="mt-2">
+                        <p id="modalMessage" class="text-sm text-gray-500"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5">
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Imported RADIUS Clients:</h4>
+                <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    <div id="clientsList" class="space-y-2"></div>
+                </div>
+            </div>
+            
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button type="button" onclick="window.location.href='/radius'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm">
+                    Go to RADIUS Clients
+                </button>
+                <button type="button" onclick="closeModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    Import More
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+function closeModal() {
+    document.getElementById('successModal').classList.add('hidden');
+    document.getElementById('importForm').reset();
+    document.getElementById('fileName').textContent = '';
+}
+
 document.getElementById('clients_conf').addEventListener('change', function(e) {
     const fileName = e.target.files[0]?.name;
     if (fileName) {
@@ -134,25 +181,48 @@ document.getElementById('importForm').addEventListener('submit', async function(
         
         const result = await response.json();
         
-        resultMessage.classList.remove('hidden');
-        
         if (result.success) {
-            successIcon.classList.remove('hidden');
-            errorIcon.classList.add('hidden');
-            resultMessage.querySelector('div').className = 'rounded-md bg-green-50 p-4';
-            resultText.className = 'text-sm font-medium text-green-800';
-            resultText.textContent = result.message;
+            // Show success modal with client details
+            const modalMessage = document.getElementById('modalMessage');
+            const clientsList = document.getElementById('clientsList');
             
-            // Redirect after 2 seconds
-            setTimeout(() => {
-                window.location.href = '/radius';
-            }, 2000);
+            modalMessage.textContent = result.message;
+            
+            // Clear and populate clients list
+            clientsList.innerHTML = '';
+            if (result.clients && result.clients.length > 0) {
+                result.clients.forEach(client => {
+                    const clientDiv = document.createElement('div');
+                    clientDiv.className = 'flex items-center justify-between p-3 bg-white rounded border border-gray-200';
+                    clientDiv.innerHTML = `
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="font-medium text-gray-900">${client.name}</span>
+                            </div>
+                            <div class="mt-1 text-sm text-gray-500">
+                                Switch: ${client.switch} | IP: ${client.ip}
+                            </div>
+                        </div>
+                    `;
+                    clientsList.appendChild(clientDiv);
+                });
+            }
+            
+            document.getElementById('successModal').classList.remove('hidden');
         } else {
+            resultMessage.classList.remove('hidden');
             successIcon.classList.add('hidden');
             errorIcon.classList.remove('hidden');
             resultMessage.querySelector('div').className = 'rounded-md bg-red-50 p-4';
             resultText.className = 'text-sm font-medium text-red-800';
             resultText.textContent = result.message;
+            
+            if (result.errors && result.errors.length > 0) {
+                resultText.textContent += '\n\nErrors:\n' + result.errors.join('\n');
+            }
         }
     } catch (error) {
         resultMessage.classList.remove('hidden');
