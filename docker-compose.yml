@@ -26,6 +26,8 @@ services:
       - DB_NAME=${DB_NAME:-kea_db}
       - DB_USER=${DB_USER:-kea_user}
       - DB_PASSWORD=${DB_PASSWORD:-kea_secure_password}
+      # Kea API endpoint (required by legacy code, will be moved to database/GUI)
+      - KEA_API_ENDPOINT=${KEA_API_ENDPOINT:-http://localhost:8000}
       # Application settings
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}

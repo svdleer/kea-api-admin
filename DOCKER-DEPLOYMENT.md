@@ -118,9 +118,13 @@ DB_PORT=3306
 DB_NAME=kea_db
 DB_USER=kea_user
 DB_PASSWORD=your_actual_password
+
+# Kea DHCP Server API endpoint (required for now)
+# Use host.docker.internal if Kea is running on host
+KEA_API_ENDPOINT=http://host.docker.internal:8000
 ```
 
-**Note:** Kea DHCP server endpoints are configured via the web GUI (stored in database), not environment variables.
+**Note:** Currently KEA_API_ENDPOINT is required in .env. This will be moved to GUI/database configuration in a future update.
 
 2. **Start only the application container:**
 ```bash
