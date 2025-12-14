@@ -279,7 +279,7 @@ class CinSwitch
                             error_log("Retrieved client data: " . json_encode($updatedClient));
                             
                             if ($updatedClient) {
-                                $radiusSync = new \App\Helpers\RadiusDatabaseSync();
+                                $radiusSync = new \App\Helpers\RadiusDatabaseSync($this->db);
                                 $syncResult = $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
                                 error_log("Sync result for client {$radiusClient['id']}: " . json_encode($syncResult));
                             } else {
@@ -287,6 +287,7 @@ class CinSwitch
                             }
                         } catch (\Exception $e) {
                             error_log("Error syncing RADIUS client {$radiusClient['id']}: " . $e->getMessage());
+                            error_log("Stack trace: " . $e->getTraceAsString());
                         }
                     }
                 }
