@@ -115,6 +115,11 @@ try {
         require BASE_PATH . '/views/admin/tools.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth, true));
 
+    $router->get('/admin/settings', function() use ($auth) {
+        $title = 'System Settings';
+        require BASE_PATH . '/views/admin/settings.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth, true));
+
     $router->get('/admin/import-wizard', function() use ($auth) {
         $title = 'Kea Configuration Import Wizard';
         require BASE_PATH . '/views/admin/import-wizard.php';
