@@ -34,11 +34,6 @@ services:
     # depends_on:
     #   kea-db:
     #     condition: service_healthy
-    extra_hosts:
-      # Allow container to reach host services
-      - "host.docker.internal:host-gateway"
-    networks:
-      - kea-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
