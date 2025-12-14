@@ -25,6 +25,9 @@ $pageTitle = 'Import RADIUS Clients';
                 <p class="mt-2 text-sm text-gray-500">
                     Select a FreeRADIUS clients.conf file to import. The file should contain client blocks with ipaddr, secret, and optional shortname fields.
                 </p>
+                <p class="mt-1 text-sm text-gray-600">
+                    <strong>Note:</strong> Since NAS client IPs are BVI interface addresses, this will also create corresponding BVI interface entries.
+                </p>
             </div>
 
             <form id="importForm" enctype="multipart/form-data" class="space-y-6">

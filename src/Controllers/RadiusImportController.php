@@ -53,27 +53,89 @@ class RadiusImportController
 
             $radiusClientModel = new RadiusClient($this->db);
             $imported = 0;
+            $bviCreated = 0;
             $errors = [];
 
             foreach ($clients as $client) {
                 try {
+                    // Create RADIUS client
                     $radiusClientModel->create($client);
                     $imported++;
+                    
+                    // Also create BVI interface entry since the NAS IP is the BVI interface
+                    try {
+                        $this->createBviInterface($client);
+                        $bviCreated++;
+                    } catch (\Exception $e) {
+                        // Don't fail the whole import if BVI creation fails
+                        error_log("Failed to create BVI for {$client['name']}: " . $e->getMessage());
+                    }
                 } catch (\Exception $e) {
                     $errors[] = "Failed to import {$client['name']}: " . $e->getMessage();
                 }
             }
 
+            $message = "Successfully imported $imported RADIUS clients";
+            if ($bviCreated > 0) {
+                $message .= " and created $bviCreated BVI interfaces";
+            }
+
             echo json_encode([
                 'success' => true,
-                'message' => "Successfully imported $imported clients",
+                'message' => $message,
                 'imported' => $imported,
+                'bviCreated' => $bviCreated,
                 'errors' => $errors
             ]);
 
         } catch (\Exception $e) {
             echo json_encode(['success' => false, 'message' => 'Parse error: ' . $e->getMessage()]);
         }
+    }
+
+    private function createBviInterface($client)
+    {
+        // Extract BVI number from the name if it contains "BVI" or use a default
+        $bviNumber = null;
+        if (preg_match('/BVI\s*(\d+)/i', $client['name'], $matches)) {
+            $bviNumber = intval($matches[1]);
+        }
+        
+        // If no BVI number found, try to extract from description
+        if (!$bviNumber && isset($client['description']) && preg_match('/BVI\s*(\d+)/i', $client['description'], $matches)) {
+            $bviNumber = intval($matches[1]);
+        }
+        
+        // Default to 1 if still not found
+        if (!$bviNumber) {
+            $bviNumber = 1;
+        }
+
+        // Check if BVI interface already exists with this IP
+        $stmt = $this->db->prepare("
+            SELECT id FROM cin_switch_bvi_interfaces 
+            WHERE interface_ip = ?
+        ");
+        $stmt->execute([$client['ip_address']]);
+        
+        if ($stmt->fetch()) {
+            // BVI already exists, skip
+            return;
+        }
+
+        // Create BVI interface entry
+        $stmt = $this->db->prepare("
+            INSERT INTO cin_switch_bvi_interfaces 
+            (switch_id, interface_number, interface_ip, description, created_at, updated_at)
+            VALUES (NULL, ?, ?, ?, NOW(), NOW())
+        ");
+        
+        $description = $client['name'] . ' - Imported from clients.conf';
+        $stmt->execute([
+            $bviNumber,
+            $client['ip_address'],
+            $description
+        ]);
     }
 
     private function parseClientsConf($content)
