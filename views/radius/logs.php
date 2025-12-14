@@ -22,12 +22,12 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
         <form method="GET" action="/radius/logs" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <!-- Search Username -->
             <div>
-                <label for="search" class="block text-sm font-medium text-gray-700">Search Username</label>
+                <label for="search" class="block text-sm font-medium text-gray-700">Search MAC Address</label>
                 <input type="text" 
                        name="search" 
                        id="search" 
                        value="<?= $currentSearch ?>"
-                       placeholder="username..."
+                       placeholder="MAC address..."
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
             </div>
 
@@ -194,7 +194,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                             Timestamp
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Username
+                            MAC Address
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             NAS
