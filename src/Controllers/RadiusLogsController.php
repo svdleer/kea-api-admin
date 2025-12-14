@@ -91,18 +91,12 @@ class RadiusLogsController
                 // Get recent authentication logs (without pagination - we'll paginate after merging from all servers)
                 $queryParams = $params; // Copy params without limit/offset
                 $stmt = $radiusDb->prepare("
-                    SELECT DISTINCT
+                    SELECT 
                         ra.username,
                         ra.reply,
                         ra.authdate,
-                        ra.calledstationid as nas_ip,
-                        COALESCE(
-                            (SELECT n.shortname 
-                             FROM nas n 
-                             WHERE n.nasname = ra.calledstationid 
-                             LIMIT 1
-                            ), 'Unknown'
-                        ) as nas_name
+                        'N/A' as nas_ip,
+                        'N/A' as nas_name
                     FROM radpostauth ra
                     $nasJoin
                     WHERE $whereClause
