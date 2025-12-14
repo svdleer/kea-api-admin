@@ -194,10 +194,12 @@ class RadiusDatabaseSync
 
         if ($existing) {
             // Update existing entry instead and return its ID
-            error_log("RADIUS client with nasname {$clientData['nasname']} already exists on $serverName (ID: {$existing['id']}), updating instead");
+            error_log("[$serverName] NAS {$clientData['shortname']} ({$clientData['nasname']}) already exists (ID: {$existing['id']}), updating instead");
             $this->updateClient($conn, $clientData, $serverName);
             return $existing['id'];
         }
+
+        error_log("[$serverName] Inserting new NAS: {$clientData['shortname']} ({$clientData['nasname']})");
 
         // Insert without specifying ID - let RADIUS server auto-generate it
         $query = "INSERT INTO nas 
@@ -218,6 +220,7 @@ class RadiusDatabaseSync
         
         // Return the RADIUS server's auto-generated ID
         $radiusId = $conn->lastInsertId();
+        error_log("[$serverName] NAS {$clientData['shortname']} ({$clientData['nasname']}) inserted with RADIUS ID: $radiusId");
         error_log("Inserted client on $serverName, got RADIUS ID: $radiusId");
         return $radiusId;
     }
@@ -235,6 +238,8 @@ class RadiusDatabaseSync
         
         if ($radiusId) {
             // Use stored RADIUS ID for precise update
+            error_log("[$serverName] Updating NAS by RADIUS ID $radiusId: {$clientData['shortname']} ({$clientData['nasname']})");
+            
             $query = "UPDATE nas SET 
                       nasname = ?,
                       shortname = ?,
@@ -258,8 +263,12 @@ class RadiusDatabaseSync
                 $clientData['description'] ?? 'Auto-synced from KEA Admin',
                 $radiusId
             ]);
+            
+            $rowCount = $stmt->rowCount();
+            error_log("[$serverName] Update result: $rowCount row(s) affected");
         } else {
             // Fallback: update by nasname (for legacy clients without stored RADIUS IDs)
+            error_log("[$serverName] No RADIUS ID stored, updating by nasname: {$clientData['nasname']}");
             error_log("No stored RADIUS ID for $serverName, using nasname fallback");
             $query = "UPDATE nas SET 
                       shortname = ?,
@@ -282,6 +291,9 @@ class RadiusDatabaseSync
                 $clientData['description'] ?? 'Auto-synced from KEA Admin',
                 $clientData['nasname']
             ]);
+            
+            $rowCount = $stmt->rowCount();
+            error_log("[$serverName] Update by nasname result: $rowCount row(s) affected");
         }
         
         $rowCount = $stmt->rowCount();
@@ -302,15 +314,20 @@ class RadiusDatabaseSync
         $radiusId = $clientData[$radiusIdField] ?? null;
         
         if ($radiusId) {
+            error_log("[$serverName] Deleting NAS by RADIUS ID $radiusId: {$clientData['shortname']} ({$clientData['nasname']})");
             $query = "DELETE FROM nas WHERE id = ?";
             $stmt = $conn->prepare($query);
             $stmt->execute([$radiusId]);
+            $rowCount = $stmt->rowCount();
+            error_log("[$serverName] Delete result: $rowCount row(s) deleted");
         } else {
             // Fallback: delete by nasname
-            error_log("No stored RADIUS ID for $serverName, deleting by nasname");
+            error_log("[$serverName] No RADIUS ID stored, deleting by nasname: {$clientData['nasname']}");
             $query = "DELETE FROM nas WHERE nasname = ?";
             $stmt = $conn->prepare($query);
             $stmt->execute([$clientData['nasname']]);
+            $rowCount = $stmt->rowCount();
+            error_log("[$serverName] Delete by nasname result: $rowCount row(s) deleted");
         }
     }
 
