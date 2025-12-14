@@ -116,10 +116,19 @@ async function loadDashboard() {
         document.getElementById('loading-spinner').classList.add('hidden');
         document.getElementById('error-message').classList.remove('hidden');
         const errorText = error.message || 'Unknown error occurred';
-        document.getElementById('error-text').textContent = errorText;
+        document.getElementById('error-text').textContent = errorText + ' - You may need to configure Kea servers in Admin → Kea Servers';
         
-        // Also show a toast notification
-        showToast('Dashboard data could not be loaded. Some features may not work correctly.', 'warning');
+        // Also show a helpful notification with link
+        Swal.fire({
+            icon: 'warning',
+            title: 'Dashboard Data Unavailable',
+            html: 'Could not load dashboard data. This usually happens when:<br><br>' +
+                  '• Kea DHCP servers are not configured<br>' +
+                  '• Kea servers are offline or unreachable<br><br>' +
+                  '<a href="/admin/kea-servers" class="text-blue-600 hover:underline">Click here to configure Kea servers</a>',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
