@@ -326,23 +326,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                         <?php endif; ?>
                         
                         <?php if ($page < $totalPages): ?>
-                            <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas
-                        <?php endfor; ?>
-                        
-                        <?php if ($end < $totalPages): ?>
-                            <?php if ($end < $totalPages - 1): ?>
-                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                                    ...
-                                </span>
-                            <?php endif; ?>
-                            <a href="?page=<?= $totalPages ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
-                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                <?= $totalPages ?>
-                            </a>
-                        <?php endif; ?>
-                        
-                        <?php if ($page < $totalPages): ?>
-                            <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                            <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                 Next
                             </a>
