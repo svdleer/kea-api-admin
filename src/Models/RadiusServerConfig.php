@@ -87,7 +87,7 @@ class RadiusServerConfig
                 if (!empty($data['password'])) {
                     $query = "UPDATE radius_server_config 
                               SET name = ?, enabled = ?, host = ?, port = ?, 
-                                  database = ?, username = ?, password = ?, charset = ?
+                                  `database` = ?, username = ?, password = ?, charset = ?
                               WHERE display_order = ?";
                     
                     $stmt = $this->db->prepare($query);
@@ -106,7 +106,7 @@ class RadiusServerConfig
                     // Update without changing password
                     $query = "UPDATE radius_server_config 
                               SET name = ?, enabled = ?, host = ?, port = ?, 
-                                  database = ?, username = ?, charset = ?
+                                  `database` = ?, username = ?, charset = ?
                               WHERE display_order = ?";
                     
                     $stmt = $this->db->prepare($query);
@@ -129,7 +129,7 @@ class RadiusServerConfig
                 
                 // Insert new
                 $query = "INSERT INTO radius_server_config 
-                          (name, enabled, host, port, database, username, password, charset, display_order) 
+                          (name, enabled, host, port, `database`, username, password, charset, display_order) 
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $this->db->prepare($query);

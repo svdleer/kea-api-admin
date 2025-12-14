@@ -261,54 +261,28 @@ Edit the SQL configuration:
 vim /etc/freeradius/3.0/mods-enabled/sql
 ```
 
-**Find and update these specific sections** (don't replace the whole file, just update these values):
+Find and update these settings (around line 15-40):
 
-1. **Around line 15-25** - Find the `driver` and `dialect` section:
 ```conf
 sql {
-    driver = "rlm_sql_mysql"
-    dialect = "mysql"
+        # Use MySQL driver
+        driver = "rlm_sql_mysql"
+        dialect = "mysql"
+        
+        # Connection info
+        server = "localhost"
+        port = 3306
+        login = "radius"
+        password = "your_secure_radius_password"  # Use the password from Step 3
+        radius_db = "radius"
+        
+        # Read NAS clients from database (IMPORTANT!)
+        read_clients = yes
+        client_table = "nas"
+}
 ```
 
-2. **Around line 35-50** - Find the connection info section and update:
-```conf
-    # Connection info
-    server = "localhost"
-    port = 3306
-    login = "radius"
-    password = "your_secure_radius_password"
-    radius_db = "radius"
-```
-
-3. **Around line 90-100** - Find and uncomment `read_clients`:
-```conf
-    # Read NAS clients from database
-    read_clients = yes
-    client_table = "nas"
-```
-
-4. **Save the file** (`:wq` in vim).
-
-**Alternative: Use sed to update automatically:**
-
-```bash
-# Backup original file
-cp /etc/freeradius/3.0/mods-enabled/sql /etc/freeradius/3.0/mods-enabled/sql.backup
-
-# Update driver
-sed -i 's/driver = .*/driver = "rlm_sql_mysql"/' /etc/freeradius/3.0/mods-enabled/sql
-
-# Update dialect  
-sed -i 's/dialect = .*/dialect = "mysql"/' /etc/freeradius/3.0/mods-enabled/sql
-
-# Update password
-sed -i 's/.*password = .*/\tpassword = "your_secure_radius_password"/' /etc/freeradius/3.0/mods-enabled/sql
-
-# Enable read_clients
-sed -i 's/#.*read_clients = yes/\tread_clients = yes/' /etc/freeradius/3.0/mods-enabled/sql
-```
-
-**Important:** Replace `your_secure_radius_password` with your actual RADIUS password from Step 3!
+**Save and exit** (`:wq` in vim).
 
 Test the configuration:
 
