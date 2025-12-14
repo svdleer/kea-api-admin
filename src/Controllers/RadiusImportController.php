@@ -27,6 +27,10 @@ class RadiusImportController
 
     public function import()
     {
+        // Disable error display to prevent breaking JSON
+        ini_set('display_errors', '0');
+        error_reporting(E_ALL);
+        
         // Ensure no output before JSON
         ob_start();
         
