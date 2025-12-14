@@ -206,7 +206,6 @@ class RadiusDatabaseSync
             $clientData['server'] ?? null,
             $clientData['community'] ?? null,
             $clientData['description'] ?? 'Auto-synced from KEA Admin'
-            date('Y-m-d H:i:s')
         ]);
     }
 
