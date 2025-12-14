@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\RadiusClient;
 use App\Models\RadiusServerConfig;
-use App\Controllers\Api\SwitchController;
+use App\Controllers\Api\CinSwitch;
 use App\Controllers\Api\BVIController;
 use App\Controllers\Api\RadiusController;
 
@@ -18,7 +18,7 @@ class RadiusImportController
     public function __construct($db)
     {
         $this->db = $db;
-        $this->switchController = new SwitchController();
+        $this->switchController = new CinSwitch($db);
         $this->bviController = new BVIController();
         $this->radiusController = new RadiusController(new RadiusClient($db), new \App\Auth\Authentication());
     }

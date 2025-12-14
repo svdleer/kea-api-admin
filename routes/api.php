@@ -1,6 +1,6 @@
 <?php
 
-use App\Controllers\Api\SwitchController;
+use App\Controllers\Api\CinSwitch;
 use App\Controllers\Api\NetworkController;
 use App\Controllers\Api\DHCPv6OptionsController;
 use App\Controllers\Api\RadiusController;
@@ -14,14 +14,14 @@ $router->delete('/api/kea-servers/{id}', [KeaServerController::class, 'delete'])
 $router->get('/api/kea-servers/{id}/test', [KeaServerController::class, 'testConnection']);
 
 // CIN Switch routes
-$router->get('/api/switches', [SwitchController::class, 'getAll']);
-$router->get('/api/switches/{id}', [SwitchController::class, 'getById']);
-$router->get('/api/switches/check-exists', [SwitchController::class, 'checkExists']);
-$router->get('/api/switches/check-bvi', [SwitchController::class, 'checkBvi']);
-$router->get('/api/switches/check-ipv6', [SwitchController::class, 'checkIpv6']);
-$router->post('/api/switches', [SwitchController::class, 'create']);
-$router->put('/api/switches/{id}', [SwitchController::class, 'update']);
-$router->delete('/api/switches/{id}', [SwitchController::class, 'delete']);
+$router->get('/api/switches', [CinSwitch::class, 'getAll']);
+$router->get('/api/switches/{id}', [CinSwitch::class, 'getById']);
+$router->get('/api/switches/check-exists', [CinSwitch::class, 'checkExists']);
+$router->get('/api/switches/check-bvi', [CinSwitch::class, 'checkBvi']);
+$router->get('/api/switches/check-ipv6', [CinSwitch::class, 'checkIpv6']);
+$router->post('/api/switches', [CinSwitch::class, 'create']);
+$router->put('/api/switches/{id}', [CinSwitch::class, 'update']);
+$router->delete('/api/switches/{id}', [CinSwitch::class, 'delete']);
 
 // BVI Interface routes
 $router->get('/api/radius/clients', [RadiusController::class, 'getAllClients']);
