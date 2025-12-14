@@ -137,16 +137,20 @@ class RadiusLogsController
                 // Get NAS statistics
                 $stmt = $radiusDb->prepare("
                     SELECT 
-                        COALESCE(n.nasname, 'Unknown') as nas_ip,
-                        COALESCE(n.shortname, 'Unknown') as nas_name,
+                        COALESCE(NULLIF(ra.nasipaddress, ''), NULLIF(ra.nasipaddress, '0.0.0.0'), 'Unknown') as nas_ip,
+                        COALESCE(
+                            (SELECT n.shortname 
+                             FROM nas n 
+                             WHERE n.nasname = ra.nasipaddress
+                             LIMIT 1
+                            ), 'Unknown'
+                        ) as nas_name,
                         SUM(CASE WHEN ra.reply = 'Access-Accept' THEN 1 ELSE 0 END) as success_count,
                         SUM(CASE WHEN ra.reply = 'Access-Reject' THEN 1 ELSE 0 END) as failed_count,
                         COUNT(*) as total_count
                     FROM radpostauth ra
-                    LEFT JOIN radacct acc ON ra.username = acc.username
-                    LEFT JOIN nas n ON acc.nasipaddress = n.nasname
                     WHERE ra.authdate >= DATE_SUB(NOW(), INTERVAL ? HOUR)
-                    GROUP BY n.nasname, n.shortname
+                    GROUP BY ra.nasipaddress
                     HAVING total_count > 0
                     ORDER BY total_count DESC
                 ");
