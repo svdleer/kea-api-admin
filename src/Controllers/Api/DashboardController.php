@@ -179,53 +179,105 @@ class DashboardController
     private function getRadiusStatistics()
     {
         try {
-            // Check if RADIUS tables exist
-            $tables = ['nas', 'radcheck', 'radacct', 'radpostauth'];
-            $existingTables = [];
+            // Get active RADIUS servers from database
+            $stmt = $this->db->query(
+                "SELECT * FROM radius_server_config WHERE enabled = 1 ORDER BY display_order ASC"
+            );
+            $radiusServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             
-            foreach ($tables as $table) {
-                $stmt = $this->db->query("SHOW TABLES LIKE '$table'");
-                if ($stmt->rowCount() > 0) {
-                    $existingTables[] = $table;
-                }
+            if (empty($radiusServers)) {
+                return [
+                    'total_nas' => 0,
+                    'total_users' => 0,
+                    'active_sessions' => 0,
+                    'auth_last_24h' => 0,
+                    'auth_success_24h' => 0,
+                    'auth_failed_24h' => 0,
+                    'servers' => []
+                ];
             }
             
-            error_log("RADIUS tables found: " . implode(', ', $existingTables));
-            
-            // Count total NAS devices
             $totalNas = 0;
-            if (in_array('nas', $existingTables)) {
-                $stmt = $this->db->query("SELECT COUNT(*) as total FROM nas");
-                $totalNas = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
-                error_log("NAS count: $totalNas");
-            }
-            
-            // Count RADIUS users
             $totalUsers = 0;
-            if (in_array('radcheck', $existingTables)) {
-                $stmt = $this->db->query("SELECT COUNT(*) as total FROM radcheck");
-                $totalUsers = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
-                error_log("RADIUS users: $totalUsers");
-            }
-            
-            // Count active sessions (radacct entries with acctstoptime IS NULL)
             $activeSessions = 0;
-            if (in_array('radacct', $existingTables)) {
-                $stmt = $this->db->query("SELECT COUNT(*) as total FROM radacct WHERE acctstoptime IS NULL");
-                $activeSessions = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
-                error_log("Active sessions: $activeSessions");
-            }
-            
-            // Get today's authentication attempts
             $totalAuth24h = 0;
-            if (in_array('radpostauth', $existingTables)) {
-                $stmt = $this->db->query("
-                    SELECT COUNT(*) as total
-                    FROM radpostauth 
-                    WHERE authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-                ");
-                $totalAuth24h = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
-                error_log("Auth last 24h: $totalAuth24h");
+            $authSuccess24h = 0;
+            $authFailed24h = 0;
+            $serverStats = [];
+            
+            // Query each RADIUS server
+            foreach ($radiusServers as $server) {
+                try {
+                    // Connect to RADIUS server's MySQL
+                    $radiusDb = new \PDO(
+                        "mysql:host={$server['host']};port={$server['port']};dbname={$server['database']};charset=utf8mb4",
+                        $server['username'],
+                        $server['password'],
+                        [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
+                    );
+                    
+                    $serverStat = ['name' => $server['name'], 'online' => true];
+                    
+                    // Count NAS devices
+                    $stmt = $radiusDb->query("SELECT COUNT(*) as total FROM nas");
+                    $nasCount = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $serverStat['nas'] = $nasCount;
+                    $totalNas += $nasCount;
+                    
+                    // Count users (from radcheck)
+                    $stmt = $radiusDb->query("SELECT COUNT(DISTINCT username) as total FROM radcheck");
+                    $userCount = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $serverStat['users'] = $userCount;
+                    $totalUsers = max($totalUsers, $userCount); // Use max since users might be duplicated
+                    
+                    // Count active sessions
+                    $stmt = $radiusDb->query("SELECT COUNT(*) as total FROM radacct WHERE acctstoptime IS NULL");
+                    $sessions = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $serverStat['active_sessions'] = $sessions;
+                    $activeSessions += $sessions;
+                    
+                    // Auth attempts last 24h
+                    $stmt = $radiusDb->query("
+                        SELECT COUNT(*) as total
+                        FROM radpostauth 
+                        WHERE authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                    ");
+                    $auth24h = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $serverStat['auth_24h'] = $auth24h;
+                    $totalAuth24h += $auth24h;
+                    
+                    // Successful auth last 24h
+                    $stmt = $radiusDb->query("
+                        SELECT COUNT(*) as total
+                        FROM radpostauth 
+                        WHERE authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                        AND reply = 'Access-Accept'
+                    ");
+                    $success = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $serverStat['auth_success'] = $success;
+                    $authSuccess24h += $success;
+                    
+                    // Failed auth last 24h
+                    $stmt = $radiusDb->query("
+                        SELECT COUNT(*) as total
+                        FROM radpostauth 
+                        WHERE authdate >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                        AND reply = 'Access-Reject'
+                    ");
+                    $failed = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
+                    $serverStat['auth_failed'] = $failed;
+                    $authFailed24h += $failed;
+                    
+                    $serverStats[] = $serverStat;
+                    
+                } catch (\Exception $e) {
+                    error_log("Failed to connect to RADIUS server {$server['name']}: " . $e->getMessage());
+                    $serverStats[] = [
+                        'name' => $server['name'],
+                        'online' => false,
+                        'error' => $e->getMessage()
+                    ];
+                }
             }
             
             return [
@@ -233,7 +285,9 @@ class DashboardController
                 'total_users' => $totalUsers,
                 'active_sessions' => $activeSessions,
                 'auth_last_24h' => $totalAuth24h,
-                'tables_available' => $existingTables
+                'auth_success_24h' => $authSuccess24h,
+                'auth_failed_24h' => $authFailed24h,
+                'servers' => $serverStats
             ];
         } catch (\Exception $e) {
             error_log("RADIUS stats error: " . $e->getMessage());
@@ -242,6 +296,8 @@ class DashboardController
                 'total_users' => 0,
                 'active_sessions' => 0,
                 'auth_last_24h' => 0,
+                'auth_success_24h' => 0,
+                'auth_failed_24h' => 0,
                 'error' => $e->getMessage()
             ];
         }

@@ -312,15 +312,36 @@ function renderRadiusStats(data) {
     html += '<dd class="mt-1 text-3xl font-semibold text-teal-600">' + (data.active_sessions || 0) + '</dd>';
     html += '</div></div>';
     
-    // Auth Last 24h
+    // Auth Success (24h)
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-green-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Auth Success (24h)</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-green-600">' + (data.auth_success_24h || 0) + '</dd>';
+    html += '</div></div>';
+    
+    // Auth Failed (24h)
+    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-red-500">';
+    html += '<div class="px-4 py-5 sm:p-6">';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Auth Failed (24h)</dt>';
+    html += '<dd class="mt-1 text-3xl font-semibold text-red-600">' + (data.auth_failed_24h || 0) + '</dd>';
+    html += '</div></div>';
+    
+    // Auth Total (24h)
     html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-orange-500">';
     html += '<div class="px-4 py-5 sm:p-6">';
-    html += '<dt class="text-sm font-medium text-gray-500 truncate">Auth (24h)</dt>';
+    html += '<dt class="text-sm font-medium text-gray-500 truncate">Total Auth (24h)</dt>';
     html += '<dd class="mt-1 text-3xl font-semibold text-orange-600">' + (data.auth_last_24h || 0) + '</dd>';
     html += '</div></div>';
     
     radiusStatsEl.innerHTML = html;
 }
+
+// Auto-refresh dashboard every 30 seconds
+setInterval(() => {
+    console.log('Auto-refreshing dashboard stats...');
+    loadDashboardData();
+}, 30000);
+
 </script>
 
 <?php
