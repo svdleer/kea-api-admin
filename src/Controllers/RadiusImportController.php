@@ -34,29 +34,29 @@ class RadiusImportController
         // Ensure no output before JSON
         ob_start();
         
-        header('Content-Type: application/json');
-
-        if (!isset($_FILES['clients_conf'])) {
-            ob_end_clean();
-            echo json_encode(['success' => false, 'message' => 'No file uploaded']);
-            return;
-        }
-
-        $file = $_FILES['clients_conf'];
-        
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            ob_end_clean();
-            echo json_encode(['success' => false, 'message' => 'File upload error']);
-            return;
-        }
-
-        $content = file_get_contents($file['tmp_name']);
-        
-        // Log the file content for debugging
-        error_log("Clients.conf content length: " . strlen($content));
-        error_log("First 500 chars: " . substr($content, 0, 500));
-        
         try {
+            header('Content-Type: application/json');
+
+            if (!isset($_FILES['clients_conf'])) {
+                ob_end_clean();
+                echo json_encode(['success' => false, 'message' => 'No file uploaded']);
+                return;
+            }
+
+            $file = $_FILES['clients_conf'];
+            
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                ob_end_clean();
+                echo json_encode(['success' => false, 'message' => 'File upload error']);
+                return;
+            }
+
+            $content = file_get_contents($file['tmp_name']);
+            
+            // Log the file content for debugging
+            error_log("Clients.conf content length: " . strlen($content));
+            error_log("First 500 chars: " . substr($content, 0, 500));
+            
             $clients = $this->parseClientsConf($content);
             
             error_log("Parsed clients count: " . count($clients));
@@ -118,8 +118,14 @@ class RadiusImportController
 
         } catch (\Exception $e) {
             error_log("Import exception: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             ob_end_clean();
-            echo json_encode(['success' => false, 'message' => 'Parse error: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        } catch (\Error $e) {
+            error_log("Import fatal error: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Fatal error: ' . $e->getMessage()]);
         }
     }
 
