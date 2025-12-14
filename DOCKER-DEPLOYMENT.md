@@ -120,7 +120,7 @@ DB_USER=kea_user
 DB_PASSWORD=your_actual_password
 ```
 
-**Note:** Kea DHCP server endpoints are configured via `config/kea.php` file, not environment variables.
+**Note:** Kea DHCP server endpoints are configured via the web GUI (stored in database), not environment variables.
 
 2. **Start only the application container:**
 ```bash
