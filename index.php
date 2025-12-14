@@ -177,6 +177,12 @@ try {
         require BASE_PATH . '/views/radius/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // RADIUS Authentication Logs
+    $router->get('/radius/logs', function() use ($db, $auth) {
+        $controller = new \App\Controllers\RadiusLogsController($db);
+        $controller->index();
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // RADIUS Settings (Admin Only)
     $router->get('/radius/settings', function() use ($auth) {
         $currentPage = 'radius-settings';
