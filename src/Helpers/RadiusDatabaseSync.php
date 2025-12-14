@@ -222,8 +222,7 @@ class RadiusDatabaseSync
                   secret = ?,
                   server = ?,
                   community = ?,
-                  description = ?,
-                  updated_at = ?
+                  description = ?
                   WHERE id = ?";
 
         $stmt = $conn->prepare($query);
@@ -236,7 +235,6 @@ class RadiusDatabaseSync
             $clientData['server'] ?? null,
             $clientData['community'] ?? null,
             $clientData['description'] ?? 'Auto-synced from KEA Admin',
-            date('Y-m-d H:i:s'),
             $clientData['id']
         ]);
     }
