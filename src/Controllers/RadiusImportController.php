@@ -102,12 +102,23 @@ class RadiusImportController
                         continue;
                     }
                     
-                    // Create RADIUS client using API
-                    $_POST['name'] = $client['name'];
-                    $_POST['ip_address'] = $client['ip_address'];
+                    // Step 1: Create BVI interface first (to get BVI ID for RADIUS client)
+                    try {
+                        $bviId = $this->createBviInterface($client);
+                        $bviCreated++;
+                    } catch (\Exception $e) {
+                        // Don't fail the whole import if BVI creation fails
+                        error_log("Failed to create BVI for {$client['name']}: " . $e->getMessage());
+                        $errors[] = "Failed to create BVI for {$client['name']}: " . $e->getMessage();
+                        continue;
+                    }
+                    
+                    // Step 2: Create RADIUS client using the BVI ID
+                    $_POST = []; // Clear POST
+                    $_POST['bvi_interface_id'] = $bviId;
+                    $_POST['ipv6_address'] = $client['ip_address'];
                     $_POST['secret'] = $client['secret'] ?? '';
-                    $_POST['type'] = $client['type'] ?? 'other';
-                    $_POST['description'] = $client['description'] ?? 'Imported from clients.conf';
+                    $_POST['shortname'] = $client['name'];
                     
                     ob_start();
                     $this->radiusController->createClient();
@@ -118,16 +129,7 @@ class RadiusImportController
                         $imported++;
                     } else {
                         $errors[] = "Failed to import {$client['name']}: " . ($radiusData['message'] ?? 'Unknown error');
-                        continue;
-                    }
-                    
-                    // Also create BVI interface entry since the NAS IP is the BVI interface
-                    try {
-                        $this->createBviInterface($client);
-                        $bviCreated++;
-                    } catch (\Exception $e) {
-                        // Don't fail the whole import if BVI creation fails
-                        error_log("Failed to create BVI for {$client['name']}: " . $e->getMessage());
+                        error_log("RADIUS API error for {$client['name']}: " . ($radiusData['message'] ?? 'Unknown error'));
                     }
                 } catch (\Exception $e) {
                     $errors[] = "Failed to import {$client['name']}: " . $e->getMessage();
@@ -179,6 +181,7 @@ class RadiusImportController
         }
         
         // Use API to create or get switch
+        $_POST = []; // Clear POST
         $_POST['hostname'] = $switchHostname;
         $_SERVER['REQUEST_METHOD'] = 'POST';
         
@@ -202,6 +205,7 @@ class RadiusImportController
         }
 
         // Use API to create BVI interface
+        $_POST = []; // Clear POST
         $_POST['interface_number'] = $bviNumber;
         $_POST['ipv6_address'] = $client['ip_address'];
         
@@ -210,9 +214,19 @@ class RadiusImportController
         $bviResponse = ob_get_clean();
         $bviData = json_decode($bviResponse, true);
         
-        if (!isset($bviData['id']) && !isset($bviData['success'])) {
-            error_log("Failed to create BVI interface: " . print_r($bviData, true));
+        if (!isset($bviData['id'])) {
+            // BVI might already exist, try to get it
+            $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE switch_id = ? AND interface_number = ?");
+            $stmt->execute([$switchId, $bviNumber]);
+            $existingBvi = $stmt->fetch();
+            
+            if (!$existingBvi) {
+                throw new \Exception("Failed to create or find BVI interface for switch: $switchHostname");
+            }
+            return $existingBvi['id'];
         }
+        
+        return $bviData['id'];
     }
 
     private function parseClientsConf($content)
