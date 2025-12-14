@@ -43,11 +43,27 @@ class RadiusImportController
 
         $content = file_get_contents($file['tmp_name']);
         
+        // Log the file content for debugging
+        error_log("Clients.conf content length: " . strlen($content));
+        error_log("First 500 chars: " . substr($content, 0, 500));
+        
         try {
             $clients = $this->parseClientsConf($content);
             
+            error_log("Parsed clients count: " . count($clients));
+            if (!empty($clients)) {
+                error_log("First client: " . json_encode($clients[0]));
+            }
+            
             if (empty($clients)) {
-                echo json_encode(['success' => false, 'message' => 'No clients found in file']);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'No clients found in file. Please check the file format.',
+                    'debug' => [
+                        'fileSize' => strlen($content),
+                        'preview' => substr($content, 0, 200)
+                    ]
+                ]);
                 return;
             }
 
