@@ -63,8 +63,7 @@ bind-address = 0.0.0.0
 
 **Save and exit** (`:wq` in vim), then restart MySQL:
 ```bash
-systemctl restart mysql
-```
+tor```
 
 Verify MySQL is listening on all interfaces:
 ```bash
@@ -90,16 +89,14 @@ Copy and paste these SQL commands:
 -- Create RADIUS database (Kea database should already exist)
 CREATE DATABASE IF NOT EXISTS radius CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Create RADIUS user for local access
+-- Create RADIUS users (MySQL 8.0+ requires separate CREATE and GRANT)
 CREATE USER IF NOT EXISTS 'radius'@'localhost' IDENTIFIED BY 'your_secure_radius_password';
-GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'localhost';
-
--- Allow remote access from Kea API Admin server (172.16.6.101) for syncing
 CREATE USER IF NOT EXISTS 'radius'@'172.16.6.101' IDENTIFIED BY 'your_secure_radius_password';
-GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'172.16.6.101';
-
--- For Docker network access from Kea API Admin
 CREATE USER IF NOT EXISTS 'radius'@'172.18.%' IDENTIFIED BY 'your_secure_radius_password';
+
+-- Grant privileges to all RADIUS users
+GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'localhost';
+GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'172.16.6.101';
 GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'172.18.%';
 
 -- Apply privileges
