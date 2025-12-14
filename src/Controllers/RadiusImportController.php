@@ -149,7 +149,7 @@ class RadiusImportController
         // Check if BVI interface already exists with this IP
         $stmt = $this->db->prepare("
             SELECT id FROM cin_switch_bvi_interfaces 
-            WHERE interface_ip = ?
+            WHERE ipv6_address = ?
         ");
         $stmt->execute([$client['ip_address']]);
         
@@ -196,16 +196,14 @@ class RadiusImportController
         // Create BVI interface entry linked to switch
         $stmt = $this->db->prepare("
             INSERT INTO cin_switch_bvi_interfaces 
-            (switch_id, interface_number, interface_ip, description, created_at, updated_at)
-            VALUES (?, ?, ?, ?, NOW(), NOW())
+            (switch_id, interface_number, ipv6_address, created_at, updated_at)
+            VALUES (?, ?, ?, NOW(), NOW())
         ");
         
-        $description = $client['name'] . ' - Imported from clients.conf';
         $stmt->execute([
             $switchId,
             $bviNumber,
-            $client['ip_address'],
-            $description
+            $client['ip_address']
         ]);
     }
 
