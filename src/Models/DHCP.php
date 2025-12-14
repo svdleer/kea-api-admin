@@ -16,8 +16,36 @@ class DHCP
     public function __construct($db)
     {
         $this->db = $db;
-        $this->keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
+        // Get primary active Kea server from database
+        $this->keaApiUrl = $this->getActiveKeaServerUrl();
         $this->keaService = 'dhcp6';
+    }
+
+    /**
+     * Get the URL of the active Kea server from database
+     */
+    private function getActiveKeaServerUrl(): string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT api_url FROM kea_servers 
+                 WHERE is_active = TRUE 
+                 ORDER BY priority ASC 
+                 LIMIT 1"
+            );
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result && !empty($result['api_url'])) {
+                return $result['api_url'];
+            }
+            
+            // Fallback to environment variable or default
+            return $_ENV['KEA_API_ENDPOINT'] ?? 'http://localhost:8000';
+        } catch (Exception $e) {
+            // If database query fails, fallback to environment or default
+            return $_ENV['KEA_API_ENDPOINT'] ?? 'http://localhost:8000';
+        }
     }
 
     private function sendKeaCommand($command, $arguments = [])
