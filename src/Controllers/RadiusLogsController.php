@@ -95,8 +95,14 @@ class RadiusLogsController
                         ra.username,
                         ra.reply,
                         ra.authdate,
-                        'N/A' as nas_ip,
-                        'N/A' as nas_name
+                        COALESCE(NULLIF(ra.nasipaddress, ''), NULLIF(ra.nasipaddress, '0.0.0.0'), 'Unknown') as nas_ip,
+                        COALESCE(
+                            (SELECT n.shortname 
+                             FROM nas n 
+                             WHERE n.nasname = ra.nasipaddress
+                             LIMIT 1
+                            ), 'Unknown'
+                        ) as nas_name
                     FROM radpostauth ra
                     $nasJoin
                     WHERE $whereClause
