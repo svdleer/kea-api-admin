@@ -177,6 +177,18 @@ try {
         require BASE_PATH . '/views/radius/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // RADIUS Import Form
+    $router->get('/radius/import', function() use ($database, $auth) {
+        $controller = new \App\Controllers\RadiusImportController($database);
+        $controller->showImportForm();
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    // RADIUS Import Action
+    $router->post('/radius/import', function() use ($database, $auth) {
+        $controller = new \App\Controllers\RadiusImportController($database);
+        $controller->import();
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // RADIUS Authentication Logs
     $router->get('/radius/logs', function() use ($database, $auth) {
         $controller = new \App\Controllers\RadiusLogsController($database);
