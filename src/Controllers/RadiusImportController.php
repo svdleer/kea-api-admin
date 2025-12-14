@@ -158,15 +158,51 @@ class RadiusImportController
             return;
         }
 
-        // Create BVI interface entry
+        // Extract switch hostname from client name
+        // Example: "asdar151-bvi100" -> "asd-gt0004-ar151"
+        // Pattern: extract base name before "-bvi" or use the whole name
+        $switchHostname = $client['name'];
+        if (preg_match('/^(.+?)-bvi\d+/i', $client['name'], $matches)) {
+            $switchHostname = $matches[1];
+        }
+        
+        // Create or get switch entry
+        $stmt = $this->db->prepare("
+            SELECT id FROM cin_switches 
+            WHERE hostname = ?
+        ");
+        $stmt->execute([$switchHostname]);
+        $switch = $stmt->fetch();
+        
+        if (!$switch) {
+            // Create new switch
+            $stmt = $this->db->prepare("
+                INSERT INTO cin_switches 
+                (hostname, ip_address, description, created_at, updated_at)
+                VALUES (?, ?, ?, NOW(), NOW())
+            ");
+            
+            $stmt->execute([
+                $switchHostname,
+                $client['ip_address'], // Use BVI IP as switch management IP
+                'Imported from clients.conf'
+            ]);
+            
+            $switchId = $this->db->lastInsertId();
+        } else {
+            $switchId = $switch['id'];
+        }
+
+        // Create BVI interface entry linked to switch
         $stmt = $this->db->prepare("
             INSERT INTO cin_switch_bvi_interfaces 
             (switch_id, interface_number, interface_ip, description, created_at, updated_at)
-            VALUES (NULL, ?, ?, ?, NOW(), NOW())
+            VALUES (?, ?, ?, ?, NOW(), NOW())
         ");
         
         $description = $client['name'] . ' - Imported from clients.conf';
         $stmt->execute([
+            $switchId,
             $bviNumber,
             $client['ip_address'],
             $description
