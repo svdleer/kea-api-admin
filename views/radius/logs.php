@@ -241,7 +241,23 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                     <?= $statusBadge ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <?= htmlspecialchars($log['server']) ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <?php if ($totalPages > 1): ?>
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4 rounded-lg shadow">
+            <div class="sm:hidden">
+                <?php if ($page > 1): ?>
+                    <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Previous
                     </a>
