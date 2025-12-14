@@ -113,6 +113,7 @@ class RadiusImportController
             $errors = [];
 
             foreach ($clients as $client) {
+                error_log("Processing client {$client['name']} (loop iteration)");
                 try {
                     // Check if client already exists
                     $radiusClientModel = new RadiusClient($this->db);
@@ -122,10 +123,12 @@ class RadiusImportController
                         continue;
                     }
                     
+                    error_log("Creating BVI for {$client['name']}");
                     // Step 1: Create BVI interface first (to get BVI ID for RADIUS client)
                     try {
                         $bviId = $this->createBviInterface($client);
                         $bviCreated++;
+                        error_log("BVI created successfully for {$client['name']}, ID: $bviId");
                     } catch (\Exception $e) {
                         // Don't fail the whole import if BVI creation fails
                         error_log("Failed to create BVI for {$client['name']}: " . $e->getMessage());
@@ -133,6 +136,7 @@ class RadiusImportController
                         continue;
                     }
                     
+                    error_log("Creating RADIUS client for {$client['name']}");
                     // Step 2: Create RADIUS client using the BVI ID
                     $radiusResult = $this->callApiWithJson(
                         $this->radiusController,
@@ -145,8 +149,11 @@ class RadiusImportController
                         ]
                     );
                     
+                    error_log("RADIUS API response for {$client['name']}: " . json_encode($radiusResult));
+                    
                     if (isset($radiusResult['success']) && $radiusResult['success']) {
                         $imported++;
+                        error_log("Successfully imported {$client['name']}");
                     } else {
                         $errors[] = "Failed to import {$client['name']}: " . ($radiusResult['message'] ?? 'Unknown error');
                         error_log("RADIUS API error for {$client['name']}: " . ($radiusResult['message'] ?? 'Unknown error'));
@@ -155,7 +162,10 @@ class RadiusImportController
                     $errors[] = "Failed to import {$client['name']}: " . $e->getMessage();
                     error_log("Import error for {$client['name']}: " . $e->getMessage());
                 }
+                error_log("Finished processing client {$client['name']}");
             }
+
+            error_log("Import loop completed. Total imported: $imported, BVI created: $bviCreated, Skipped: $skipped, Errors: " . count($errors));
 
             $message = "Successfully imported $imported RADIUS clients";
             if ($skipped > 0) {
