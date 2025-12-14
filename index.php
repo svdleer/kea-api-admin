@@ -128,6 +128,18 @@ try {
     $router->get('/admin/kea-servers', [new \App\Controllers\KeaServerController(), 'index'])
         ->middleware(new \App\Middleware\AuthMiddleware($auth, true));
     
+    // Kea Servers API routes
+    $router->get('/api/kea-servers', [new \App\Controllers\KeaServerController(), 'getServers'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->post('/api/kea-servers', [new \App\Controllers\KeaServerController(), 'create'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->put('/api/kea-servers/{id}', [new \App\Controllers\KeaServerController(), 'update'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->delete('/api/kea-servers/{id}', [new \App\Controllers\KeaServerController(), 'delete'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/kea-servers/{id}/test', [new \App\Controllers\KeaServerController(), 'testConnection'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    
     $router->get('/api/users', [new UserController($userModel, $auth), 'list'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/users', [new UserController($userModel, $auth), 'create'])
