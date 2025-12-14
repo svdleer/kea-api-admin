@@ -270,16 +270,23 @@ class CinSwitch
                         
                         // Update shortname in main database
                         $stmt = $this->db->prepare("UPDATE nas SET shortname = ? WHERE id = ?");
-                        $stmt->execute([$newShortname, $radiusClient['id']]);
+                        $updateResult = $stmt->execute([$newShortname, $radiusClient['id']]);
+                        error_log("Database update result: " . ($updateResult ? 'success' : 'failed'));
                         
                         // Sync to RADIUS servers
-                        $updatedClient = $radiusModel->getClientById($radiusClient['id']);
-                        if ($updatedClient) {
-                            $radiusSync = new \App\Helpers\RadiusDatabaseSync();
-                            $syncResult = $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
-                            error_log("Sync result for client {$radiusClient['id']}: " . json_encode($syncResult));
-                        } else {
-                            error_log("Failed to retrieve updated client {$radiusClient['id']} from database");
+                        try {
+                            $updatedClient = $radiusModel->getClientById($radiusClient['id']);
+                            error_log("Retrieved client data: " . json_encode($updatedClient));
+                            
+                            if ($updatedClient) {
+                                $radiusSync = new \App\Helpers\RadiusDatabaseSync();
+                                $syncResult = $radiusSync->syncClientToAllServers($updatedClient, 'UPDATE');
+                                error_log("Sync result for client {$radiusClient['id']}: " . json_encode($syncResult));
+                            } else {
+                                error_log("Failed to retrieve updated client {$radiusClient['id']} from database");
+                            }
+                        } catch (\Exception $e) {
+                            error_log("Error syncing RADIUS client {$radiusClient['id']}: " . $e->getMessage());
                         }
                     }
                 }
