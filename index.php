@@ -178,8 +178,8 @@ try {
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
     // RADIUS Authentication Logs
-    $router->get('/radius/logs', function() use ($db, $auth) {
-        $controller = new \App\Controllers\RadiusLogsController($db);
+    $router->get('/radius/logs', function() use ($database, $auth) {
+        $controller = new \App\Controllers\RadiusLogsController($database);
         $controller->index();
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
