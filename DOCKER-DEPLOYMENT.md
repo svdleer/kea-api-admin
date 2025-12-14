@@ -227,8 +227,11 @@ When `DB_HOST=host.docker.internal`, the Docker container can access services on
 
 **Important:** Make sure your MySQL server allows connections from Docker:
 ```sql
+-- Create user for Docker network if not exists (MySQL 8.0+)
+CREATE USER IF NOT EXISTS 'kea_user'@'172.%' IDENTIFIED BY 'your_password';
+
 -- Grant access from Docker network
-GRANT ALL PRIVILEGES ON kea_db.* TO 'kea_user'@'172.%' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON kea_db.* TO 'kea_user'@'172.%';
 FLUSH PRIVILEGES;
 ```
 
