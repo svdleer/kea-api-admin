@@ -81,35 +81,40 @@ docker-compose exec kea-api-admin mysql -h host.docker.internal -u kea_user -p
 
 ### Initialize Database Schema
 
-After creating the database and user, import the schema:
+After creating the database and user, import the schema **in the correct order** (due to foreign key dependencies):
 
 ```bash
-# From your local machine
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_users_table.sql
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_api_keys_table.sql
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_cin_switch_bvi_interfaces_table.sql
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_ipv6_subnets_table.sql
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_radius_clients_table.sql
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_radius_server_config_table.sql
-mysql -h your-server -u kea_user -p kea_db < database/migrations/create_kea_servers_table.sql
-# ... import all other migration files as needed
-
-# Or if files are on the server - import all migrations at once
+# Import migrations in dependency order
 cd ~/git/kea-api-admin
-for file in database/migrations/create_*.sql; do
-    echo "Importing $file..."
-    mysql -u kea_user -p kea_db < "$file"
-done
+
+# 1. Core tables (no dependencies)
+mysql -u kea_user -p kea_db < database/migrations/create_users_table.sql
+mysql -u kea_user -p kea_db < database/migrations/create_api_keys_table.sql
+mysql -u kea_user -p kea_db < database/migrations/create_kea_servers_table.sql
+mysql -u kea_user -p kea_db < database/migrations/create_radius_server_config_table.sql
+
+# 2. Switch and subnet tables (referenced by other tables)
+mysql -u kea_user -p kea_db < database/migrations/create_ipv6_subnets_table.sql
+
+# 3. Dependent tables (have foreign keys to above tables)
+mysql -u kea_user -p kea_db < database/migrations/create_cin_switch_bvi_interfaces_table.sql
+mysql -u kea_user -p kea_db < database/migrations/create_radius_clients_table.sql
+
+# 4. Optional: Apply fixes and constraints
+mysql -u kea_user -p kea_db < database/migrations/fix_foreign_keys_and_orphans.sql
+mysql -u kea_user -p kea_db < database/migrations/fix_interface_number_datatype.sql
 ```
 
-**Important migrations:**
+**⚠️ Important:** Migrations must be imported in this order to satisfy foreign key constraints!
+
+**Migration purposes:**
 - `create_users_table.sql` - User authentication
-- `create_api_keys_table.sql` - API key management
+- `create_api_keys_table.sql` - API key management  
 - `create_kea_servers_table.sql` - Kea DHCP server configuration (primary/secondary)
 - `create_radius_server_config_table.sql` - RADIUS server settings
-- `create_radius_clients_table.sql` - RADIUS NAS clients
-- `create_cin_switch_bvi_interfaces_table.sql` - Network switches and BVI interfaces
 - `create_ipv6_subnets_table.sql` - IPv6 subnet configuration
+- `create_cin_switch_bvi_interfaces_table.sql` - Network switches and BVI interfaces (depends on subnets)
+- `create_radius_clients_table.sql` - RADIUS NAS clients (depends on switches/BVI)
 
 ---
 
