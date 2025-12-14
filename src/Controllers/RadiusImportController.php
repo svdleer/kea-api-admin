@@ -95,21 +95,8 @@ class RadiusImportController
 
     private function createBviInterface($client)
     {
-        // Extract BVI number from the name if it contains "BVI" or use a default
-        $bviNumber = null;
-        if (preg_match('/BVI\s*(\d+)/i', $client['name'], $matches)) {
-            $bviNumber = intval($matches[1]);
-        }
-        
-        // If no BVI number found, try to extract from description
-        if (!$bviNumber && isset($client['description']) && preg_match('/BVI\s*(\d+)/i', $client['description'], $matches)) {
-            $bviNumber = intval($matches[1]);
-        }
-        
-        // Default to 1 if still not found
-        if (!$bviNumber) {
-            $bviNumber = 1;
-        }
+        // BVI is always BVI100
+        $bviNumber = 100;
 
         // Check if BVI interface already exists with this IP
         $stmt = $this->db->prepare("
