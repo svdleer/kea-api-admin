@@ -1,14 +1,19 @@
-# FreeRADIUS Setup with Local MySQL on Each Kea Server
+# FreeRADIUS and Kea Setup with Local MySQL on Each Kea Server
 
-This guide helps you set up FreeRADIUS with MySQL backend on each Kea DHCP server for high availability.
+This guide helps you set up a fully redundant system where each Kea DHCP server has its own local MySQL database for both DHCP leases and RADIUS.
 
 ## Architecture
 
-- **Main Server (172.16.6.101)**: Kea API Admin manages RADIUS clients
-- **Kea VM 1 (172.16.6.222)**: Kea DHCP + FreeRADIUS + local MySQL
-- **Kea VM 2 (172.17.7.222)**: Kea DHCP + FreeRADIUS + local MySQL
+- **Main Server (172.16.6.101)**: Kea API Admin (management only) + main MySQL
+- **Kea VM 1 (172.16.6.222)**: Kea DHCP + FreeRADIUS + **local MySQL** (for Kea leases + RADIUS)
+- **Kea VM 2 (172.17.7.222)**: Kea DHCP + FreeRADIUS + **local MySQL** (for Kea leases + RADIUS)
 
-The Kea API Admin will sync RADIUS clients (NAS) to both local MySQL databases automatically.
+**Benefits:**
+- Each Kea server is fully independent with its own MySQL database
+- Kea DHCP stores leases in local MySQL (survives network issues)
+- FreeRADIUS uses same local MySQL (survives network issues)
+- Kea API Admin syncs RADIUS clients to both servers
+- Main MySQL server failure doesn't affect DHCP or RADIUS operations
 
 ---
 
@@ -34,27 +39,31 @@ sudo mysql_secure_installation
 
 ## Step 2: Create RADIUS Database on Each Kea VM
 
-On **EACH** Kea VM, create the RADIUS database:
+On **EACH** Kea VM, create the RADIUS database (same MySQL that Kea DHCP uses):
 
 ```bash
 sudo mysql
 ```
 
 ```sql
--- Create RADIUS database
+-- Create RADIUS database (Kea database should already exist)
 CREATE DATABASE IF NOT EXISTS radius CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Create RADIUS user
 CREATE USER IF NOT EXISTS 'radius'@'localhost' IDENTIFIED BY 'your_secure_radius_password';
 GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'localhost';
 
--- Allow remote access from Kea API Admin server (for syncing)
+-- Allow remote access from Kea API Admin server (for syncing RADIUS clients)
 CREATE USER IF NOT EXISTS 'radius'@'172.16.6.101' IDENTIFIED BY 'your_secure_radius_password';
 GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'172.16.6.101';
 
--- For Docker network access
+-- For Docker network access from Kea API Admin
 CREATE USER IF NOT EXISTS 'radius'@'172.18.%' IDENTIFIED BY 'your_secure_radius_password';
 GRANT ALL PRIVILEGES ON radius.* TO 'radius'@'172.18.%';
+
+-- Verify databases
+SHOW DATABASES;
+-- You should see: kea, radius
 
 FLUSH PRIVILEGES;
 EXIT;
@@ -249,6 +258,65 @@ radtest testing PAP123 localhost 0 testing123
 
 ---
 
+## Kea DHCP Local MySQL Configuration
+
+Your Kea DHCP servers are already configured to use local MySQL on each VM. The configuration is typically in:
+
+```bash
+# Check Kea configuration
+cat /etc/kea/kea-dhcp4.conf | grep -A10 '"lease-database"'
+```
+
+**Example Kea configuration with local MySQL:**
+```json
+{
+  "Dhcp4": {
+    "lease-database": {
+      "type": "mysql",
+      "host": "localhost",
+      "name": "kea",
+      "user": "kea",
+      "password": "kea_password"
+    }
+  }
+}
+```
+
+**Important:** Since each Kea server has its own MySQL database:
+- Leases are **NOT** shared between servers
+- Each server manages its own IP pool independently
+- This is typical for Kea HA failover mode
+- Main server (Sylvester - 172.16.6.222) handles most requests
+- Secondary server (Speedy - 172.17.7.222) takes over during failover
+
+---
+
+## High Availability Notes
+
+✅ **Benefits of this fully local setup:**
+- **Kea DHCP:** Each server stores leases in local MySQL
+  - Network issues to main server don't affect DHCP
+  - Faster lease lookups (no network latency)
+  - Each server operates independently
+  
+- **RADIUS:** Each server has local NAS client database
+  - Network issues don't affect 802.1X authentication
+  - RADIUS continues working during main server outage
+  - Automatic sync from Kea API Admin to both servers
+
+- **Full Independence:** Each Kea VM is self-contained
+  - Local MySQL for both Kea leases and RADIUS
+  - Survives network partitions
+  - No single point of failure
+
+⚠️ **Important:**
+- **RADIUS clients:** Only manage through Kea API Admin web UI (synced to both VMs)
+- **Kea leases:** NOT shared between servers (each manages own pool)
+- **Kea configuration:** Managed separately on each VM
+- **Main MySQL (172.16.6.101):** Used only for Kea API Admin management data
+
+---
+
 ## Troubleshooting
 
 ### RADIUS clients not syncing:
@@ -272,21 +340,6 @@ netstat -tlnp | grep 3306
 # Test connection from Kea API Admin
 mysql -h 172.16.6.222 -u radius -p radius
 ```
-
----
-
-## High Availability Notes
-
-✅ **Benefits of this setup:**
-- Each Kea server has its own local RADIUS database
-- If main MySQL server goes down, RADIUS still works
-- Network issues don't affect RADIUS authentication
-- Automatic sync from Kea API Admin to both servers
-
-⚠️ **Important:**
-- RADIUS clients are synced FROM Kea API Admin TO both Kea VMs
-- Only manage RADIUS clients through the Kea API Admin web UI
-- Don't manually edit NAS clients on the Kea VMs (will be overwritten)
 
 ---
 
