@@ -161,14 +161,19 @@ async function saveEdits() {
     importedClientsData.forEach((client, index) => {
         const checkbox = document.getElementById(`client-keep-${index}`);
         const inputElement = document.getElementById(`client-name-${index}`);
+        const bviElement = document.getElementById(`client-bvi-${index}`);
         
         // Only include checked clients
         if (checkbox.checked) {
+            const displayBvi = parseInt(bviElement.value) || 100;
+            const dbBvi = displayBvi - 100; // Convert display number to database number
+            
             selectedClients.push({
                 name: inputElement.value.trim(),
                 ip: client.ip,
                 switch: client.switch,
-                secret: client.secret
+                secret: client.secret,
+                bvi: dbBvi
             });
         }
     });
@@ -282,8 +287,21 @@ document.getElementById('importForm').addEventListener('submit', async function(
                                         placeholder="Client name"
                                     />
                                 </div>
-                                <div class="mt-1 text-sm text-gray-500 ml-7">
-                                    Switch: ${client.switch} | IP: ${client.ip}
+                                <div class="mt-1 text-sm text-gray-500 ml-7 flex items-center gap-4">
+                                    <span>Switch: ${client.switch}</span>
+                                    <span>IP: ${client.ip}</span>
+                                    <span class="flex items-center gap-1">
+                                        BVI
+                                        <input 
+                                            type="number" 
+                                            id="client-bvi-${index}"
+                                            value="${client.bvi + 100}" 
+                                            min="100"
+                                            max="999"
+                                            step="1"
+                                            class="w-16 text-gray-900 border border-gray-300 rounded px-2 py-0.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                    </span>
                                 </div>
                             </div>
                         </div>

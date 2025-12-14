@@ -213,15 +213,23 @@ class RadiusImportController
             $previewClients = [];
             foreach ($clients as $client) {
                 $switchHostname = $client['name'];
-                if (preg_match('/^(.+?)-bvi\d+/i', $client['name'], $matches)) {
+                $bviNumber = 0; // Default BVI 100 (0 + 100 offset in GUI)
+                
+                // Extract switch hostname and BVI number from client name
+                // Example: "asdar151-bvi100" -> hostname: "asdar151", BVI: 0 (displays as 100)
+                // Example: "asdar151-bvi200" -> hostname: "asdar151", BVI: 100 (displays as 200)
+                if (preg_match('/^(.+?)-bvi(\d+)/i', $client['name'], $matches)) {
                     $switchHostname = $matches[1];
+                    $displayBvi = (int)$matches[2]; // e.g., 100, 200
+                    $bviNumber = $displayBvi - 100; // Convert display number to database number
                 }
                 
                 $previewClients[] = [
                     'name' => $client['name'],
                     'ip' => $client['ip_address'],
                     'switch' => $switchHostname,
-                    'secret' => $client['secret'] ?? ''
+                    'secret' => $client['secret'] ?? '',
+                    'bvi' => $bviNumber
                 ];
             }
 
@@ -284,7 +292,8 @@ class RadiusImportController
                         $clientData = [
                             'name' => $client['name'],
                             'ip_address' => $client['ip'], // This should have /128
-                            'secret' => $client['secret'] ?? null
+                            'secret' => $client['secret'] ?? null,
+                            'bvi' => $client['bvi'] ?? 0 // BVI interface number from frontend
                         ];
                         $bviData = $this->createBviInterface($clientData);
                         $bviId = $bviData['bvi_id'];
@@ -353,8 +362,8 @@ class RadiusImportController
 
     private function createBviInterface($client)
     {
-        // BVI interface number is 0 (GUI adds 100 for display as BVI100)
-        $bviNumber = 0;
+        // BVI interface number from client data (default 0 for BVI100)
+        $bviNumber = $client['bvi'] ?? 0;
 
         // Extract switch hostname from client name
         // Example: "asdar151-bvi100" -> "asdar151"
