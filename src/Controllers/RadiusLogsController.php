@@ -19,6 +19,7 @@ class RadiusLogsController
         $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
         $perPage = isset($_GET['per_page']) ? min(200, max(10, intval($_GET['per_page']))) : 50;
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $nasFilter = isset($_GET['nas']) ? trim($_GET['nas']) : '';
         $resultFilter = isset($_GET['result']) ? trim($_GET['result']) : '';
         $hours = isset($_GET['hours']) ? min(168, max(1, intval($_GET['hours']))) : 24;
         
@@ -67,42 +68,52 @@ class RadiusLogsController
                     $params[] = $resultFilter;
                 }
                 
+                // NAS filter - join with radacct to filter by NAS IP
+                $nasJoin = "";
+                if (!empty($nasFilter)) {
+                    $nasJoin = "INNER JOIN radacct acc ON ra.username = acc.username AND acc.nasipaddress = ?";
+                    $params[] = $nasFilter;
+                }
+                
                 $whereClause = implode(" AND ", $whereConditions);
 
                 // Get total count for pagination
+                $countParams = array_slice($params, 0, empty($nasFilter) ? count($params) : count($params) - 1);
                 $stmt = $radiusDb->prepare("
-                    SELECT COUNT(*) as total
+                    SELECT COUNT(DISTINCT ra.id) as total
                     FROM radpostauth ra
+                    $nasJoin
                     WHERE $whereClause
                 ");
-                $stmt->execute($params);
+                $stmt->execute(empty($nasFilter) ? $countParams : $params);
                 $totalRecords += $stmt->fetch(\PDO::FETCH_ASSOC)['total'];
 
                 // Get recent authentication logs with pagination
                 $stmt = $radiusDb->prepare("
-                    SELECT 
+                    SELECT DISTINCT
                         ra.username,
                         ra.reply,
                         ra.authdate,
                         COALESCE(
                             (SELECT n.nasname 
-                             FROM radacct acc 
-                             JOIN nas n ON acc.nasipaddress = n.nasname 
-                             WHERE acc.username = ra.username 
-                             ORDER BY acc.acctstarttime DESC 
+                             FROM radacct acc2
+                             JOIN nas n ON acc2.nasipaddress = n.nasname 
+                             WHERE acc2.username = ra.username 
+                             ORDER BY acc2.acctstarttime DESC 
                              LIMIT 1
                             ), 'Unknown'
                         ) as nas_ip,
                         COALESCE(
                             (SELECT n.shortname 
-                             FROM radacct acc 
-                             JOIN nas n ON acc.nasipaddress = n.nasname 
-                             WHERE acc.username = ra.username 
-                             ORDER BY acc.acctstarttime DESC 
+                             FROM radacct acc2
+                             JOIN nas n ON acc2.nasipaddress = n.nasname 
+                             WHERE acc2.username = ra.username 
+                             ORDER BY acc2.acctstarttime DESC 
                              LIMIT 1
                             ), 'Unknown'
                         ) as nas_name
                     FROM radpostauth ra
+                    $nasJoin
                     WHERE $whereClause
                     ORDER BY ra.authdate DESC
                     LIMIT ? OFFSET ?
@@ -124,6 +135,15 @@ class RadiusLogsController
                 }
                 
                 $availableServers[] = $server['name'];
+
+                // Get all NAS devices for filter dropdown
+                $stmt = $radiusDb->query("SELECT nasname, shortname FROM nas ORDER BY shortname");
+                $nasDevices = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($nasDevices as $nas) {
+                    if (!isset($availableNas[$nas['nasname']])) {
+                        $availableNas[$nas['nasname']] = $nas['shortname'];
+                    }
+                }
 
                 // Get NAS statistics
                 $stmt = $radiusDb->prepare("
