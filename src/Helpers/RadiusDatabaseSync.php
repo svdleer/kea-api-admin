@@ -192,8 +192,8 @@ class RadiusDatabaseSync
         }
 
         $query = "INSERT INTO nas 
-                  (id, nasname, shortname, type, ports, secret, server, community, description, bvi_interface_id, created_at, updated_at) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                  (id, nasname, shortname, type, ports, secret, server, community, description, created_at, updated_at) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($query);
         $stmt->execute([
@@ -206,7 +206,6 @@ class RadiusDatabaseSync
             $clientData['server'] ?? null,
             $clientData['community'] ?? null,
             $clientData['description'] ?? 'Auto-synced from KEA Admin',
-            $clientData['bvi_interface_id'] ?? null,
             $clientData['created_at'] ?? date('Y-m-d H:i:s'),
             date('Y-m-d H:i:s')
         ]);
