@@ -36,7 +36,7 @@ ob_start();
                        id="hostname" 
                        name="hostname" 
                        class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="XXXX-LC0000-CIN000"
+                       placeholder="XXXX-LC0000-AR000"
                        required>
                 <div class="validation-message mt-1 text-sm"></div>
             </div>
@@ -107,7 +107,7 @@ $(document).ready(function() {
     }
 
     function isValidCinHostname(hostname) {
-        return /^[A-Z]{2,4}-(LC|RC)\d{4}-CIN\d{3}$/.test(hostname);
+        return /^[A-Z]{2,4}-(LC|RC)\d{4}-AR\d{3}$/.test(hostname);
     }
 
     function updateSubmitButton() {
@@ -123,7 +123,7 @@ $(document).ready(function() {
 
         if (!isValidCinHostname(hostname)) {
             input.removeClass('border-gray-300').addClass('border-red-500');
-            validationMessage.text('Invalid format (2-4 chars followed by -RC#### or -LC#### and -CIN###)')
+            validationMessage.text('Invalid format (2-4 chars followed by -RC#### or -LC#### and -AR###)')
                             .removeClass('text-green-600')
                             .addClass('text-red-600');
             validations.hostname = false;

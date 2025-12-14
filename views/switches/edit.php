@@ -178,7 +178,7 @@ ob_start();
 
         // Validate hostname format
         function isValidHostname(hostname) {
-            return /^[A-Z]{2,4}-(?:RC|LC)\d{4}-CIN\d{3}$/.test(hostname);
+            return /^[A-Z]{2,4}-(?:RC|LC)\d{4}-AR\d{3}$/.test(hostname);
         }
 
         // Validate BVI format
@@ -203,7 +203,7 @@ ob_start();
 
             if (!isValidHostname(value)) {
                 input.removeClass('is-valid').addClass('is-invalid');
-                validationMessage.text('Invalid format. Must be 2-4 chars followed by -RC/LC + 4 digits-CIN + 3 digits (e.g., AMST-RC0001-CIN001)').removeClass('text-green-600').addClass('text-red-600').removeClass('hidden');
+                validationMessage.text('Invalid format. Must be 2-4 chars followed by -RC/LC + 4 digits-AR + 3 digits (e.g., AMST-RC0001-AR001)').removeClass('text-green-600').addClass('text-red-600').removeClass('hidden');
                 submitButton.prop('disabled', true);
                 return;
             }
