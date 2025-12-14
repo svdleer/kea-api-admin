@@ -17,13 +17,14 @@ Execute the following SQL commands:
 -- Create the database
 CREATE DATABASE IF NOT EXISTS kea_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Create the user
-CREATE USER 'kea_user'@'%' IDENTIFIED BY 'your_secure_password';
+-- Create the user for all hosts
+CREATE USER IF NOT EXISTS 'kea_user'@'%' IDENTIFIED BY 'your_secure_password';
 
 -- Grant all privileges on the database
 GRANT ALL PRIVILEGES ON kea_db.* TO 'kea_user'@'%';
 
--- For Docker containers, also grant access from Docker network
+-- For Docker containers, create user for Docker network and grant access
+CREATE USER IF NOT EXISTS 'kea_user'@'172.%' IDENTIFIED BY 'your_secure_password';
 GRANT ALL PRIVILEGES ON kea_db.* TO 'kea_user'@'172.%';
 
 -- Apply the changes
