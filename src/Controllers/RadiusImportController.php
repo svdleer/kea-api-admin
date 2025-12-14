@@ -247,7 +247,12 @@ class RadiusImportController
 
     public function confirmImport()
     {
-        header('Content-Type: application/json');
+        // Start output buffering and disable error display
+        ob_start();
+        ini_set('display_errors', '0');
+        
+        try {
+            header('Content-Type: application/json');
         
         try {
             $input = json_decode(file_get_contents('php://input'), true);
@@ -319,6 +324,7 @@ class RadiusImportController
                 $message .= " and created $bviCreated BVI interfaces";
             }
 
+            ob_end_clean();
             echo json_encode([
                 'success' => true,
                 'message' => $message,
@@ -329,6 +335,7 @@ class RadiusImportController
             ]);
 
         } catch (\Exception $e) {
+            ob_end_clean();
             http_response_code(500);
             echo json_encode([
                 'success' => false,
