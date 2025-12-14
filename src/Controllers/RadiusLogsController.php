@@ -96,6 +96,7 @@ class RadiusLogsController
                         ra.reply,
                         ra.authdate,
                         COALESCE(NULLIF(ra.nasipaddress, ''), NULLIF(ra.nasipaddress, '0.0.0.0'), 'Unknown') as nas_ip,
+                        COALESCE(NULLIF(ra.nasportid, ''), 'Unknown') as nas_port,
                         COALESCE(
                             (SELECT n.shortname 
                              FROM nas n 

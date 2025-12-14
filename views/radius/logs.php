@@ -203,6 +203,9 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                             NAS IP
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Port/Interface
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Result
                         </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -213,7 +216,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($logs)): ?>
                         <tr>
-                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                            <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
                                 No authentication logs available
                             </td>
                         </tr>
@@ -237,6 +240,9 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= htmlspecialchars($log['nas_ip']) ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <?= htmlspecialchars($log['nas_port'] ?? 'Unknown') ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                     <?= $statusBadge ?>
