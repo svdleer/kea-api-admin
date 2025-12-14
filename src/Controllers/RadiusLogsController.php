@@ -95,11 +95,11 @@ class RadiusLogsController
                         ra.username,
                         ra.reply,
                         ra.authdate,
-                        COALESCE(ra.nasipaddress, 'Unknown') as nas_ip,
+                        ra.calledstationid as nas_ip,
                         COALESCE(
                             (SELECT n.shortname 
                              FROM nas n 
-                             WHERE n.nasname = ra.nasipaddress 
+                             WHERE n.nasname = ra.calledstationid 
                              LIMIT 1
                             ), 'Unknown'
                         ) as nas_name
