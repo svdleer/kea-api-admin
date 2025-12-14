@@ -118,7 +118,7 @@ client switch2 {
                 </div>
                 <div class="mt-3 text-center sm:mt-5">
                     <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                        Import Successful!
+                        Confirm Import
                     </h3>
                     <div class="mt-2">
                         <p id="modalMessage" class="text-sm text-gray-500"></p>
@@ -127,7 +127,7 @@ client switch2 {
             </div>
             
             <div class="mt-5">
-                <h4 class="text-sm font-medium text-gray-900 mb-3">Imported RADIUS Clients (uncheck to remove, click names to edit):</h4>
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Review clients (uncheck to skip, click names to edit):</h4>
                 <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
                     <div id="clientsList" class="space-y-2"></div>
                 </div>
@@ -135,10 +135,10 @@ client switch2 {
             
             <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                 <button type="button" onclick="saveEdits()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm">
-                    Save Changes
+                    Confirm & Import
                 </button>
-                <button type="button" onclick="window.location.href='/radius'" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
-                    Skip & Go to RADIUS Clients
+                <button type="button" onclick="closeModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    Cancel
                 </button>
             </div>
         </div>
@@ -156,73 +156,52 @@ function closeModal() {
 }
 
 async function saveEdits() {
-    const edits = [];
-    const deletions = [];
+    const selectedClients = [];
     
     importedClientsData.forEach((client, index) => {
         const checkbox = document.getElementById(`client-keep-${index}`);
         const inputElement = document.getElementById(`client-name-${index}`);
         
-        // If unchecked, mark for deletion
-        if (!checkbox.checked) {
-            deletions.push(client.ip);
-            return;
-        }
-        
-        // If name changed, mark for update
-        const newName = inputElement.value.trim();
-        if (newName !== client.name) {
-            edits.push({
+        // Only include checked clients
+        if (checkbox.checked) {
+            selectedClients.push({
+                name: inputElement.value.trim(),
                 ip: client.ip,
-                oldName: client.name,
-                newName: newName
+                switch: client.switch,
+                secret: client.secret
             });
         }
     });
     
-    // Handle deletions
-    if (deletions.length > 0) {
-        try {
-            const response = await fetch('/radius/delete-clients', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ ips: deletions })
-            });
-            
-            if (!response.ok) {
-                alert('Failed to delete unchecked clients');
-                return;
-            }
-        } catch (error) {
-            alert('Error deleting clients: ' + error.message);
-            return;
-        }
+    if (selectedClients.length === 0) {
+        alert('Please select at least one client to import');
+        return;
     }
     
-    // Handle name updates
-    if (edits.length > 0) {
-        try {
-            const response = await fetch('/radius/update-names', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ edits })
-            });
-            
-            if (!response.ok) {
-                alert('Failed to save name changes');
-                return;
-            }
-        } catch (error) {
-            alert('Error saving changes: ' + error.message);
+    // Perform the actual import with selected clients
+    try {
+        const response = await fetch('/radius/confirm-import', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ clients: selectedClients })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            alert('Import failed: ' + result.message);
             return;
         }
+        
+        // Show success and redirect
+        alert(result.message);
+        window.location.href = '/radius';
+        
+    } catch (error) {
+        alert('Error during import: ' + error.message);
     }
-    
-    window.location.href = '/radius';
 }
 
 document.getElementById('clients_conf').addEventListener('change', function(e) {

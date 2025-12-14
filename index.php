@@ -183,10 +183,16 @@ try {
         $controller->showImportForm();
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
-    // RADIUS Import Action
+    // RADIUS Import Action (preview only)
     $router->post('/radius/import', function() use ($database, $auth) {
         $controller = new \App\Controllers\RadiusImportController($database);
         $controller->import();
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
+    // RADIUS Confirm Import (actual import after preview)
+    $router->post('/radius/confirm-import', function() use ($database, $auth) {
+        $controller = new \App\Controllers\RadiusImportController($database);
+        $controller->confirmImport();
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
     // RADIUS Update Names After Import

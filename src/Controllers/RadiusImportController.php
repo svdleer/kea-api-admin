@@ -209,21 +209,68 @@ class RadiusImportController
                 return;
             }
 
+            // Prepare preview data with switch names (don't actually import yet!)
+            $previewClients = [];
+            foreach ($clients as $client) {
+                $switchHostname = $client['name'];
+                if (preg_match('/^(.+?)-bvi\d+/i', $client['name'], $matches)) {
+                    $switchHostname = $matches[1];
+                }
+                
+                $previewClients[] = [
+                    'name' => $client['name'],
+                    'ip' => $client['ip_address'],
+                    'switch' => $switchHostname,
+                    'secret' => $client['secret'] ?? ''
+                ];
+            }
+
+            ob_end_clean();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Ready to import ' . count($clients) . ' RADIUS clients',
+                'clients' => $previewClients
+            ]);
+
+        } catch (\Exception $e) {
+            error_log("Import exception: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        } catch (\Error $e) {
+            error_log("Import fatal error: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Fatal error: ' . $e->getMessage()]);
+        }
+    }
+
+    public function confirmImport()
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $clientsToImport = $input['clients'] ?? [];
+            
+            if (empty($clientsToImport)) {
+                echo json_encode(['success' => false, 'message' => 'No clients to import']);
+                return;
+            }
+
             $radiusClientModel = new RadiusClient($this->db);
             $imported = 0;
             $bviCreated = 0;
             $skipped = 0;
             $errors = [];
-            $importedClients = []; // Track imported client details
 
-            foreach ($clients as $client) {
+            foreach ($clientsToImport as $client) {
                 error_log("Processing client {$client['name']} (loop iteration)");
                 try {
                     // Check if client already exists
-                    $radiusClientModel = new RadiusClient($this->db);
-                    if ($radiusClientModel->nasnameExists($client['ip_address'])) {
+                    if ($radiusClientModel->nasnameExists($client['ip'])) {
                         $skipped++;
-                        error_log("Skipping duplicate client: {$client['name']} ({$client['ip_address']})");
+                        error_log("Skipping duplicate client: {$client['name']} ({$client['ip']})");
                         continue;
                     }
                     
@@ -232,31 +279,24 @@ class RadiusImportController
                     try {
                         $bviData = $this->createBviInterface($client);
                         $bviId = $bviData['bvi_id'];
-                        $switchHostname = $bviData['switch_hostname'];
                         $bviCreated++;
                         error_log("BVI created successfully for {$client['name']}, ID: $bviId");
                     } catch (\Exception $e) {
-                        // Don't fail the whole import if BVI creation fails
                         error_log("Failed to create BVI for {$client['name']}: " . $e->getMessage());
                         $errors[] = "Failed to create BVI for {$client['name']}: " . $e->getMessage();
                         continue;
                     }
                     
                     error_log("Creating RADIUS client for {$client['name']}");
-                    // Step 2: Create RADIUS client using the model directly (not API to avoid exit())
+                    // Step 2: Create RADIUS client using the model directly
                     try {
                         $radiusClientModel->createFromBvi(
                             $bviId,
-                            $client['ip_address'],
+                            $client['ip'],
                             $client['secret'] ?? null,
                             $client['name']
                         );
                         $imported++;
-                        $importedClients[] = [
-                            'name' => $client['name'],
-                            'ip' => $client['ip_address'],
-                            'switch' => $switchHostname
-                        ];
                         error_log("Successfully imported {$client['name']}");
                     } catch (\Exception $e) {
                         $errors[] = "Failed to create RADIUS client for {$client['name']}: " . $e->getMessage();
@@ -279,27 +319,21 @@ class RadiusImportController
                 $message .= " and created $bviCreated BVI interfaces";
             }
 
-            ob_end_clean();
             echo json_encode([
                 'success' => true,
                 'message' => $message,
                 'imported' => $imported,
                 'skipped' => $skipped,
                 'bviCreated' => $bviCreated,
-                'errors' => $errors,
-                'clients' => $importedClients
+                'errors' => $errors
             ]);
 
         } catch (\Exception $e) {
-            error_log("Import exception: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            ob_end_clean();
-            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-        } catch (\Error $e) {
-            error_log("Import fatal error: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            ob_end_clean();
-            echo json_encode(['success' => false, 'message' => 'Fatal error: ' . $e->getMessage()]);
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Import failed: ' . $e->getMessage()
+            ]);
         }
     }
 
