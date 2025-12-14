@@ -179,11 +179,15 @@ class DashboardController
     private function getRadiusStatistics()
     {
         try {
-            // Get active RADIUS servers from database
-            $stmt = $this->db->query(
-                "SELECT * FROM radius_server_config WHERE enabled = 1 ORDER BY display_order ASC"
-            );
-            $radiusServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            // Get active RADIUS servers from database using RadiusServerConfig model
+            require_once __DIR__ . '/../../Models/RadiusServerConfig.php';
+            $radiusConfigModel = new \App\Models\RadiusServerConfig($this->db);
+            $radiusServers = $radiusConfigModel->getAllServers();
+            
+            // Filter only enabled servers
+            $radiusServers = array_filter($radiusServers, function($server) {
+                return $server['enabled'] == 1;
+            });
             
             if (empty($radiusServers)) {
                 return [
