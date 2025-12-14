@@ -19,9 +19,7 @@ class RadiusLogsController
         $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
         $perPage = isset($_GET['per_page']) ? min(200, max(10, intval($_GET['per_page']))) : 50;
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-        $nasFilter = isset($_GET['nas']) ? trim($_GET['nas']) : '';
         $resultFilter = isset($_GET['result']) ? trim($_GET['result']) : '';
-        $serverFilter = isset($_GET['server']) ? trim($_GET['server']) : '';
         $hours = isset($_GET['hours']) ? min(168, max(1, intval($_GET['hours']))) : 24;
         
         $offset = ($page - 1) * $perPage;
@@ -117,13 +115,9 @@ class RadiusLogsController
                 
                 foreach ($serverLogs as $log) {
                     $log['server'] = $server['name'];
+                    $logs[] = $log;
                     
-                    // Apply NAS filter if set
-                    if (empty($nasFilter) || $log['nas_ip'] === $nasFilter || $log['nas_name'] === $nasFilter) {
-                        $logs[] = $log;
-                    }
-                    
-                    // Collect unique NAS for filter dropdown
+                    // Collect unique NAS for display
                     if ($log['nas_ip'] !== 'Unknown') {
                         $availableNas[$log['nas_ip']] = $log['nas_name'];
                     }

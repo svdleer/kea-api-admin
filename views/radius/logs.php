@@ -1,7 +1,6 @@
 <?php
 $pageTitle = 'RADIUS Authentication Logs';
 $currentSearch = isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '';
-$currentNas = isset($_GET['nas']) ? htmlspecialchars($_GET['nas']) : '';
 $currentResult = isset($_GET['result']) ? htmlspecialchars($_GET['result']) : '';
 $currentHours = isset($_GET['hours']) ? intval($_GET['hours']) : 24;
 $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
@@ -19,7 +18,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
 
     <!-- Search and Filter Controls -->
     <div class="bg-white shadow sm:rounded-lg p-6 mb-6">
-        <form method="GET" action="/radius/logs" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <form method="GET" action="/radius/logs" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <!-- Search Username -->
             <div>
                 <label for="search" class="block text-sm font-medium text-gray-700">Search Username</label>
@@ -29,21 +28,6 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                        value="<?= $currentSearch ?>"
                        placeholder="username..."
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-            </div>
-
-            <!-- Filter by NAS -->
-            <div>
-                <label for="nas" class="block text-sm font-medium text-gray-700">NAS Device</label>
-                <select name="nas" 
-                        id="nas"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <option value="">All NAS</option>
-                    <?php foreach ($availableNas as $ip => $name): ?>
-                        <option value="<?= htmlspecialchars($ip) ?>" <?= $currentNas === $ip ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($name) ?> (<?= htmlspecialchars($ip) ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
             </div>
 
             <!-- Filter by Result -->
@@ -87,7 +71,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
             </div>
 
             <!-- Buttons -->
-            <div class="sm:col-span-2 lg:col-span-5 flex justify-end space-x-3">
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end space-x-3">
                 <a href="/radius/logs" 
                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Clear Filters
@@ -255,15 +239,15 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
     <!-- Pagination -->
     <?php if ($totalPages > 1): ?>
         <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4 rounded-lg shadow">
-            <div class="flex-1 flex justify-between sm:hidden">
+            <div class="sm:hidden">
                 <?php if ($page > 1): ?>
-                    <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                    <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Previous
                     </a>
                 <?php endif; ?>
                 <?php if ($page < $totalPages): ?>
-                    <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                    <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Next
                     </a>
@@ -284,7 +268,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                 <div>
                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         <?php if ($page > 1): ?>
-                            <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                            <a href="?page=<?= $page - 1 ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                 Previous
                             </a>
@@ -295,7 +279,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                         $end = min($totalPages, $page + 2);
                         
                         if ($start > 1): ?>
-                            <a href="?page=1&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                            <a href="?page=1&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 1
                             </a>
@@ -307,7 +291,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                         <?php endif; ?>
                         
                         <?php for ($i = $start; $i <= $end; $i++): ?>
-                            <a href="?page=<?= $i ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                            <a href="?page=<?= $i ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 <?= $i === $page ? 'bg-indigo-50 border-indigo-500 text-indigo-600 z-10' : 'bg-white text-gray-700 hover:bg-gray-50' ?> text-sm font-medium">
                                 <?= $i ?>
                             </a>
@@ -319,14 +303,14 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                                     ...
                                 </span>
                             <?php endif; ?>
-                            <a href="?page=<?= $totalPages ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                            <a href="?page=<?= $totalPages ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                 <?= $totalPages ?>
                             </a>
                         <?php endif; ?>
                         
                         <?php if ($page < $totalPages): ?>
-                            <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&nas=<?= urlencode($currentNas) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
+                            <a href="?page=<?= $page + 1 ?>&search=<?= urlencode($currentSearch) ?>&result=<?= urlencode($currentResult) ?>&hours=<?= $currentHours ?>&per_page=<?= $currentPerPage ?>" 
                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                 Next
                             </a>
