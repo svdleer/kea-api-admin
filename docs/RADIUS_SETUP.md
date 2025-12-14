@@ -222,9 +222,20 @@ CREATE TABLE IF NOT EXISTS radacct (
   KEY nasipaddress (nasipaddress)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RADIUS Accounting';
 
+-- Post-authentication logging table
+-- Logs all authentication attempts (accept/reject)
+CREATE TABLE IF NOT EXISTS radpostauth (
+  id int(11) NOT NULL auto_increment,
+  username varchar(64) NOT NULL default '',
+  pass varchar(64) NOT NULL default '',
+  reply varchar(32) NOT NULL default '',
+  authdate timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Verify tables were created
 SHOW TABLES;
--- You should see: nas, radacct, radcheck, radgroupcheck, radgroupreply, radreply, radusergroup
+-- You should see: nas, radacct, radcheck, radgroupcheck, radgroupreply, radpostauth, radreply, radusergroup
 
 -- Check table structure
 DESCRIBE nas;
