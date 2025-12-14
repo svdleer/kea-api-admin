@@ -145,6 +145,60 @@ CREATE TABLE IF NOT EXISTS nas (
   KEY nasname (nasname)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='RADIUS NAS Clients';
 
+-- User authentication table
+-- Stores user credentials (username/password)
+CREATE TABLE IF NOT EXISTS radcheck (
+  id int(11) unsigned NOT NULL auto_increment,
+  username varchar(64) NOT NULL default '',
+  attribute varchar(64) NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '==',
+  value varchar(253) NOT NULL default '',
+  PRIMARY KEY (id),
+  KEY username (username(32))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- User reply attributes table
+-- Stores attributes returned to user after authentication
+CREATE TABLE IF NOT EXISTS radreply (
+  id int(11) unsigned NOT NULL auto_increment,
+  username varchar(64) NOT NULL default '',
+  attribute varchar(64) NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '=',
+  value varchar(253) NOT NULL default '',
+  PRIMARY KEY (id),
+  KEY username (username(32))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Group check attributes table
+CREATE TABLE IF NOT EXISTS radgroupcheck (
+  id int(11) unsigned NOT NULL auto_increment,
+  groupname varchar(64) NOT NULL default '',
+  attribute varchar(64) NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '==',
+  value varchar(253) NOT NULL default '',
+  PRIMARY KEY (id),
+  KEY groupname (groupname(32))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Group reply attributes table
+CREATE TABLE IF NOT EXISTS radgroupreply (
+  id int(11) unsigned NOT NULL auto_increment,
+  groupname varchar(64) NOT NULL default '',
+  attribute varchar(64) NOT NULL default '',
+  op char(2) NOT NULL DEFAULT '=',
+  value varchar(253) NOT NULL default '',
+  PRIMARY KEY (id),
+  KEY groupname (groupname(32))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- User to group mapping table
+CREATE TABLE IF NOT EXISTS radusergroup (
+  username varchar(64) NOT NULL default '',
+  groupname varchar(64) NOT NULL default '',
+  priority int(11) NOT NULL default '1',
+  KEY username (username(32))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- RADIUS accounting table  
 -- This stores authentication/accounting records
 CREATE TABLE IF NOT EXISTS radacct (
@@ -170,11 +224,11 @@ CREATE TABLE IF NOT EXISTS radacct (
 
 -- Verify tables were created
 SHOW TABLES;
--- You should see: nas, radacct
+-- You should see: nas, radacct, radcheck, radgroupcheck, radgroupreply, radreply, radusergroup
 
 -- Check table structure
 DESCRIBE nas;
-DESCRIBE radacct;
+DESCRIBE radcheck;
 
 EXIT;
 ```
@@ -200,20 +254,20 @@ Find and update these settings (around line 15-40):
 
 ```conf
 sql {
-    # Use MySQL driver
-    driver = "rlm_sql_mysql"
-    dialect = "mysql"
-    
-    # Connection info
-    server = "localhost"
-    port = 3306
-    login = "radius"
-    password = "your_secure_radius_password"  # Use the password from Step 3
-    radius_db = "radius"
-    
-    # Read NAS clients from database (IMPORTANT!)
-    read_clients = yes
-    client_table = "nas"
+        # Use MySQL driver
+        driver = "rlm_sql_mysql"
+        dialect = "mysql"
+        
+        # Connection info
+        server = "localhost"
+        port = 3306
+        login = "radius"
+        password = "your_secure_radius_password"  # Use the password from Step 3
+        radius_db = "radius"
+        
+        # Read NAS clients from database (IMPORTANT!)
+        read_clients = yes
+        client_table = "nas"
 }
 ```
 
