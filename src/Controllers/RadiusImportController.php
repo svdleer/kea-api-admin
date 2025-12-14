@@ -133,18 +133,21 @@ class RadiusImportController
         $inClientBlock = false;
 
         foreach ($lines as $line) {
+            // Remove comments and trim
+            $line = preg_replace('/#.*$/', '', $line);
             $line = trim($line);
             
-            // Skip comments and empty lines
-            if (empty($line) || $line[0] === '#') {
+            // Skip empty lines
+            if (empty($line)) {
                 continue;
             }
 
-            // Check for client block start
-            if (preg_match('/^client\s+([^\s{]+)\s*\{?/', $line, $matches)) {
+            // Check for client block start - more flexible pattern
+            // Matches: client xxx {, client "xxx" {, client xxx{, etc.
+            if (preg_match('/^client\s+["\']?([^\s{"\'"]+)["\']?\s*\{?/', $line, $matches)) {
                 $inClientBlock = true;
                 $currentClient = [
-                    'name' => trim($matches[1]),
+                    'name' => trim($matches[1], '"\''),
                     'ip_address' => '',
                     'secret' => '',
                     'type' => 'other',
@@ -154,7 +157,7 @@ class RadiusImportController
             }
 
             // Check for block end
-            if ($line === '}') {
+            if (strpos($line, '}') !== false) {
                 if ($currentClient && !empty($currentClient['ip_address']) && !empty($currentClient['secret'])) {
                     $clients[] = $currentClient;
                 }
@@ -163,24 +166,27 @@ class RadiusImportController
                 continue;
             }
 
-            // Parse client attributes
+            // Parse client attributes if we're in a block
             if ($inClientBlock && $currentClient) {
-                // ipaddr = 192.168.1.1
-                if (preg_match('/ipaddr\s*=\s*(.+)/', $line, $matches)) {
-                    $currentClient['ip_address'] = trim($matches[1]);
+                // More flexible parsing - handles various spacing
+                // ipaddr = 192.168.1.1 or ipaddr=192.168.1.1
+                if (preg_match('/^\s*ipaddr\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
+                    $currentClient['ip_address'] = trim($matches[1], '"\'');
                 }
-                // secret = mysecret
-                elseif (preg_match('/secret\s*=\s*(.+)/', $line, $matches)) {
-                    $currentClient['secret'] = trim($matches[1]);
+                // secret = mysecret or secret=mysecret
+                elseif (preg_match('/^\s*secret\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
+                    $currentClient['secret'] = trim($matches[1], '"\'');
                 }
-                // shortname = MySwitch
-                elseif (preg_match('/shortname\s*=\s*(.+)/', $line, $matches)) {
-                    $currentClient['name'] = trim($matches[1]);
+                // shortname = MySwitch or shortname="My Switch"
+                elseif (preg_match('/^\s*shortname\s*=\s*["\']?(.+?)["\']?\s*$/', $line, $matches)) {
+                    $currentClient['name'] = trim($matches[1], '"\'');
                 }
                 // nastype = other
-                elseif (preg_match('/nastype\s*=\s*(.+)/', $line, $matches)) {
-                    $currentClient['type'] = trim($matches[1]);
+                elseif (preg_match('/^\s*nastype\s*=\s*["\']?([^"\'\s]+)["\']?/', $line, $matches)) {
+                    $currentClient['type'] = trim($matches[1], '"\'');
                 }
+                // require_message_authenticator = no (just ignore these)
+                // Any other lines are ignored
             }
         }
 
