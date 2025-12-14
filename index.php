@@ -119,6 +119,9 @@ try {
         $title = 'Kea Configuration Import Wizard';
         require BASE_PATH . '/views/admin/import-wizard.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth, true));
+
+    $router->get('/admin/kea-servers', [new \App\Controllers\KeaServerController(), 'index'])
+        ->middleware(new \App\Middleware\AuthMiddleware($auth, true));
     
     $router->get('/api/users', [new UserController($userModel, $auth), 'list'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));

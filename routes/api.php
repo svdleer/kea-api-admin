@@ -3,6 +3,14 @@
 use App\Controllers\Api\SwitchController;
 use App\Controllers\Api\NetworkController;
 use App\Controllers\Api\DHCPv6OptionsController;
+use App\Controllers\KeaServerController;
+
+// Kea Server Management API routes
+$router->get('/api/kea-servers', [KeaServerController::class, 'getServers']);
+$router->post('/api/kea-servers', [KeaServerController::class, 'create']);
+$router->put('/api/kea-servers/{id}', [KeaServerController::class, 'update']);
+$router->delete('/api/kea-servers/{id}', [KeaServerController::class, 'delete']);
+$router->get('/api/kea-servers/{id}/test', [KeaServerController::class, 'testConnection']);
 
 // CIN Switch routes
 $router->get('/api/switches', [SwitchController::class, 'getAll']);
