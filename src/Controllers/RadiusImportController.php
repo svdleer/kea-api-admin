@@ -137,26 +137,19 @@ class RadiusImportController
                     }
                     
                     error_log("Creating RADIUS client for {$client['name']}");
-                    // Step 2: Create RADIUS client using the BVI ID
-                    $radiusResult = $this->callApiWithJson(
-                        $this->radiusController,
-                        'createClient',
-                        [
-                            'bvi_interface_id' => $bviId,
-                            'ipv6_address' => $client['ip_address'],
-                            'secret' => $client['secret'] ?? '',
-                            'shortname' => $client['name']
-                        ]
-                    );
-                    
-                    error_log("RADIUS API response for {$client['name']}: " . json_encode($radiusResult));
-                    
-                    if (isset($radiusResult['success']) && $radiusResult['success']) {
+                    // Step 2: Create RADIUS client using the model directly (not API to avoid exit())
+                    try {
+                        $radiusClientModel->createFromBvi(
+                            $bviId,
+                            $client['ip_address'],
+                            $client['secret'] ?? null,
+                            $client['name']
+                        );
                         $imported++;
                         error_log("Successfully imported {$client['name']}");
-                    } else {
-                        $errors[] = "Failed to import {$client['name']}: " . ($radiusResult['message'] ?? 'Unknown error');
-                        error_log("RADIUS API error for {$client['name']}: " . ($radiusResult['message'] ?? 'Unknown error'));
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to create RADIUS client for {$client['name']}: " . $e->getMessage();
+                        error_log("RADIUS creation error for {$client['name']}: " . $e->getMessage());
                     }
                 } catch (\Exception $e) {
                     $errors[] = "Failed to import {$client['name']}: " . $e->getMessage();
