@@ -22,6 +22,26 @@ class RadiusImportController
         $this->bviController = new BVIController();
         $this->radiusController = new RadiusController(new RadiusClient($db), new \App\Auth\Authentication($db));
     }
+    
+    /**
+     * Helper to call API controller with JSON data
+     */
+    private function callApiWithJson($controller, $method, $data, ...$args)
+    {
+        // Register custom stream wrapper to mock php://input
+        stream_wrapper_unregister("php");
+        stream_wrapper_register("php", \App\Helpers\MockedInputStreamWrapper::class);
+        file_put_contents("php://input", json_encode($data));
+        
+        ob_start();
+        call_user_func_array([$controller, $method], $args);
+        $response = ob_get_clean();
+        
+        // Restore original php stream wrapper
+        stream_wrapper_restore("php");
+        
+        return json_decode($response, true);
+    }
 
     public function showImportForm()
     {
@@ -114,22 +134,22 @@ class RadiusImportController
                     }
                     
                     // Step 2: Create RADIUS client using the BVI ID
-                    $_POST = []; // Clear POST
-                    $_POST['bvi_interface_id'] = $bviId;
-                    $_POST['ipv6_address'] = $client['ip_address'];
-                    $_POST['secret'] = $client['secret'] ?? '';
-                    $_POST['shortname'] = $client['name'];
+                    $radiusResult = $this->callApiWithJson(
+                        $this->radiusController,
+                        'createClient',
+                        [
+                            'bvi_interface_id' => $bviId,
+                            'ipv6_address' => $client['ip_address'],
+                            'secret' => $client['secret'] ?? '',
+                            'shortname' => $client['name']
+                        ]
+                    );
                     
-                    ob_start();
-                    $this->radiusController->createClient();
-                    $radiusResponse = ob_get_clean();
-                    $radiusData = json_decode($radiusResponse, true);
-                    
-                    if (isset($radiusData['success']) && $radiusData['success']) {
+                    if (isset($radiusResult['success']) && $radiusResult['success']) {
                         $imported++;
                     } else {
-                        $errors[] = "Failed to import {$client['name']}: " . ($radiusData['message'] ?? 'Unknown error');
-                        error_log("RADIUS API error for {$client['name']}: " . ($radiusData['message'] ?? 'Unknown error'));
+                        $errors[] = "Failed to import {$client['name']}: " . ($radiusResult['message'] ?? 'Unknown error');
+                        error_log("RADIUS API error for {$client['name']}: " . ($radiusResult['message'] ?? 'Unknown error'));
                     }
                 } catch (\Exception $e) {
                     $errors[] = "Failed to import {$client['name']}: " . $e->getMessage();
@@ -180,53 +200,67 @@ class RadiusImportController
             $switchHostname = $matches[1];
         }
         
-        // Use API to create or get switch
-        $_POST = []; // Clear POST
-        $_POST['hostname'] = $switchHostname;
-        $_SERVER['REQUEST_METHOD'] = 'POST';
+        // Check if switch already exists
+        $stmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
+        $stmt->execute([$switchHostname]);
+        $existingSwitch = $stmt->fetch();
         
-        ob_start();
-        $this->switchController->create();
-        $switchResponse = ob_get_clean();
-        $switchData = json_decode($switchResponse, true);
-        
-        if (!isset($switchData['id'])) {
-            // Switch might already exist, try to get it
-            $stmt = $this->db->prepare("SELECT id FROM cin_switches WHERE hostname = ?");
-            $stmt->execute([$switchHostname]);
-            $existingSwitch = $stmt->fetch();
-            
-            if (!$existingSwitch) {
-                throw new \Exception("Failed to create or find switch: $switchHostname");
-            }
+        if ($existingSwitch) {
             $switchId = $existingSwitch['id'];
-        } else {
-            $switchId = $switchData['id'];
-        }
-
-        // Use API to create BVI interface
-        $_POST = []; // Clear POST
-        $_POST['interface_number'] = $bviNumber;
-        $_POST['ipv6_address'] = $client['ip_address'];
-        
-        ob_start();
-        $this->bviController->create($switchId);
-        $bviResponse = ob_get_clean();
-        $bviData = json_decode($bviResponse, true);
-        
-        if (!isset($bviData['id'])) {
-            // BVI might already exist, try to get it
+            
+            // Check if BVI already exists
             $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE switch_id = ? AND interface_number = ?");
             $stmt->execute([$switchId, $bviNumber]);
             $existingBvi = $stmt->fetch();
             
-            if (!$existingBvi) {
-                throw new \Exception("Failed to create or find BVI interface for switch: $switchHostname");
+            if ($existingBvi) {
+                return $existingBvi['id'];
             }
-            return $existingBvi['id'];
+            
+            // Create BVI only using API
+            $bviResult = $this->callApiWithJson(
+                $this->bviController,
+                'create',
+                [
+                    'interface_number' => $bviNumber,
+                    'ipv6_address' => $client['ip_address']
+                ],
+                $switchId
+            );
+            
+            if (isset($bviResult['id'])) {
+                return $bviResult['id'];
+            }
+            throw new \Exception("Failed to create BVI: " . ($bviResult['error'] ?? 'Unknown error'));
         }
         
-        return $bviData['id'];
+        // Create both switch and BVI using CinSwitch API
+        $switchResult = $this->callApiWithJson(
+            $this->switchController,
+            'create',
+            [
+                'hostname' => $switchHostname,
+                'interface_number' => $bviNumber,
+                'ipv6_address' => $client['ip_address']
+            ]
+        );
+        
+        if (!isset($switchResult['id'])) {
+            throw new \Exception("Failed to create switch: " . ($switchResult['error'] ?? 'Unknown error'));
+        }
+        
+        $switchId = $switchResult['id'];
+        
+        // Get the BVI ID that was created with the switch
+        $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE switch_id = ? AND interface_number = ?");
+        $stmt->execute([$switchId, $bviNumber]);
+        $bvi = $stmt->fetch();
+        
+        if (!$bvi) {
+            throw new \Exception("BVI was not created with switch");
+        }
+        
+        return $bvi['id'];
     }
 
     private function parseClientsConf($content)
