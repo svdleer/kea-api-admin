@@ -158,7 +158,7 @@ $(document).ready(function() {
                     bviTableBody.append(`
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                BVI${100 + parseInt(bvi.interface_number)}
+                                BVI${bvi.interface_number}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 ${bvi.ipv6_address}

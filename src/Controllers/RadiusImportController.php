@@ -193,8 +193,8 @@ class RadiusImportController
 
     private function createBviInterface($client)
     {
-        // BVI is always BVI100
-        $bviNumber = 100;
+        // BVI interface number is 0 (GUI adds 100 for display as BVI100)
+        $bviNumber = 0;
 
         // Extract switch hostname from client name
         // Example: "asdar151-bvi100" -> "asdar151"
@@ -220,50 +220,43 @@ class RadiusImportController
                 return $existingBvi['id'];
             }
             
-            // Create BVI only using API
-            $bviResult = $this->callApiWithJson(
-                $this->bviController,
-                'create',
-                [
-                    'interface_number' => $bviNumber,
-                    'ipv6_address' => $client['ip_address']
-                ],
-                $switchId
-            );
+            // Create BVI only
+            $stmt = $this->db->prepare("
+                INSERT INTO cin_switch_bvi_interfaces 
+                (switch_id, interface_number, ipv6_address, created_at, updated_at) 
+                VALUES (?, ?, ?, NOW(), NOW())
+            ");
+            $stmt->execute([$switchId, $bviNumber, $client['ip_address']]);
+            return $this->db->lastInsertId();
+        }
+        
+        // Create both switch and BVI in transaction
+        $this->db->beginTransaction();
+        
+        try {
+            // Create switch
+            $stmt = $this->db->prepare("
+                INSERT INTO cin_switches (hostname, created_at, updated_at) 
+                VALUES (?, NOW(), NOW())
+            ");
+            $stmt->execute([$switchHostname]);
+            $switchId = $this->db->lastInsertId();
             
-            if (isset($bviResult['id'])) {
-                return $bviResult['id'];
-            }
-            throw new \Exception("Failed to create BVI: " . ($bviResult['error'] ?? 'Unknown error'));
+            // Create BVI
+            $stmt = $this->db->prepare("
+                INSERT INTO cin_switch_bvi_interfaces 
+                (switch_id, interface_number, ipv6_address, created_at, updated_at) 
+                VALUES (?, ?, ?, NOW(), NOW())
+            ");
+            $stmt->execute([$switchId, $bviNumber, $client['ip_address']]);
+            $bviId = $this->db->lastInsertId();
+            
+            $this->db->commit();
+            return $bviId;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw new \Exception("Failed to create switch and BVI for $switchHostname: " . $e->getMessage());
         }
-        
-        // Create both switch and BVI using CinSwitch API
-        $switchResult = $this->callApiWithJson(
-            $this->switchController,
-            'create',
-            [
-                'hostname' => $switchHostname,
-                'interface_number' => $bviNumber,
-                'ipv6_address' => $client['ip_address']
-            ]
-        );
-        
-        if (!isset($switchResult['id'])) {
-            throw new \Exception("Failed to create switch: " . ($switchResult['error'] ?? 'Unknown error'));
-        }
-        
-        $switchId = $switchResult['id'];
-        
-        // Get the BVI ID that was created with the switch
-        $stmt = $this->db->prepare("SELECT id FROM cin_switch_bvi_interfaces WHERE switch_id = ? AND interface_number = ?");
-        $stmt->execute([$switchId, $bviNumber]);
-        $bvi = $stmt->fetch();
-        
-        if (!$bvi) {
-            throw new \Exception("BVI was not created with switch");
-        }
-        
-        return $bvi['id'];
     }
 
     private function parseClientsConf($content)
