@@ -16,9 +16,7 @@ class DHCP
     public function __construct($db)
     {
         $this->db = $db;
-        // Get Kea API URL from config file (managed via database/GUI)
-        $keaConfig = require BASE_PATH . '/config/kea.php';
-        $this->keaApiUrl = $keaConfig['api_endpoint'] ?? 'http://localhost:8000';
+        $this->keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
         $this->keaService = 'dhcp6';
     }
 
