@@ -116,18 +116,31 @@ async function loadDashboard() {
         document.getElementById('loading-spinner').classList.add('hidden');
         document.getElementById('error-message').classList.remove('hidden');
         const errorText = error.message || 'Unknown error occurred';
-        document.getElementById('error-text').textContent = errorText + ' - You may need to configure Kea servers in Admin → Kea Servers';
+        document.getElementById('error-text').textContent = errorText;
         
-        // Also show a helpful notification with link
-        Swal.fire({
+        // Show a helpful toast notification
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: true,
+            confirmButtonText: 'Configure Kea',
+            timer: 8000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+        
+        Toast.fire({
             icon: 'warning',
             title: 'Dashboard Data Unavailable',
-            html: 'Could not load dashboard data. This usually happens when:<br><br>' +
-                  '• Kea DHCP servers are not configured<br>' +
-                  '• Kea servers are offline or unreachable<br><br>' +
-                  '<a href="/admin/kea-servers" class="text-blue-600 hover:underline">Click here to configure Kea servers</a>',
-            confirmButtonColor: '#3085d6',
-            confirmButtonText: 'OK'
+            html: 'Could not load dashboard data.<br>You may need to configure Kea servers.',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/admin/kea-servers';
+            }
         });
     }
 }
