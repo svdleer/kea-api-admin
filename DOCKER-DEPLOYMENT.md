@@ -1,5 +1,102 @@
 # Docker Deployment Scenarios
 
+## Prerequisites: Setting Up Database Credentials
+
+Before deploying with Docker, you need to set up the database and user credentials on your MySQL server.
+
+### Creating Database and User (MySQL/MariaDB)
+
+Connect to your MySQL server as root:
+```bash
+mysql -u root -p
+```
+
+Execute the following SQL commands:
+
+```sql
+-- Create the database
+CREATE DATABASE IF NOT EXISTS kea_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Create the user
+CREATE USER 'kea_user'@'%' IDENTIFIED BY 'your_secure_password';
+
+-- Grant all privileges on the database
+GRANT ALL PRIVILEGES ON kea_db.* TO 'kea_user'@'%';
+
+-- For Docker containers, also grant access from Docker network
+GRANT ALL PRIVILEGES ON kea_db.* TO 'kea_user'@'172.%';
+
+-- Apply the changes
+FLUSH PRIVILEGES;
+
+-- Verify the user was created
+SELECT User, Host FROM mysql.user WHERE User = 'kea_user';
+
+-- Exit MySQL
+EXIT;
+```
+
+### Important Notes:
+
+**Strong Password:** Replace `'your_secure_password'` with a strong password containing:
+- At least 16 characters
+- Mix of uppercase and lowercase letters
+- Numbers and special characters
+- Example generator: `openssl rand -base64 20`
+
+**Host Access:**
+- `'kea_user'@'%'` - Allows connections from any host
+- `'kea_user'@'localhost'` - Only local connections
+- `'kea_user'@'172.%'` - Docker network range
+- For production, restrict to specific IPs: `'kea_user'@'your.server.ip'`
+
+### For Host MySQL with Docker
+
+If MySQL is running on your host and you want Docker to connect to it:
+
+1. **Allow remote connections in MySQL config:**
+```bash
+sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf
+```
+
+Change or add:
+```ini
+[mysqld]
+bind-address = 0.0.0.0
+```
+
+2. **Restart MySQL:**
+```bash
+sudo systemctl restart mysql
+# or
+sudo service mysql restart
+```
+
+3. **Test connection from Docker:**
+```bash
+# After starting the container
+docker-compose exec kea-api-admin mysql -h host.docker.internal -u kea_user -p
+```
+
+### Initialize Database Schema
+
+After creating the database and user, import the schema:
+
+```bash
+# From your local machine
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_users_table.sql
+mysql -h your-server -u kea_user -p kea_db < database/migrations/create_api_keys_table.sql
+# ... import all migration files in order
+
+# Or if files are on the server
+cd ~/git/kea-api-admin
+for file in database/migrations/*.sql; do
+    mysql -u kea_user -p kea_db < "$file"
+done
+```
+
+---
+
 ## Scenario 1: Using External/Host Database (Recommended for existing infrastructure)
 
 This is the default configuration - perfect when you already have MySQL running on your host machine or external server.
