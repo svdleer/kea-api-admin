@@ -124,6 +124,7 @@ ob_start();
 <script>
 let parsedConfig = null;
 let selectedFile = null;
+let availableBvis = []; // Store available BVI interfaces
 
 // File input handler
 document.getElementById('config-file-input').addEventListener('change', function(e) {
@@ -162,6 +163,8 @@ async function parseConfig() {
 
         if (result.success) {
             parsedConfig = result.subnets;
+            availableBvis = result.available_bvis || []; // Store available BVIs
+            console.log('Available BVIs:', availableBvis); // Debug
             displaySubnets(result.subnets);
             Swal.close();
             showStep(2);
@@ -297,8 +300,21 @@ function displaySubnets(subnets) {
 }
 
 async function loadBVIInterfaces(index) {
-    // TODO: Load BVI interfaces from API
-    // For now, placeholder
+    const select = document.querySelector(`#bvi-select-${index} select`);
+    if (!select) return;
+    
+    // Clear existing options except the first one
+    select.innerHTML = '<option value="">Select BVI Interface...</option>';
+    
+    // Populate with available BVIs
+    availableBvis.forEach(bvi => {
+        const option = document.createElement('option');
+        option.value = bvi.id;
+        option.textContent = bvi.label;
+        select.appendChild(option);
+    });
+    
+    console.log(`Loaded ${availableBvis.length} BVI interfaces for subnet ${index}`);
 }
 
 function toggleAllSubnets(checkbox) {
