@@ -319,4 +319,28 @@ class DHCPv6LeaseModel extends KEAModel
 
     
 
+}    public function deleteReservation($ipAddress)
+    {
+        $commandParams = [
+            "ip-address" => $ipAddress
+        ];
+
+        $response = $this->sendKeaCommand("reservation-del", $commandParams);
+        
+        $result = json_decode($response, true);
+        error_log("Delete reservation response: " . json_encode($result));
+
+        if (!isset($result[0]["result"])) {
+            throw new Exception("Invalid response from KEA API");
+        }
+
+        if ($result[0]["result"] === 0) {
+            return [
+                "result" => $result[0]["result"],
+                "message" => $result[0]["text"] ?? "Reservation deleted successfully"
+            ];
+        } else {
+            throw new Exception($result[0]["text"] ?? "Error deleting reservation");
+        }
+    }
 }

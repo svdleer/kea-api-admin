@@ -1618,7 +1618,11 @@ async function viewStaticLeases(subnetId) {
                                         ${host.hostname || 'N/A'}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <button onclick="deleteStaticLease('${host['ip-addresses'][0]}')" 
+                                        <button onclick="editReservation(${JSON.stringify(host).replace(/"/g, '&quot;')})" 
+                                                class="text-blue-600 hover:text-blue-900 mr-3">
+                                            Edit
+                                        </button>
+                                        <button onclick="deleteReservation('${host['ip-addresses'][0]}', ${host['subnet-id']})" 
                                                 class="text-red-600 hover:text-red-900">
                                             Delete
                                         </button>
@@ -1745,6 +1749,108 @@ function deleteLease(IPv6Address) {
             }
         }
     });
+}
+
+async function editReservation(host) {
+    const { value: formValues } = await Swal.fire({
+        title: 'Edit Reservation',
+        html: `
+            <div class="text-left space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
+                    <input id="edit-ip" type="text" value="${host['ip-addresses'][0]}" readonly
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">DUID</label>
+                    <input id="edit-duid" type="text" value="${host.duid || ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Hostname</label>
+                    <input id="edit-hostname" type="text" value="${host.hostname || ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Save Changes',
+        confirmButtonColor: '#3B82F6',
+        width: '500px',
+        preConfirm: () => {
+            return {
+                ip: document.getElementById('edit-ip').value,
+                duid: document.getElementById('edit-duid').value,
+                hostname: document.getElementById('edit-hostname').value
+            };
+        }
+    });
+
+    if (formValues) {
+        try {
+            // First delete the old reservation
+            const deleteResponse = await fetch(`/api/dhcp/reservations/${host['ip-addresses'][0]}`, {
+                method: 'DELETE'
+            });
+            
+            // Then add the updated reservation
+            const addResponse = await fetch('/api/dhcp/static', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ipAddress: formValues.ip,
+                    duid: formValues.duid,
+                    subnetId: host['subnet-id'],
+                    hostname: formValues.hostname
+                })
+            });
+
+            const result = await addResponse.json();
+            
+            if (result.success) {
+                Swal.fire('Updated!', 'Reservation has been updated.', 'success');
+                // Reload reservations for this subnet
+                loadStaticLeases(host['subnet-id']);
+            } else {
+                Swal.fire('Error!', result.message || 'Failed to update reservation', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error!', error.message || 'An error occurred', 'error');
+        }
+    }
+}
+
+async function deleteReservation(ipAddress, subnetId) {
+    const result = await Swal.fire({
+        title: 'Delete Reservation?',
+        html: `Are you sure you want to delete the reservation for <strong>${ipAddress}</strong>?<br><small class="text-gray-600">This cannot be undone.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/api/dhcp/reservations/${ipAddress}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                Swal.fire('Deleted!', 'Reservation has been deleted.', 'success');
+                // Reload reservations for this subnet
+                loadStaticLeases(subnetId);
+            } else {
+                Swal.fire('Error!', data.message || 'Failed to delete reservation', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error!', error.message || 'An error occurred', 'error');
+        }
+    }
 }
 
 </script>

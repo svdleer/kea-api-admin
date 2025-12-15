@@ -198,5 +198,33 @@ class DHCPv6LeaseController
         }
     }
     
+    public function deleteReservation(string $ipAddress)
+    {
+        try {
+            error_log("Deleting reservation for IP: " . $ipAddress);
+            
+            // Delete the reservation
+            $result = $this->leaseModel->deleteReservation($ipAddress);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Reservation deleted successfully',
+                'result' => $result
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error in deleteReservation: " . $e->getMessage());
+            
+            header('Content-Type: application/json');
+            http_response_code(400);
+            
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
     
 }

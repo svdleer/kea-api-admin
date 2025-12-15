@@ -295,6 +295,8 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->get('/api/dhcp/static/{subnetId}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'getStaticLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->delete('/api/dhcp/reservations/{ipAddress}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'deleteReservation'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
     // DHCPv6 Advanced Lease Search
     $router->get('/api/dhcp/search-leases', [new \App\Controllers\Api\DHCPv6LeaseSearchController(), 'searchLeases'])
