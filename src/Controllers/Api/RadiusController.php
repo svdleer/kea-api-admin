@@ -240,13 +240,14 @@ class RadiusController
             $secret = $data['secret'];
             $applyToAll = $data['apply_to_all'] ?? true;
 
-            // Update config file
-            $configFile = BASE_PATH . '/config/radius.php';
-            $config = file_exists($configFile) ? require $configFile : [];
-            $config['global_secret'] = $secret;
-            
-            $configContent = "<?php\n\nreturn " . var_export($config, true) . ";\n";
-            file_put_contents($configFile, $configContent);
+            // Store global secret in database (config file is read-only in container)
+            $db = $this->radiusModel->getDatabase();
+            $stmt = $db->prepare("
+                INSERT INTO radius_server_config (config_key, config_value) 
+                VALUES ('global_secret', ?) 
+                ON DUPLICATE KEY UPDATE config_value = ?
+            ");
+            $stmt->execute([$secret, $secret]);
 
             $updatedCount = 0;
             if ($applyToAll) {
