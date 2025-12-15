@@ -243,10 +243,10 @@ class DHCP
     {
         error_log("DHCP Model: ====== Starting createSubnet ======");
         error_log("DHCP Model: Received data: " . json_encode($data, JSON_PRETTY_PRINT));
-        error_log("DHCP Model: Data type: " . gettype($data));
         try {
             $subnetId = $this->getNextAvailableSubnetId();
             
+            // Create subnet without options first
             $arguments = [
                 "remote" => [
                     "type" => "mysql"
@@ -264,29 +264,38 @@ class DHCP
                         ],
                         "relay" => [
                             "ip-addresses" => [$data['relay_address']]
-                        ],
-                        "option-data" => [
-                            [
-                                "name" => "ccap-core",
-                                "code" => 61,
-                                "space" => "vendor-4491",
-                                "csv-format" => true,
-                                "data" => $data['ccap_core_address'],
-                                "always-send" => true
-                            ]
                         ]
                     ]
                 ]
             ];
     
-            error_log("DHCP Model: Remote-subnet-set arguments prepared: " . json_encode($arguments));
-    
             $response = $this->sendKeaCommand('remote-subnet6-set', $arguments);
-            error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
-                error_log("DHCP Model: Remote-subnet-set command failed");
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
+            }
+
+            // Add all vendor options to the new subnet
+            $standardOptions = [
+                ['code' => 34, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:223,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
+                ['code' => 37, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:222,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
+                ['code' => 38, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '3600', 'always-send' => true],
+                ['code' => 61, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => $data['ccap_core_address'] ?? '', 'always-send' => !empty($data['ccap_core_address'])]
+            ];
+
+            // Add each option one by one
+            foreach ($standardOptions as $option) {
+                $optionArgs = [
+                    "remote" => ["type" => "mysql"],
+                    "subnets" => [["id" => $subnetId]],
+                    "options" => [$option]
+                ];
+
+                $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
+
+                if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
+                    error_log("DHCP Model: Failed to set option " . $option['code'] . ": " . json_encode($optionResponse));
+                }
             }
     
             // After successful KEA subnet creation, store in database
