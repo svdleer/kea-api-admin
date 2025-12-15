@@ -330,7 +330,19 @@ class AdminController
                 
                 $response = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($ch);
                 curl_close($ch);
+                
+                if ($curlError) {
+                    error_log("CURL Error: " . $curlError);
+                    throw new \Exception("Failed to connect to Kea API: " . $curlError);
+                }
+                
+                if ($httpCode !== 200) {
+                    error_log("HTTP Error Code: " . $httpCode);
+                    error_log("Response: " . $response);
+                    throw new \Exception("Kea API returned HTTP " . $httpCode . ": " . substr($response, 0, 200));
+                }
                 
                 $keaResponse = json_decode($response, true);
                 
@@ -339,8 +351,14 @@ class AdminController
                 error_log("HTTP Code: " . $httpCode);
                 error_log("Response: " . json_encode($keaResponse, JSON_PRETTY_PRINT));
                 
-                if (!$keaResponse || !isset($keaResponse[0]['result']) || $keaResponse[0]['result'] !== 0) {
-                    throw new \Exception("Kea subnet creation failed: " . json_encode($keaResponse));
+                if (!$keaResponse) {
+                    error_log("JSON decode failed. Raw response: " . $response);
+                    throw new \Exception("Kea API returned invalid JSON: " . substr($response, 0, 200));
+                }
+                
+                if (!isset($keaResponse[0]['result']) || $keaResponse[0]['result'] !== 0) {
+                    $errorText = isset($keaResponse[0]['text']) ? $keaResponse[0]['text'] : 'Unknown error';
+                    throw new \Exception("Kea subnet creation failed: " . $errorText);
                 }
                 
                 // STEP 2: Now add the pool to the subnet (separate API call)
