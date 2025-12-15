@@ -203,9 +203,20 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
                     case 'ipv6-address':
                         const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+                        
+                        // Support comma-separated addresses for array options
+                        if (stringValue.includes(',')) {
+                            const addresses = stringValue.split(',').map(addr => addr.trim());
+                            const allValid = addresses.every(addr => ipv6Regex.test(addr));
+                            return {
+                                isValid: allValid,
+                                message: allValid ? '' : 'One or more IPv6 addresses are invalid. Use format: 2001:db8::1, 2001:db8::2'
+                            };
+                        }
+                        
                         return {
                             isValid: ipv6Regex.test(stringValue),
-                            message: ipv6Regex.test(stringValue) ? '' : 'Please enter a valid IPv6 address'
+                            message: ipv6Regex.test(stringValue) ? '' : 'Please enter a valid IPv6 address or comma-separated addresses'
                         };
 
                     default:
@@ -262,7 +273,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 break;
             case 'ipv6-address':
                 inputType = 'text';
-                placeholder = '2001:db8::1';
+                placeholder = '2001:db8::1 or 2001:db8::1, 2001:db8::2';
                 break;
             case 'ipv6-prefix':
                 inputType = 'text';
