@@ -34,7 +34,7 @@ class RadiusClient
     {
         // Read from database instead of config file (which is read-only in container)
         try {
-            $stmt = $this->db->prepare("SELECT config_value FROM radius_server_config WHERE config_key = 'global_secret'");
+            $stmt = $this->db->prepare("SELECT config_value FROM app_config WHERE config_key = 'radius_global_secret'");
             $stmt->execute();
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             return $result ? $result['config_value'] : null;

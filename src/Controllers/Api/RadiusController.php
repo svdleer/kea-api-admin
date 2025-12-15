@@ -243,8 +243,8 @@ class RadiusController
             // Store global secret in database (config file is read-only in container)
             $db = $this->radiusModel->getDatabase();
             $stmt = $db->prepare("
-                INSERT INTO radius_server_config (config_key, config_value) 
-                VALUES ('global_secret', ?) 
+                INSERT INTO app_config (config_key, config_value) 
+                VALUES ('radius_global_secret', ?) 
                 ON DUPLICATE KEY UPDATE config_value = ?
             ");
             $stmt->execute([$secret, $secret]);
