@@ -27,10 +27,28 @@ echo "Reading Kea config from: {$configFile}\n\n";
 
 // Read and parse the config file
 $configContent = file_get_contents($configFile);
+
+// Clean JSON - remove comments and fix common issues
+echo "Cleaning JSON syntax...\n";
+// Remove C-style comments /* ... */
+$configContent = preg_replace('/\/\*.*?\*\//s', '', $configContent);
+// Remove # comments
+$configContent = preg_replace('/^\s*#.*$/m', '', $configContent);
+// Remove // comments
+$configContent = preg_replace('/^\s*\/\/.*$/m', '', $configContent);
+// Remove inline # comments
+$configContent = preg_replace('/#.*$/m', '', $configContent);
+// Remove trailing commas before closing brackets
+$configContent = preg_replace('/,(\s*[}\]])/', '$1', $configContent);
+// Remove any "Lines X-Y omitted" text
+$configContent = preg_replace('/.*Lines \d+-\d+ omitted.*\n?/', '', $configContent);
+
 $config = json_decode($configContent, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
     echo "Error: Invalid JSON in config file: " . json_last_error_msg() . "\n";
+    echo "\nTip: Make sure the file is valid JSON. First 500 chars after cleaning:\n";
+    echo substr($configContent, 0, 500) . "\n";
     exit(1);
 }
 
