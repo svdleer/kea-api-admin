@@ -291,10 +291,39 @@ class DHCP
                     ]]
                 ];
 
-                $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
-
-                if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
+                // Retry up to 3 times if option definition doesn't exist (MySQL HA sync delay)
+                $maxRetries = 3;
+                $retryDelay = 1; // seconds
+                $success = false;
+                
+                for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                    $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
+                    
+                    if (isset($optionResponse[0]['result']) && $optionResponse[0]['result'] === 0) {
+                        $success = true;
+                        break;
+                    }
+                    
+                    // Check if error is about missing option definition
+                    if (isset($optionResponse[0]['text']) && strpos($optionResponse[0]['text'], 'does not exist') !== false) {
+                        error_log("DHCP Model: Option definition not yet synced, retry $attempt/$maxRetries");
+                        if ($attempt < $maxRetries) {
+                            sleep($retryDelay);
+                            continue;
+                        }
+                    }
+                    
                     error_log("DHCP Model: Failed to set option 61: " . json_encode($optionResponse));
+                    break;
+                }
+                
+                if (!$success) {
+                    // If option setting failed, delete the subnet to avoid orphans
+                    $this->sendKeaCommand('remote-subnet6-del', [
+                        "remote" => ["type" => "mysql"],
+                        "subnets" => [["id" => $subnetId]]
+                    ]);
+                    throw new Exception("Failed to set option 61 after $maxRetries attempts. Subnet creation rolled back.");
                 }
             }
     
@@ -407,10 +436,28 @@ class DHCP
                     ]]
                 ];
 
-                $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
-
-                if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
+                // Retry up to 3 times if option definition doesn't exist (MySQL HA sync delay)
+                $maxRetries = 3;
+                $retryDelay = 1; // seconds
+                
+                for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                    $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
+                    
+                    if (isset($optionResponse[0]['result']) && $optionResponse[0]['result'] === 0) {
+                        break;
+                    }
+                    
+                    // Check if error is about missing option definition
+                    if (isset($optionResponse[0]['text']) && strpos($optionResponse[0]['text'], 'does not exist') !== false) {
+                        error_log("DHCP Model: Option definition not yet synced, retry $attempt/$maxRetries");
+                        if ($attempt < $maxRetries) {
+                            sleep($retryDelay);
+                            continue;
+                        }
+                    }
+                    
                     error_log("DHCP Model: Failed to set option 61: " . json_encode($optionResponse));
+                    break;
                 }
             }
 
