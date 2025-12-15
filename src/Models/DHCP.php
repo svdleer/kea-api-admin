@@ -390,6 +390,18 @@ class DHCP
                 error_log("DHCP Model: Remote-subnet-set command failed");
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
             }
+
+            // Get the BVI interface details to ensure we have the correct interface_number
+            $bviSql = "SELECT id, switch_id, interface_number, ipv6_address 
+                       FROM cin_switch_bvi_interfaces 
+                       WHERE id = :bvi_interface_id";
+            $bviStmt = $this->db->prepare($bviSql);
+            $bviStmt->execute([':bvi_interface_id' => $data['bvi_interface_id']]);
+            $bviData = $bviStmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$bviData) {
+                throw new Exception("BVI interface not found with ID: " . $data['bvi_interface_id']);
+            }
     
             // After reconfigurering KEA subnet creation, update in database
             $sql = "INSERT INTO cin_bvi_dhcp_core (
@@ -421,10 +433,10 @@ class DHCP
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':bvi_interface_id' => $data['bvi_interface_id'],
-                ':switch_id' => $data['switch_id'],
+                ':switch_id' => $bviData['switch_id'],
                 ':kea_subnet_id' => $data['subnet_id'],
-                ':interface_number' => !empty($data['bvi_interface']) ? $data['bvi_interface'] : null,
-                ':ipv6_address' => $data['ipv6_address'],
+                ':interface_number' => $bviData['interface_number'],
+                ':ipv6_address' => $bviData['ipv6_address'],
                 ':start_address' => $data['pool_start'],
                 ':end_address' => $data['pool_end'],
                 ':ccap_core' => $data['ccap_core_address']
