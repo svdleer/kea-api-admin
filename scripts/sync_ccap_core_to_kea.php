@@ -103,23 +103,31 @@ try {
         
         echo "  Sending option-data: " . json_encode($keaSubnet['option-data']) . "\n";
         
-        // Update subnet in Kea
-        $updateCommand = [
-            'command' => 'remote-subnet6-set',
+        // First, set the option using remote-option6-subnet-set
+        $optionCommand = [
+            'command' => 'remote-option6-subnet-set',
             'service' => ['dhcp6'],
             'arguments' => [
                 'remote' => ['type' => 'mysql'],
                 'server-tags' => ['all'],
-                'subnets' => [$keaSubnet]
+                'subnet-id' => (int)$subnetId,
+                'options' => [[
+                    'name' => 'ccap-core',
+                    'code' => 61,
+                    'space' => 'vendor-4491',
+                    'csv-format' => true,
+                    'data' => $ccapCore,
+                    'always-send' => true
+                ]]
             ]
         ];
         
-        // Send to all Kea servers
+        // Send option to all Kea servers
         $success = true;
         foreach ($keaServers as $server) {
             $ch = curl_init($server['api_url']);
             curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($updateCommand));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($optionCommand));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
             
@@ -128,7 +136,7 @@ try {
             curl_close($ch);
             
             if ($httpCode !== 200) {
-                echo "  ✗ Failed to update on {$server['name']}\n";
+                echo "  ✗ Failed to set option on {$server['name']}: " . substr($response, 0, 100) . "\n";
                 $success = false;
             }
         }
