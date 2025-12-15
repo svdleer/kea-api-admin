@@ -276,26 +276,25 @@ class DHCP
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
             }
 
-            // Add all vendor options to the new subnet
-            $standardOptions = [
-                ['code' => 34, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:223,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
-                ['code' => 37, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:222,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
-                ['code' => 38, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '3600', 'always-send' => true],
-                ['code' => 61, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => $data['ccap_core_address'] ?? '', 'always-send' => !empty($data['ccap_core_address'])]
-            ];
-
-            // Add each option one by one
-            foreach ($standardOptions as $option) {
+            // Add only option 61 (CCAP core) to the subnet
+            // Options 34, 37, 38 are at global level and inherited
+            if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
                     "remote" => ["type" => "mysql"],
                     "subnets" => [["id" => $subnetId]],
-                    "options" => [$option]
+                    "options" => [[
+                        'code' => 61,
+                        'space' => 'vendor-4491',
+                        'csv-format' => true,
+                        'data' => $data['ccap_core_address'],
+                        'always-send' => true
+                    ]]
                 ];
 
                 $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
 
                 if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
-                    error_log("DHCP Model: Failed to set option " . $option['code'] . ": " . json_encode($optionResponse));
+                    error_log("DHCP Model: Failed to set option 61: " . json_encode($optionResponse));
                 }
             }
     
@@ -393,27 +392,25 @@ class DHCP
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
             }
 
-            // Now restore ALL options (options get wiped by remote-subnet6-set)
-            // Define all standard vendor options that should be on every subnet
-            $standardOptions = [
-                ['code' => 34, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:223,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
-                ['code' => 37, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:222,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
-                ['code' => 38, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '3600', 'always-send' => true],
-                ['code' => 61, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => $data['ccap_core_address'] ?? '', 'always-send' => !empty($data['ccap_core_address'])]
-            ];
-
-            // Restore each option one by one
-            foreach ($standardOptions as $option) {
+            // Restore option 61 (CCAP core) only
+            // Options 34, 37, 38 are at global level and inherited
+            if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
                     "remote" => ["type" => "mysql"],
                     "subnets" => [["id" => intval($data['subnet_id'])]],
-                    "options" => [$option]
+                    "options" => [[
+                        'code' => 61,
+                        'space' => 'vendor-4491',
+                        'csv-format' => true,
+                        'data' => $data['ccap_core_address'],
+                        'always-send' => true
+                    ]]
                 ];
 
                 $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
 
                 if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
-                    error_log("DHCP Model: Failed to set option " . $option['code'] . ": " . json_encode($optionResponse));
+                    error_log("DHCP Model: Failed to set option 61: " . json_encode($optionResponse));
                 }
             }
 
