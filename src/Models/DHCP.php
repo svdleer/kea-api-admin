@@ -349,16 +349,35 @@ class DHCP
         error_log("DHCP Model: Data type: " . gettype($data));
         try {
             
-            // Build option-data array
-            $optionData = [];
-            if (!empty($data['ccap_core_address'])) {
-                $optionData[] = [
+            // Build option-data array - always include ccap-core option even if empty
+            $optionData = [
+                [
                     "code" => 61,
                     "space" => "vendor-4491",
                     "csv-format" => true,
-                    "data" => $data['ccap_core_address'],
+                    "data" => $data['ccap_core_address'] ?? '',
                     "always-send" => true
-                ];
+                ]
+            ];
+
+            // Build subnet configuration
+            $subnetConfig = [
+                "subnet" => $data['subnet'],
+                "id" => intval($data['subnet_id']),
+                "shared-network-name" => null,
+                "pools" => [
+                    [
+                        "pool" => $data['pool_start'] . " - " . $data['pool_end']
+                    ]
+                ],
+                "relay" => [
+                    "ip-addresses" => [$data['relay_address']]
+                ]
+            ];
+
+            // Only include option-data if we have options to set
+            if (!empty($optionData)) {
+                $subnetConfig['option-data'] = $optionData;
             }
 
             // Update the subnet with pools, relay, and options
@@ -367,22 +386,7 @@ class DHCP
                     "type" => "mysql"
                 ],
                 "server-tags" => ["all"],
-                "subnets" => [
-                    [
-                        "subnet" => $data['subnet'],
-                        "id" => intval($data['subnet_id']),
-                        "shared-network-name" => null,
-                        "pools" => [
-                            [
-                                "pool" => $data['pool_start'] . " - " . $data['pool_end']
-                            ]
-                        ],
-                        "relay" => [
-                            "ip-addresses" => [$data['relay_address']]
-                        ],
-                        "option-data" => $optionData
-                    ]
-                ]
+                "subnets" => [$subnetConfig]
             ];
     
             error_log("DHCP Model: Remote-subnet-set arguments prepared: " . json_encode($arguments));

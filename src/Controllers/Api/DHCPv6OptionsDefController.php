@@ -53,7 +53,25 @@ class DHCPv6OptionsDefController extends KeaController
                 throw new Exception('Missing required fields');
             }
 
+            // Create the option definition
             $result = $this->optionsDefModel->createEditOptionDef($data);
+            
+            // Also create an empty option so it exists in config
+            $optionsModel = new \App\Models\DHCPv6Options();
+            $optionData = [
+                'code' => $data['code'],
+                'space' => $data['space'] ?? 'dhcp6',
+                'data' => '',
+                'always_send' => false
+            ];
+            
+            try {
+                $optionsModel->createEditOption($optionData);
+            } catch (Exception $optionError) {
+                // Log but don't fail if option creation fails
+                error_log("Failed to create empty option for def: " . $optionError->getMessage());
+            }
+            
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
