@@ -71,11 +71,18 @@ class DHCP
             "arguments" => $arguments
         ];
         
+        error_log("DHCP Model: Sending Kea command - Full JSON: " . json_encode($data, JSON_PRETTY_PRINT));
+        
+        // For remote-* commands (MySQL backend with HA), only send to PRIMARY server
+        // The HA partner will automatically sync
+        $isRemoteCommand = strpos($command, 'remote-') === 0;
+        $serversToContact = $isRemoteCommand ? [$keaServers[0]] : $keaServers;
+        
         $responses = [];
         $errors = [];
         
-        // Send command to ALL active Kea servers for redundancy
-        foreach ($keaServers as $server) {
+        // Send command to server(s)
+        foreach ($serversToContact as $server) {
             $ch = curl_init($server['api_url']);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -110,7 +117,7 @@ class DHCP
         }
         
         // If ALL servers failed, throw an exception
-        if (count($errors) === count($keaServers)) {
+        if (count($errors) === count($serversToContact)) {
             throw new Exception("Kea command failed on all servers: " . implode("; ", $errors));
         }
         
