@@ -1752,6 +1752,18 @@ function deleteLease(IPv6Address) {
 }
 
 async function editReservation(host) {
+    // Get existing options
+    const existingOptions = host['option-data'] || [];
+    const optionsHtml = existingOptions.map((opt, idx) => `
+        <div class="border-b pb-2 mb-2" id="option-${idx}">
+            <div class="flex gap-2 items-center">
+                <input type="text" value="${opt.name}" readonly class="flex-1 px-2 py-1 border rounded bg-gray-50 text-sm" />
+                <input type="text" value="${opt.data}" id="opt-value-${idx}" class="flex-1 px-2 py-1 border rounded text-sm" />
+                <button onclick="document.getElementById('option-${idx}').remove()" class="text-red-600 text-sm">Remove</button>
+            </div>
+        </div>
+    `).join('');
+
     const { value: formValues } = await Swal.fire({
         title: 'Edit Reservation',
         html: `
@@ -1771,18 +1783,42 @@ async function editReservation(host) {
                     <input id="edit-hostname" type="text" value="${host.hostname || ''}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md" />
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">DHCP Options</label>
+                    <div id="options-container" class="border rounded-md p-3 max-h-48 overflow-y-auto">
+                        ${optionsHtml || '<p class="text-sm text-gray-500">No options configured</p>'}
+                    </div>
+                </div>
             </div>
         `,
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: 'Save Changes',
         confirmButtonColor: '#3B82F6',
-        width: '500px',
+        width: '600px',
         preConfirm: () => {
+            // Collect updated options
+            const options = [];
+            existingOptions.forEach((opt, idx) => {
+                const optEl = document.getElementById(`option-${idx}`);
+                if (optEl) {
+                    const valueInput = document.getElementById(`opt-value-${idx}`);
+                    if (valueInput) {
+                        options.push({
+                            code: opt.code,
+                            name: opt.name,
+                            data: valueInput.value,
+                            space: opt.space || 'dhcp6'
+                        });
+                    }
+                }
+            });
+
             return {
                 ip: document.getElementById('edit-ip').value,
                 duid: document.getElementById('edit-duid').value,
-                hostname: document.getElementById('edit-hostname').value
+                hostname: document.getElementById('edit-hostname').value,
+                options: options
             };
         }
     });
@@ -1802,7 +1838,8 @@ async function editReservation(host) {
                     ipAddress: formValues.ip,
                     duid: formValues.duid,
                     subnetId: host['subnet-id'],
-                    hostname: formValues.hostname
+                    hostname: formValues.hostname,
+                    options: formValues.options
                 })
             });
 
