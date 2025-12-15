@@ -342,6 +342,7 @@ class DHCP
             
             $sql = "REPLACE INTO cin_bvi_dhcp_core (
                         id,
+                        bvi_interface_id,
                         switch_id, 
                         kea_subnet_id, 
                         interface_number, 
@@ -351,6 +352,7 @@ class DHCP
                         ccap_core
                     ) VALUES (
                         :id,
+                        :bvi_interface_id,
                         :switch_id,
                         :kea_subnet_id,
                         :interface_number,
@@ -363,6 +365,7 @@ class DHCP
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':id' => $bviData['id'], // Use the BVI interface ID as the primary key
+                ':bvi_interface_id' => $bviData['id'],
                 ':switch_id' => $bviData['switch_id'],
                 ':kea_subnet_id' => $subnetId,
                 ':interface_number' => $bviData['interface_number'],
