@@ -34,6 +34,19 @@ class DHCPv6LeaseModel extends KEAModel
                 throw new Exception('Switch ID and BVI ID are required');
             }
 
+            // Get subnet ID for this BVI interface
+            $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
+            $stmt->execute([$bviId]);
+            $subnetInfo = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$subnetInfo) {
+                error_log("No subnet found for BVI ID: {$bviId}");
+                throw new Exception('No subnet configured for this BVI interface');
+            }
+            
+            $subnetId = (int)$subnetInfo['kea_subnet_id'];
+            error_log("Found subnet ID {$subnetId} for BVI {$bviId}");
+
             // Check cache
             $cacheKey = "{$switchId}_{$bviId}_{$from}_{$limit}";
             error_log("Checking cache with key: {$cacheKey}");
@@ -44,10 +57,11 @@ class DHCPv6LeaseModel extends KEAModel
             }
             error_log("Cache miss - proceeding with API call");
 
-            // Prepare API call parameters
+            // Prepare API call parameters - add subnet-id to filter
             $commandParams = [
                 "remote" => ["type" => "mysql"],
                 "server-tags" => ["all"],
+                "subnet-id" => $subnetId,
                 'from' => $from,
                 'limit' => $limit
             ];
