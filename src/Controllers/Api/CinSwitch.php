@@ -139,11 +139,14 @@ class CinSwitch
 
     public function create() {
         try {
+            error_log("=== CinSwitch::create() called ===");
             header('Content-Type: application/json');
             
             $data = json_decode(file_get_contents('php://input'), true);
+            error_log("Request data: " . json_encode($data));
 
             if (!isset($data['hostname']) || !isset($data['interface_number']) || !isset($data['ipv6_address'])) {
+                error_log("Missing required fields");
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
