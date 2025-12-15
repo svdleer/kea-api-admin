@@ -356,44 +356,27 @@ class DHCP
         error_log("DHCP Model: Data type: " . gettype($data));
         try {
             
-            // Build option-data array - always include ccap-core option even if empty
-            $optionData = [
-                [
-                    "code" => 61,
-                    "space" => "vendor-4491",
-                    "csv-format" => true,
-                    "data" => $data['ccap_core_address'] ?? '',
-                    "always-send" => true
-                ]
-            ];
-
-            // Build subnet configuration
-            $subnetConfig = [
-                "subnet" => $data['subnet'],
-                "id" => intval($data['subnet_id']),
-                "shared-network-name" => null,
-                "pools" => [
-                    [
-                        "pool" => $data['pool_start'] . " - " . $data['pool_end']
-                    ]
-                ],
-                "relay" => [
-                    "ip-addresses" => [$data['relay_address']]
-                ]
-            ];
-
-            // Only include option-data if we have options to set
-            if (!empty($optionData)) {
-                $subnetConfig['option-data'] = $optionData;
-            }
-
-            // Update the subnet with pools, relay, and options
+            // Update subnet configuration (pools, relay) without options
             $arguments = [
                 "remote" => [
                     "type" => "mysql"
                 ],
                 "server-tags" => ["all"],
-                "subnets" => [$subnetConfig]
+                "subnets" => [
+                    [
+                        "subnet" => $data['subnet'],
+                        "id" => intval($data['subnet_id']),
+                        "shared-network-name" => null,
+                        "pools" => [
+                            [
+                                "pool" => $data['pool_start'] . " - " . $data['pool_end']
+                            ]
+                        ],
+                        "relay" => [
+                            "ip-addresses" => [$data['relay_address']]
+                        ]
+                    ]
+                ]
             ];
     
             error_log("DHCP Model: Remote-subnet-set arguments prepared: " . json_encode($arguments));
@@ -404,6 +387,35 @@ class DHCP
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
                 error_log("DHCP Model: Remote-subnet-set command failed");
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
+            }
+
+            // Separately set the CCAP core option using remote-option6-subnet-set
+            $optionArgs = [
+                "remote" => [
+                    "type" => "mysql"
+                ],
+                "subnets" => [
+                    ["id" => intval($data['subnet_id'])]
+                ],
+                "options" => [
+                    [
+                        "code" => 61,
+                        "space" => "vendor-4491",
+                        "csv-format" => true,
+                        "data" => $data['ccap_core_address'] ?? '',
+                        "always-send" => !empty($data['ccap_core_address'])
+                    ]
+                ]
+            ];
+
+            error_log("DHCP Model: Remote-option6-subnet-set arguments prepared: " . json_encode($optionArgs));
+
+            $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
+            error_log("DHCP Model: Kea option response received: " . json_encode($optionResponse));
+
+            if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
+                error_log("DHCP Model: Remote-option6-subnet-set command failed");
+                throw new Exception("Failed to set subnet option: " . json_encode($optionResponse));
             }
 
             // Get the BVI interface details to ensure we have the correct interface_number
