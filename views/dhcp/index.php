@@ -420,6 +420,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
             <div class="form-group">
                 <label for="edit_ccap_core_address" class="block text-sm font-medium text-gray-700">CCAP Core Address:</label>
                 <input type="text" id="edit_ccap_core_address" name="ccap_core_address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
+                <p class="text-xs text-gray-500 mt-1">For multiple addresses, separate with commas (e.g., 2001:db8::1, 2001:db8::2)</p>
                 <p id="ccap_core_address_error" class="text-red-500 text-sm hidden">Invalid IPv6 address</p>
             </div>
             <input type="hidden" id="edit_subnet_id" name="subnet_id">

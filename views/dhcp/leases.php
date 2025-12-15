@@ -159,8 +159,9 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                    name="optionValues[]" 
                                    list="ccapCoreList"
                                    class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
-                                   placeholder="Option Value">
+                                   placeholder="For arrays: value1, value2, value3">
                             <datalist id="ccapCoreList"></datalist>
+                            <div class="text-xs text-gray-500 mt-1">For array options (syslog-servers, ccap-core, etc.), separate multiple values with commas</div>
                             <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
                         </div>
                     </div>
