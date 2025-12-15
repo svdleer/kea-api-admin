@@ -381,6 +381,7 @@ function openEditDefModal(optionDef) {
                         <input type="text" id="editSpace" value="${optionDef.space}" 
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" 
                             required>
+                        <span class="text-red-500 text-xs hidden"></span>
                     </div>
                     <div class="mb-4">
                         <label class="flex items-center">
