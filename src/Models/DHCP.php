@@ -56,26 +56,73 @@ class DHCP
 
     private function sendKeaCommand($command, $arguments = [])
     {
+        // Get all active Kea servers
+        $stmt = $this->db->prepare("SELECT id, name, api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority");
+        $stmt->execute();
+        $keaServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        if (empty($keaServers)) {
+            throw new Exception("No active Kea servers configured");
+        }
+        
         $data = [
-            
             "command" => $command,
             "service" => [$this->keaService],
             "arguments" => $arguments
         ];
+        
+        $responses = [];
+        $errors = [];
+        
+        // Send command to ALL active Kea servers for redundancy
+        foreach ($keaServers as $server) {
+            $ch = curl_init($server['api_url']);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
-        $ch = curl_init($this->keaApiUrl);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-
-        $response = curl_exec($ch);
-        if (curl_errno($ch)) {
-            throw new Exception('Kea API Error: ' . curl_error($ch));
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            if (curl_errno($ch)) {
+                $error = "Kea API Error on {$server['name']}: " . curl_error($ch);
+                error_log($error);
+                $errors[] = $error;
+                curl_close($ch);
+                continue;
+            }
+            
+            curl_close($ch);
+            
+            $decoded = json_decode($response, true);
+            $responses[] = $decoded;
+            
+            // Check if this server's response was successful
+            if (!isset($decoded[0]['result']) || $decoded[0]['result'] !== 0) {
+                $error = "Kea command '{$command}' failed on {$server['name']}: " . ($decoded[0]['text'] ?? 'Unknown error');
+                error_log($error);
+                $errors[] = $error;
+            } else {
+                error_log("Kea command '{$command}' succeeded on {$server['name']}");
+            }
         }
-        curl_close($ch);
-
-        return json_decode($response, true);
+        
+        // If ALL servers failed, throw an exception
+        if (count($errors) === count($keaServers)) {
+            throw new Exception("Kea command failed on all servers: " . implode("; ", $errors));
+        }
+        
+        // Return the first successful response (for backward compatibility)
+        foreach ($responses as $response) {
+            if (isset($response[0]['result']) && $response[0]['result'] === 0) {
+                return $response;
+            }
+        }
+        
+        // If no successful response, return the first response
+        return $responses[0] ?? [];
     }
 
     private function reloadKeaConfig()
