@@ -260,7 +260,17 @@ class AdminController
         $errors = 0;
         $details = [];
         
-        $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
+        // Get all active Kea servers from database
+        $stmt = $this->db->prepare("SELECT id, name, api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority");
+        $stmt->execute();
+        $keaServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        if (empty($keaServers)) {
+            throw new \Exception("No active Kea servers configured. Please configure a Kea server in the database.");
+        }
+        
+        error_log("Found " . count($keaServers) . " active Kea servers");
+        
         $cinSwitchModel = new \App\Models\CinSwitch($this->db);
         $dhcpModel = new \App\Models\DHCP($this->db);
         
@@ -311,7 +321,7 @@ class AdminController
                 error_log("Subnet: " . $subnet['subnet']);
                 error_log("Kea Subnet Data: " . json_encode($keaSubnet, JSON_PRETTY_PRINT));
                 
-                // Send subnet creation to Kea
+                // Send subnet creation to ALL Kea servers
                 $data = [
                     "command" => 'remote-subnet6-set',
                     "service" => ['dhcp6'],
@@ -322,43 +332,59 @@ class AdminController
                     ]
                 ];
                 
-                $ch = curl_init($keaApiUrl);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                
-                $response = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $curlError = curl_error($ch);
-                curl_close($ch);
-                
-                if ($curlError) {
-                    error_log("CURL Error: " . $curlError);
-                    throw new \Exception("Failed to connect to Kea API: " . $curlError);
+                $keaErrors = [];
+                foreach ($keaServers as $keaServer) {
+                    error_log("Sending to Kea server: {$keaServer['name']} ({$keaServer['api_url']})");
+                    
+                    $ch = curl_init($keaServer['api_url']);
+                    curl_setopt($ch, CURLOPT_POST, 1);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    
+                    $response = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $curlError = curl_error($ch);
+                    curl_close($ch);
+                    
+                    if ($curlError) {
+                        $error = "Failed to connect to {$keaServer['name']}: " . $curlError;
+                        error_log($error);
+                        $keaErrors[] = $error;
+                        continue;
+                    }
+                    
+                    if ($httpCode !== 200) {
+                        $error = "{$keaServer['name']} returned HTTP " . $httpCode;
+                        error_log($error . ": " . $response);
+                        $keaErrors[] = $error;
+                        continue;
+                    }
+                    
+                    $keaResponse = json_decode($response, true);
+                    
+                    error_log("=== {$keaServer['name']} Response ===");
+                    error_log("HTTP Code: " . $httpCode);
+                    error_log("Response: " . json_encode($keaResponse, JSON_PRETTY_PRINT));
+                    
+                    if (!$keaResponse) {
+                        $error = "{$keaServer['name']} returned invalid JSON";
+                        error_log($error . ". Raw response: " . $response);
+                        $keaErrors[] = $error;
+                        continue;
+                    }
+                    
+                    if (!isset($keaResponse[0]['result']) || $keaResponse[0]['result'] !== 0) {
+                        $errorText = isset($keaResponse[0]['text']) ? $keaResponse[0]['text'] : 'Unknown error';
+                        $error = "{$keaServer['name']}: " . $errorText;
+                        error_log($error);
+                        $keaErrors[] = $error;
+                    }
                 }
                 
-                if ($httpCode !== 200) {
-                    error_log("HTTP Error Code: " . $httpCode);
-                    error_log("Response: " . $response);
-                    throw new \Exception("Kea API returned HTTP " . $httpCode . ": " . substr($response, 0, 200));
-                }
-                
-                $keaResponse = json_decode($response, true);
-                
-                // Log Kea response
-                error_log("=== STEP 1 Response: Subnet Created ===");
-                error_log("HTTP Code: " . $httpCode);
-                error_log("Response: " . json_encode($keaResponse, JSON_PRETTY_PRINT));
-                
-                if (!$keaResponse) {
-                    error_log("JSON decode failed. Raw response: " . $response);
-                    throw new \Exception("Kea API returned invalid JSON: " . substr($response, 0, 200));
-                }
-                
-                if (!isset($keaResponse[0]['result']) || $keaResponse[0]['result'] !== 0) {
-                    $errorText = isset($keaResponse[0]['text']) ? $keaResponse[0]['text'] : 'Unknown error';
-                    throw new \Exception("Kea subnet creation failed: " . $errorText);
+                // If ANY server failed, throw exception with all errors
+                if (!empty($keaErrors)) {
+                    throw new \Exception("Kea subnet creation failed on " . count($keaErrors) . " server(s): " . implode("; ", $keaErrors));
                 }
                 
                 // STEP 2: Now add the pool to the subnet (separate API call)
@@ -410,25 +436,40 @@ class AdminController
                     
                     error_log("Pool Data: " . json_encode($poolData, JSON_PRETTY_PRINT));
                     
-                    $ch2 = curl_init($keaApiUrl);
-                    curl_setopt($ch2, CURLOPT_POST, 1);
-                    curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($poolData));
-                    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    
-                    $poolResponse = curl_exec($ch2);
-                    $poolHttpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-                    curl_close($ch2);
-                    
-                    $poolKeaResponse = json_decode($poolResponse, true);
-                    
-                    error_log("=== STEP 2 Response: Pool Added (with relay and options) ===");
-                    error_log("HTTP Code: " . $poolHttpCode);
-                    error_log("Response: " . json_encode($poolKeaResponse, JSON_PRETTY_PRINT));
-                    
-                    if (!$poolKeaResponse || !isset($poolKeaResponse[0]['result']) || $poolKeaResponse[0]['result'] !== 0) {
-                        error_log("WARNING: Pool addition failed but continuing: " . json_encode($poolKeaResponse));
+                    // Send pool update to ALL Kea servers
+                    $poolErrors = [];
+                    foreach ($keaServers as $keaServer) {
+                        error_log("Sending pool to Kea server: {$keaServer['name']}");
+                        
+                        $ch2 = curl_init($keaServer['api_url']);
+                        curl_setopt($ch2, CURLOPT_POST, 1);
+                        curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($poolData));
+                        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch2, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                        
+                        $poolResponse = curl_exec($ch2);
+                        $poolHttpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                        $poolCurlError = curl_error($ch2);
+                        curl_close($ch2);
+                        
+                        if ($poolCurlError || $poolHttpCode !== 200) {
+                            $poolErrors[] = "{$keaServer['name']}: " . ($poolCurlError ?: "HTTP $poolHttpCode");
+                            continue;
+                        }
+                        
+                        $poolKeaResponse = json_decode($poolResponse, true);
+                        
+                        if (!$poolKeaResponse || !isset($poolKeaResponse[0]['result']) || $poolKeaResponse[0]['result'] !== 0) {
+                            $errorText = isset($poolKeaResponse[0]['text']) ? $poolKeaResponse[0]['text'] : 'Unknown error';
+                            $poolErrors[] = "{$keaServer['name']}: " . $errorText;
+                        }
                     }
+                    
+                    if (!empty($poolErrors)) {
+                        throw new \Exception("Pool creation failed on " . count($poolErrors) . " server(s): " . implode("; ", $poolErrors));
+                    }
+                    
+                    error_log("=== STEP 2 Complete: Pool added on all servers ===");
                 }
                 
                 // Now handle the action-specific logic
