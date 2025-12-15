@@ -144,6 +144,29 @@ try {
     echo "\n=== Summary ===\n";
     echo "Updated: {$updated}\n";
     echo "Failed: {$failed}\n";
+    
+    // Force Kea to reload configuration
+    if ($updated > 0) {
+        echo "\nReloading Kea configuration...\n";
+        foreach ($keaServers as $server) {
+            $reloadCmd = [
+                'command' => 'config-reload',
+                'service' => ['dhcp6']
+            ];
+            
+            $ch = curl_init($server['api_url']);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($reloadCmd));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            curl_exec($ch);
+            curl_close($ch);
+            
+            echo "  Reloaded {$server['name']}\n";
+        }
+    }
+    
     echo "\nDone!\n";
     
 } catch (Exception $e) {
