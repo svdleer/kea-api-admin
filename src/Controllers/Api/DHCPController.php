@@ -66,11 +66,21 @@ class DHCPController
         }
     
         // Validate IPv6 addresses using the regex
-        $ipv6Fields = ['pool_start', 'pool_end', 'ccap_core_address', 'relay_address'];
+        $ipv6Fields = ['pool_start', 'pool_end', 'relay_address'];
         foreach ($ipv6Fields as $field) {
             if (isset($data[$field]) && !empty($data[$field])) {
                 if (!preg_match($ipv6Regex, $data[$field])) {
                     $errors[] = "Invalid IPv6 address format for $field";
+                }
+            }
+        }
+        
+        // Validate ccap_core_address separately (supports comma-separated values)
+        if (isset($data['ccap_core_address']) && !empty($data['ccap_core_address'])) {
+            $addresses = array_map('trim', explode(',', $data['ccap_core_address']));
+            foreach ($addresses as $address) {
+                if (!preg_match($ipv6Regex, $address)) {
+                    $errors[] = "Invalid IPv6 address format in ccap_core_address: $address";
                 }
             }
         }

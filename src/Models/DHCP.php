@@ -423,7 +423,7 @@ class DHCP
                 ':bvi_interface_id' => $data['bvi_interface_id'],
                 ':switch_id' => $data['switch_id'],
                 ':kea_subnet_id' => $data['subnet_id'],
-                ':interface_number' => $data['bvi_interface'],
+                ':interface_number' => !empty($data['bvi_interface']) ? $data['bvi_interface'] : null,
                 ':ipv6_address' => $data['ipv6_address'],
                 ':start_address' => $data['pool_start'],
                 ':end_address' => $data['pool_end'],
