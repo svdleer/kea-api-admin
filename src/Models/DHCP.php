@@ -257,6 +257,7 @@ class DHCP
                         "subnet" => $data['subnet'],
                         "id" => $subnetId,
                         "shared-network-name" => null,
+                        "client-class" => "RPD",
                         "pools" => [
                             [
                                 "pool" => $data['pool_start'] . " - " . $data['pool_end']
@@ -373,6 +374,7 @@ class DHCP
                         "subnet" => $data['subnet'],
                         "id" => intval($data['subnet_id']),
                         "shared-network-name" => null,
+                        "client-class" => "RPD",
                         "pools" => [
                             [
                                 "pool" => $data['pool_start'] . " - " . $data['pool_end']
