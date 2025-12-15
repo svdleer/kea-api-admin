@@ -439,8 +439,8 @@ try {
     $router->get('/api/admin/export/kea-config', [$adminController, 'exportKeaConfig'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/admin/import/kea-config', [$adminController, 'importKeaConfig'])
-        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->post('/api/admin/import/kea-config/preview', [$adminController, 'previewKeaConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));    $router->post('/api/admin/import/kea-reservations', [$adminController, 'importKeaReservations'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));    $router->post('/api/admin/import/kea-config/preview', [$adminController, 'previewKeaConfig'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/import/kea-config/execute', [$adminController, 'executeKeaImport'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));

@@ -117,6 +117,66 @@ class AdminController
     }
 
     /**
+     * Import Kea reservations from config file
+     * POST /api/admin/import/kea-reservations
+     */
+    public function importKeaReservations()
+    {
+        if (!isset($_FILES['config'])) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No file uploaded'
+            ], 400);
+            return;
+        }
+
+        $file = $_FILES['config'];
+        $tmpPath = $file['tmp_name'];
+        
+        error_log("Importing reservations from file: " . $file['name']);
+
+        // Call the import script
+        $scriptPath = BASE_PATH . '/scripts/import_kea_reservations.php';
+        $output = [];
+        $returnCode = 0;
+
+        $command = "php $scriptPath " . escapeshellarg($tmpPath) . " 2>&1";
+        error_log("Executing: $command");
+        
+        exec($command, $output, $returnCode);
+        
+        $outputText = implode("\n", $output);
+        error_log("Return code: $returnCode");
+        error_log("Output: " . $outputText);
+
+        if ($returnCode === 0) {
+            // Parse stats from output
+            preg_match('/Total reservations found:\s*(\d+)/', $outputText, $totalMatch);
+            preg_match('/Successfully added:\s*([\d.]+)/', $outputText, $successMatch);
+            preg_match('/Already existed:\s*([\d.]+)/', $outputText, $skippedMatch);
+            preg_match('/Errors:\s*([\d.]+)/', $outputText, $errorMatch);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Reservations imported successfully',
+                'stats' => [
+                    'total' => isset($totalMatch[1]) ? (int)$totalMatch[1] : 0,
+                    'success' => isset($successMatch[1]) ? (int)$successMatch[1] : 0,
+                    'skipped' => isset($skippedMatch[1]) ? (int)$skippedMatch[1] : 0,
+                    'errors' => isset($errorMatch[1]) ? (int)$errorMatch[1] : 0
+                ],
+                'details' => $outputText
+            ]);
+        } else {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to import reservations',
+                'error' => $outputText
+            ], 500);
+        }
+    }
+
+    /**
      * Preview Kea configuration import
      * POST /api/admin/import/kea-config/preview
      */

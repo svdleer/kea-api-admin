@@ -128,6 +128,28 @@ ob_start();
             </div>
         </div>
 
+        <!-- Kea Reservations -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-indigo-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Reservations</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Import static DHCP reservations from kea-dhcp6.conf into Kea reservation database</p>
+            <div class="space-y-2">
+                <button onclick="importKeaReservations()" 
+                        class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Import Reservations from Config
+                </button>
+            </div>
+        </div>
+
         <!-- Clear CIN Data -->
         <div class="bg-white shadow-md rounded-lg p-6 border-2 border-red-200">
             <div class="flex items-center mb-4">
@@ -418,6 +440,115 @@ async function importKeaConfig() {
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to import configuration', 'error');
+        }
+    }
+}
+
+async function importKeaReservations() {
+    const { value: file } = await Swal.fire({
+        title: 'Import Kea Reservations',
+        html: `
+            <p class="text-sm text-gray-600 mb-4">Upload your kea-dhcp6.conf file to import static DHCP reservations</p>
+            <div class="bg-blue-50 p-3 rounded mb-4 text-sm text-left">
+                <p class="font-semibold mb-1">What this does:</p>
+                <ul class="list-disc list-inside text-gray-700">
+                    <li>Reads all reservations from the config file</li>
+                    <li>Imports them into Kea's reservation database</li>
+                    <li>Syncs to all active Kea servers</li>
+                    <li>Skips duplicates automatically</li>
+                </ul>
+            </div>
+            <input type="file" id="keaReservationFile" accept=".conf,.json" class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-semibold
+                file:bg-indigo-50 file:text-indigo-700
+                hover:file:bg-indigo-100"/>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: 'Import Reservations',
+        width: '600px',
+        preConfirm: () => {
+            const file = document.getElementById('keaReservationFile').files[0];
+            if (!file) {
+                Swal.showValidationMessage('Please select a file');
+            }
+            return file;
+        }
+    });
+
+    if (file) {
+        const formData = new FormData();
+        formData.append('config', file);
+
+        try {
+            Swal.fire({
+                title: 'Importing Reservations...',
+                html: 'Processing configuration file and adding reservations to Kea<br><small class="text-gray-600">This may take a while...</small>',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/admin/import/kea-reservations', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    title: 'Import Complete!',
+                    html: `
+                        <p class="mb-3">${result.message}</p>
+                        <div class="text-sm text-left bg-gray-50 p-4 rounded space-y-2">
+                            <div class="flex justify-between">
+                                <span>Total Reservations:</span>
+                                <strong>${result.stats.total}</strong>
+                            </div>
+                            <div class="flex justify-between text-green-600">
+                                <span>Successfully Added:</span>
+                                <strong>${result.stats.success}</strong>
+                            </div>
+                            <div class="flex justify-between text-yellow-600">
+                                <span>Already Existed:</span>
+                                <strong>${result.stats.skipped}</strong>
+                            </div>
+                            <div class="flex justify-between text-red-600">
+                                <span>Errors:</span>
+                                <strong>${result.stats.errors}</strong>
+                            </div>
+                        </div>
+                        ${result.details ? `
+                            <details class="mt-3 text-left">
+                                <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">Show Details</summary>
+                                <pre class="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto max-h-64 whitespace-pre-wrap">${result.details}</pre>
+                            </details>
+                        ` : ''}
+                    `,
+                    icon: result.stats.errors > 0 ? 'warning' : 'success',
+                    confirmButtonColor: '#4F46E5',
+                    width: '600px'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Import Failed',
+                    html: `
+                        <p class="mb-2 text-red-600">${result.message}</p>
+                        <div class="text-xs text-left bg-gray-50 p-3 rounded overflow-auto max-h-64">
+                            <pre class="whitespace-pre-wrap">${result.error || 'Unknown error'}</pre>
+                        </div>
+                    `,
+                    icon: 'error',
+                    width: '600px',
+                    confirmButtonColor: '#DC2626'
+                });
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to import reservations: ' + error.message, 'error');
         }
     }
 }
