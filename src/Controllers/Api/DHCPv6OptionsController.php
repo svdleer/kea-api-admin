@@ -175,6 +175,12 @@ class DHCPv6OptionsController extends KeaController
             if (!isset($data['space'])) {
                 throw new Exception('Option space is required');
             }
+            
+            // CRITICAL WARNING: Deleting vendor-4491 options can cascade delete ALL vendor-4491 options
+            // including subnet-level options due to Kea MySQL foreign key constraints
+            if ($data['space'] === 'vendor-4491') {
+                throw new Exception('Cannot delete vendor-4491 options - this would cascade delete all vendor options including subnet-level CCAP core options. Please edit the option instead of deleting it.');
+            }
     
             // Create the array structure that the model expects
             $deleteData = [
