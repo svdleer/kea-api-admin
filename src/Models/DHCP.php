@@ -340,6 +340,7 @@ class DHCP
     
             // After reconfigurering KEA subnet creation, update in database
             $sql = "INSERT INTO cin_bvi_dhcp_core (
+                bvi_interface_id,
                 switch_id, 
                 kea_subnet_id, 
                 interface_number, 
@@ -348,6 +349,7 @@ class DHCP
                 end_address, 
                 ccap_core
             ) VALUES (
+                :bvi_interface_id,
                 :switch_id,
                 :kea_subnet_id,
                 :interface_number,
@@ -365,6 +367,7 @@ class DHCP
     
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
+                ':bvi_interface_id' => $data['bvi_interface_id'],
                 ':switch_id' => $data['switch_id'],
                 ':kea_subnet_id' => $data['subnet_id'],
                 ':interface_number' => $data['bvi_interface'],
