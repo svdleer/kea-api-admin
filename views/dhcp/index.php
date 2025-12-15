@@ -489,6 +489,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Validation Functions
+    function isValidIPv6OrCommaSeparated(value) {
+        if (!value) return true; // Allow empty
+        
+        const ipv6Regex = /^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+        
+        // Check if contains comma (multiple addresses)
+        if (value.includes(',')) {
+            const addresses = value.split(',').map(addr => addr.trim());
+            return addresses.every(addr => ipv6Regex.test(addr));
+        }
+        
+        // Single address
+        return ipv6Regex.test(value);
+    }
+
     function validateIPv6Address(input) {
         if (!input.value) {
             const errorSpan = document.getElementById(input.id + 'Error');
@@ -579,10 +594,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validate CCAP Core IPv6 address before submission
     const ccapCore = formData.get('ccap_core_address');
-    if (!validateIPv6Address(ccapCore)) {
+    if (!isValidIPv6OrCommaSeparated(ccapCore)) {
         await Swal.fire({
             title: 'Validation Error!',
-            text: 'Please enter a valid IPv6 address for CCAP Core',
+            text: 'Please enter valid IPv6 address(es) for CCAP Core',
             icon: 'error',
             confirmButtonColor: '#3085d6'
         });
