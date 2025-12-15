@@ -624,10 +624,12 @@ class DHCPController
             ]);
 
         } catch (\Exception $e) {
+            error_log("Error in checkDuplicate: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error' => 'Server error while checking duplicate subnet'
+                'error' => 'Server error while checking duplicate subnet: ' . $e->getMessage()
             ]);
         }
     }

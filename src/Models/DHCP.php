@@ -9,23 +9,26 @@ use Exception;
 class DHCP
 {
     private $db;
-    private string $keaApiUrl;
+    private ?string $keaApiUrl = null;
     private string $keaService;
 
 
     public function __construct($db)
     {
         $this->db = $db;
-        // Get primary active Kea server from database
-        $this->keaApiUrl = $this->getActiveKeaServerUrl();
+        // Lazy load Kea API URL only when needed
         $this->keaService = 'dhcp6';
     }
 
     /**
-     * Get the URL of the active Kea server from database
+     * Get the URL of the active Kea server from database (lazy loaded)
      */
     private function getActiveKeaServerUrl(): string
     {
+        if ($this->keaApiUrl !== null) {
+            return $this->keaApiUrl;
+        }
+        
         try {
             $stmt = $this->db->prepare(
                 "SELECT api_url FROM kea_servers 
@@ -37,14 +40,17 @@ class DHCP
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($result && !empty($result['api_url'])) {
-                return $result['api_url'];
+                $this->keaApiUrl = $result['api_url'];
+                return $this->keaApiUrl;
             }
             
             // Fallback to environment variable or default
-            return $_ENV['KEA_API_ENDPOINT'] ?? 'http://localhost:8000';
+            $this->keaApiUrl = $_ENV['KEA_API_ENDPOINT'] ?? 'http://localhost:8000';
+            return $this->keaApiUrl;
         } catch (Exception $e) {
             // If database query fails, fallback to environment or default
-            return $_ENV['KEA_API_ENDPOINT'] ?? 'http://localhost:8000';
+            $this->keaApiUrl = $_ENV['KEA_API_ENDPOINT'] ?? 'http://localhost:8000';
+            return $this->keaApiUrl;
         }
     }
 
