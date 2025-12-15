@@ -192,12 +192,19 @@ class AdminController
                 // Extract CCAP core
                 $ccapCore = null;
                 if (isset($subnet['option-data'])) {
+                    error_log("Checking option-data for subnet {$subnet['subnet']}: " . json_encode($subnet['option-data']));
                     foreach ($subnet['option-data'] as $option) {
                         if (($option['name'] ?? null) === 'ccap-core' || ($option['code'] ?? null) == 61) {
                             $ccapCore = $option['data'];
+                            error_log("Found CCAP core for {$subnet['subnet']}: {$ccapCore}");
                             break;
                         }
                     }
+                    if (!$ccapCore) {
+                        error_log("No CCAP core found in option-data for {$subnet['subnet']}");
+                    }
+                } else {
+                    error_log("No option-data found for subnet {$subnet['subnet']}");
                 }
                 
                 $subnets[] = [
