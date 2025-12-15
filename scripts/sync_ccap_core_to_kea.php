@@ -81,15 +81,27 @@ try {
         
         $keaSubnet = $result[0]['arguments']['subnets'][0];
         
-        // Add/update CCAP core option
-        $keaSubnet['option-data'] = [[
+        // Preserve existing option-data and add/update CCAP core option
+        $existingOptions = $keaSubnet['option-data'] ?? [];
+        
+        // Remove any existing CCAP core option
+        $existingOptions = array_filter($existingOptions, function($opt) {
+            return !(($opt['name'] ?? '') === 'ccap-core' || ($opt['code'] ?? 0) == 61);
+        });
+        
+        // Add the new CCAP core option
+        $existingOptions[] = [
             'name' => 'ccap-core',
             'code' => 61,
             'space' => 'vendor-4491',
             'csv-format' => true,
             'data' => $ccapCore,
             'always-send' => true
-        ]];
+        ];
+        
+        $keaSubnet['option-data'] = array_values($existingOptions);
+        
+        echo "  Sending option-data: " . json_encode($keaSubnet['option-data']) . "\n";
         
         // Update subnet in Kea
         $updateCommand = [
