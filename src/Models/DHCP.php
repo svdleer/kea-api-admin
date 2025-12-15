@@ -73,10 +73,8 @@ class DHCP
         
         error_log("DHCP Model: Sending Kea command - Full JSON: " . json_encode($data, JSON_PRETTY_PRINT));
         
-        // For remote-* commands (MySQL backend with HA), only send to PRIMARY server
-        // The HA partner will automatically sync
-        $isRemoteCommand = strpos($command, 'remote-') === 0;
-        $serversToContact = $isRemoteCommand ? [$keaServers[0]] : $keaServers;
+        // Send to all servers (HA MySQL backend requires both servers to be updated)
+        $serversToContact = $keaServers;
         
         $responses = [];
         $errors = [];
