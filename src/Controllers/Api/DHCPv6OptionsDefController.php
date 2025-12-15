@@ -57,7 +57,7 @@ class DHCPv6OptionsDefController extends KeaController
             $result = $this->optionsDefModel->createEditOptionDef($data);
             
             // Also create an empty option so it exists in config
-            $optionsModel = new \App\Models\DHCPv6Options();
+            $optionsModel = new \App\Models\DHCPv6OptionsModel();
             $optionData = [
                 'code' => $data['code'],
                 'space' => $data['space'] ?? 'dhcp6',
