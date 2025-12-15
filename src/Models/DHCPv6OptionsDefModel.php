@@ -42,6 +42,29 @@ class DHCPv6OptionsDefModel extends KeaModel
 
     public function createEditOptionDef(array $optionData): array
     {
+        // To properly update an option definition, we need to delete it first, then recreate it
+        // This is because remote-option-def6-set doesn't reliably update existing definitions
+        
+        // Try to delete existing definition first (ignore errors if it doesn't exist)
+        $deleteArgs = [
+            "remote" => ["type" => "mysql"],
+            "server-tags" => ["all"],
+            'option-defs' => [
+                [
+                    'code' => intval($optionData['code']),
+                    'space' => $optionData['space']
+                ]
+            ]
+        ];
+        
+        try {
+            $this->sendKeaCommand("remote-option-def6-del", $deleteArgs);
+        } catch (\Exception $e) {
+            // Ignore error - definition might not exist yet
+            error_log("Delete option def (expected for create): " . $e->getMessage());
+        }
+        
+        // Now create the new definition
         $createOptionsDefArguments = [
             "remote" => ["type" => "mysql"],
             "server-tags" => ["all"],
