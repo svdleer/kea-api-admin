@@ -225,10 +225,38 @@ class AdminController
             }
             unset($subnet); // Break reference
             
+            // Get all available BVI interfaces for linking
+            $stmt = $this->db->query("
+                SELECT 
+                    b.id,
+                    b.interface_number,
+                    b.ipv6_address,
+                    s.hostname as switch_hostname,
+                    s.id as switch_id
+                FROM cin_switch_bvi_interfaces b
+                JOIN cin_switches s ON b.switch_id = s.id
+                ORDER BY s.hostname, b.interface_number
+            ");
+            $availableBvis = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Format BVI options for dropdown
+            $bviOptions = array_map(function($bvi) {
+                $displayNumber = $bvi['interface_number'] + 100;
+                return [
+                    'id' => $bvi['id'],
+                    'label' => "{$bvi['switch_hostname']} - BVI{$displayNumber} ({$bvi['ipv6_address']})",
+                    'switch_id' => $bvi['switch_id'],
+                    'switch_hostname' => $bvi['switch_hostname'],
+                    'interface_number' => $bvi['interface_number'],
+                    'ipv6_address' => $bvi['ipv6_address']
+                ];
+            }, $availableBvis);
+            
             $this->jsonResponse([
                 'success' => true,
                 'subnets' => $subnets,
-                'total' => count($subnets)
+                'total' => count($subnets),
+                'available_bvis' => $bviOptions
             ]);
             
         } catch (\Exception $e) {
