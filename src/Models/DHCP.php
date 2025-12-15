@@ -351,10 +351,9 @@ class DHCP
     {
         error_log("DHCP Model: ====== Starting updateSubnet ======");
         error_log("DHCP Model: Received data: " . json_encode($data, JSON_PRETTY_PRINT));
-        error_log("DHCP Model: Data type: " . gettype($data));
         try {
             
-            // Update subnet configuration (pools, relay) without options
+            // First, update subnet configuration (pools, relay) without touching options
             $arguments = [
                 "remote" => [
                     "type" => "mysql"
@@ -377,43 +376,34 @@ class DHCP
                 ]
             ];
     
-            error_log("DHCP Model: Remote-subnet-set arguments prepared: " . json_encode($arguments));
-    
             $response = $this->sendKeaCommand('remote-subnet6-set', $arguments);
-            error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
-                error_log("DHCP Model: Remote-subnet-set command failed");
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
             }
 
-            // Separately set the CCAP core option using remote-option6-subnet-set
-            $optionArgs = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
-                "subnets" => [
-                    ["id" => intval($data['subnet_id'])]
-                ],
-                "options" => [
-                    [
-                        "code" => 61,
-                        "space" => "vendor-4491",
-                        "csv-format" => true,
-                        "data" => $data['ccap_core_address'] ?? '',
-                        "always-send" => !empty($data['ccap_core_address'])
-                    ]
-                ]
+            // Now restore ALL options (options get wiped by remote-subnet6-set)
+            // Define all standard vendor options that should be on every subnet
+            $standardOptions = [
+                ['code' => 34, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:223,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
+                ['code' => 37, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '2001:b88:8000:f000:172:16:6:222,2001:b88:8000:f000:172:16:7:222', 'always-send' => true],
+                ['code' => 38, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => '3600', 'always-send' => true],
+                ['code' => 61, 'space' => 'vendor-4491', 'csv-format' => true, 'data' => $data['ccap_core_address'] ?? '', 'always-send' => !empty($data['ccap_core_address'])]
             ];
 
-            error_log("DHCP Model: Remote-option6-subnet-set arguments prepared: " . json_encode($optionArgs));
+            // Restore each option one by one
+            foreach ($standardOptions as $option) {
+                $optionArgs = [
+                    "remote" => ["type" => "mysql"],
+                    "subnets" => [["id" => intval($data['subnet_id'])]],
+                    "options" => [$option]
+                ];
 
-            $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
-            error_log("DHCP Model: Kea option response received: " . json_encode($optionResponse));
+                $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
 
-            if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
-                error_log("DHCP Model: Remote-option6-subnet-set command failed");
-                throw new Exception("Failed to set subnet option: " . json_encode($optionResponse));
+                if (!isset($optionResponse[0]['result']) || $optionResponse[0]['result'] !== 0) {
+                    error_log("DHCP Model: Failed to set option " . $option['code'] . ": " . json_encode($optionResponse));
+                }
             }
 
             // Get the BVI interface details to ensure we have the correct interface_number
