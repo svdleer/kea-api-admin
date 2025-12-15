@@ -452,8 +452,8 @@ class DHCP
     
             error_log("DHCP Model: Remote subnet reconfigured successfully");
             
-            // Reload Kea config to immediately refresh cache
-            $this->reloadKeaConfig();
+            // Don't reload config - it wipes out option-data that wasn't saved to MySQL
+            // $this->reloadKeaConfig();
             
             return $data['subnet_id'];
     
