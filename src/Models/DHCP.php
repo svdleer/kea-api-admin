@@ -380,6 +380,103 @@ class DHCP
         }
     }
 
+    /**
+     * Validate that a subnet doesn't overlap with existing subnets
+     * @param string $subnet The subnet to validate (e.g., "2001:db8::/64")
+     * @param int|null $excludeSubnetId Subnet ID to exclude from check (for updates)
+     * @throws Exception if subnet overlaps
+     */
+    private function validateSubnetOverlap($subnet, $excludeSubnetId = null)
+    {
+        error_log("DHCP Model: Validating subnet {$subnet} for overlaps");
+        
+        try {
+            // Get all existing subnets from Kea
+            $response = $this->sendKeaCommand('subnet6-list', []);
+            
+            if (!isset($response[0]['arguments']['subnets'])) {
+                // No existing subnets, so no overlap
+                return;
+            }
+            
+            $existingSubnets = $response[0]['arguments']['subnets'];
+            
+            // Parse the new subnet
+            list($newNetwork, $newPrefix) = explode('/', $subnet);
+            $newPrefixInt = intval($newPrefix);
+            
+            foreach ($existingSubnets as $existing) {
+                // Skip if this is the same subnet we're updating
+                if ($excludeSubnetId !== null && isset($existing['id']) && $existing['id'] == $excludeSubnetId) {
+                    continue;
+                }
+                
+                if (!isset($existing['subnet'])) {
+                    continue;
+                }
+                
+                list($existingNetwork, $existingPrefix) = explode('/', $existing['subnet']);
+                $existingPrefixInt = intval($existingPrefix);
+                
+                // Check for overlap by comparing network addresses
+                // Two subnets overlap if one contains the other
+                if ($this->ipv6SubnetsOverlap($newNetwork, $newPrefixInt, $existingNetwork, $existingPrefixInt)) {
+                    throw new Exception("Subnet {$subnet} overlaps with existing subnet {$existing['subnet']} (ID: {$existing['id']})");
+                }
+            }
+            
+            error_log("DHCP Model: No overlaps found for subnet {$subnet}");
+            
+        } catch (Exception $e) {
+            // Re-throw overlap exceptions
+            if (strpos($e->getMessage(), 'overlaps') !== false) {
+                throw $e;
+            }
+            // Log other errors but don't fail validation
+            error_log("DHCP Model: Warning - overlap validation failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if two IPv6 subnets overlap
+     */
+    private function ipv6SubnetsOverlap($net1, $prefix1, $net2, $prefix2)
+    {
+        // Convert IPv6 addresses to binary for comparison
+        $bin1 = inet_pton($net1);
+        $bin2 = inet_pton($net2);
+        
+        if ($bin1 === false || $bin2 === false) {
+            error_log("DHCP Model: Invalid IPv6 address in overlap check");
+            return false;
+        }
+        
+        // Use the smaller prefix length for comparison
+        $comparePrefix = min($prefix1, $prefix2);
+        
+        // Compare the bits up to the prefix length
+        $bytes = intval($comparePrefix / 8);
+        $bits = $comparePrefix % 8;
+        
+        // Compare full bytes
+        if ($bytes > 0 && substr($bin1, 0, $bytes) !== substr($bin2, 0, $bytes)) {
+            return false;
+        }
+        
+        // Compare remaining bits if any
+        if ($bits > 0 && $bytes < 16) {
+            $mask = 0xFF << (8 - $bits);
+            $byte1 = ord($bin1[$bytes]) & $mask;
+            $byte2 = ord($bin2[$bytes]) & $mask;
+            if ($byte1 !== $byte2) {
+                return false;
+            }
+        }
+        
+        // Subnets overlap
+        return true;
+    }
+
 
     private function getNextAvailableSubnetId()
     {
@@ -480,6 +577,9 @@ class DHCP
         error_log("DHCP Model: ====== Starting createSubnet ======");
         error_log("DHCP Model: Received data: " . json_encode($data, JSON_PRETTY_PRINT));
         try {
+            // Validate subnet doesn't overlap with existing subnets
+            $this->validateSubnetOverlap($data['subnet'], null);
+            
             // Backup config before making changes
             $this->backupKeaConfig('subnet-create');
             
@@ -638,6 +738,9 @@ class DHCP
         error_log("DHCP Model: ====== Starting updateSubnet ======");
         error_log("DHCP Model: Received data: " . json_encode($data, JSON_PRETTY_PRINT));
         try {
+            // Validate subnet doesn't overlap with other existing subnets
+            $this->validateSubnetOverlap($data['subnet'], intval($data['subnet_id']));
+            
             // Backup config before making changes
             $this->backupKeaConfig('subnet-update');
             
@@ -665,6 +768,20 @@ class DHCP
     
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
+            }
+
+            // Check if we're removing CCAP core option (was set before, now empty)
+            if (empty($data['ccap_core_address'])) {
+                // Check if this subnet had a CCAP core before
+                $checkStmt = $this->db->prepare("SELECT ccap_core FROM cin_bvi_dhcp_core WHERE kea_subnet_id = :subnet_id");
+                $checkStmt->execute([':subnet_id' => intval($data['subnet_id'])]);
+                $existing = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if ($existing && !empty($existing['ccap_core'])) {
+                    error_log("DHCP Model: WARNING - CCAP core option 61 is being REMOVED from subnet ID {$data['subnet_id']}. Previous value: {$existing['ccap_core']}");
+                    // Note: We don't delete the option from Kea here, it stays in the config
+                    // This is just a warning that the new configuration doesn't include it
+                }
             }
 
             // Restore option 61 (CCAP core) only
