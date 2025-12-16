@@ -150,6 +150,41 @@ class DHCP
         }
     }
 
+    /**
+     * Check if vendor option definitions exist in Kea configuration
+     * Returns true if definitions exist, false otherwise
+     */
+    private function checkVendorOptionDefinitions()
+    {
+        try {
+            error_log("DHCP Model: Checking for vendor-4491 option definitions");
+            $response = $this->sendKeaCommand('config-get');
+            
+            if (!isset($response[0]['arguments']['Dhcp6']['option-def'])) {
+                error_log("DHCP Model: No option-def section found in config");
+                return false;
+            }
+            
+            $optionDefs = $response[0]['arguments']['Dhcp6']['option-def'];
+            
+            // Check if vendor-4491 space definitions exist
+            $hasVendorDefs = false;
+            foreach ($optionDefs as $def) {
+                if (isset($def['space']) && $def['space'] === 'vendor-4491') {
+                    $hasVendorDefs = true;
+                    break;
+                }
+            }
+            
+            error_log("DHCP Model: Vendor-4491 option definitions " . ($hasVendorDefs ? "found" : "NOT found"));
+            return $hasVendorDefs;
+            
+        } catch (Exception $e) {
+            error_log("DHCP Model: Error checking option definitions: " . $e->getMessage());
+            return false;
+        }
+    }
+
 
     private function getNextAvailableSubnetId()
     {
@@ -281,6 +316,15 @@ class DHCP
             // Add only option 61 (CCAP core) to the subnet
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
+                // First, verify that vendor option definitions exist
+                if (!$this->checkVendorOptionDefinitions()) {
+                    // Clean up - delete the subnet we just created
+                    $this->sendKeaCommand('subnet6-del', [
+                        "id" => $subnetId
+                    ]);
+                    throw new Exception("Vendor option definitions (vendor-4491) are not configured in Kea. Please ensure option definitions for CableLabs vendor options are set in the Kea configuration file before creating subnets with CCAP core addresses.");
+                }
+                
                 $optionArgs = [
                     "subnet6" => [[
                         "id" => $subnetId,
@@ -426,6 +470,11 @@ class DHCP
             // Restore option 61 (CCAP core) only
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
+                // Verify that vendor option definitions exist
+                if (!$this->checkVendorOptionDefinitions()) {
+                    throw new Exception("Vendor option definitions (vendor-4491) are not configured in Kea. Please ensure option definitions for CableLabs vendor options are set in the Kea configuration file.");
+                }
+                
                 $optionArgs = [
                     "subnet6" => [[
                         "id" => intval($data['subnet_id']),
