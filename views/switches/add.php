@@ -240,7 +240,7 @@ $(document).ready(function() {
         const formData = {
             hostname: $('#hostname').val(),
             ipv6_address: $('#ipv6_address').val(),
-            interface_number: $('#interface_number').val()
+            interface_number: $('#interface_number').val().replace(/^BVI/i, '')
         };
 
         fetch('/api/switches', {
