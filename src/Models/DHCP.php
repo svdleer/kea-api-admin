@@ -254,7 +254,6 @@ class DHCP
             
             // Create subnet without options first
             $arguments = [
-                "server-tags" => ["all"],
                 "subnet6" => [
                     [
                         "subnet" => $data['subnet'],
@@ -400,7 +399,6 @@ class DHCP
             
             // First, update subnet configuration (pools, relay) without touching options
             $arguments = [
-                "server-tags" => ["all"],
                 "subnet6" => [
                     [
                         "subnet" => $data['subnet'],
@@ -601,9 +599,7 @@ class DHCP
         
         try {
             error_log("DHCP Model: Preparing arguments for KEA command");
-            $arguments = [
-                "server-tags" => ["all"]
-            ];
+            $arguments = [];
     
             error_log("DHCP Model: Arguments prepared: " . json_encode($arguments));
             
