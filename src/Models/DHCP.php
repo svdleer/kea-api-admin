@@ -826,7 +826,7 @@ class DHCP
 
             error_log("DHCP Model: Getting subnet by ID: " . $subnetId);
             
-            $response = $this->sendKeaCommand('subnet6-get', $arguments);
+            $response = $this->sendKeaCommand('subnet6-get-by-id', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             // Check if response is valid and has count > 0
