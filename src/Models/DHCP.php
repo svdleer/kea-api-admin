@@ -73,11 +73,12 @@ class DHCP
         
         error_log("DHCP Model: Sending Kea command - Full JSON: " . json_encode($data, JSON_PRETTY_PRINT));
         
-        // Send to all servers (HA MySQL backend requires both servers to be updated)
+        // Send to all servers
         $serversToContact = $keaServers;
         
         $responses = [];
         $errors = [];
+        $successfulServers = []; // Track servers that succeeded for potential rollback
         
         // Send command to server(s)
         foreach ($serversToContact as $server) {
@@ -96,6 +97,11 @@ class DHCP
                 error_log($error);
                 $errors[] = $error;
                 curl_close($ch);
+                
+                // Rollback successful servers if we have any
+                if (!empty($successfulServers)) {
+                    $this->rollbackCommand($command, $arguments, $successfulServers);
+                }
                 continue;
             }
             
@@ -113,8 +119,14 @@ class DHCP
                 $error = "Kea command '{$command}' failed on {$server['name']}: " . ($decoded[0]['text'] ?? 'Unknown error');
                 error_log($error);
                 $errors[] = $error;
+                
+                // Rollback successful servers
+                if (!empty($successfulServers)) {
+                    $this->rollbackCommand($command, $arguments, $successfulServers);
+                }
             } else {
                 error_log("Kea command '{$command}' succeeded on {$server['name']}");
+                $successfulServers[] = $server;
             }
         }
         
@@ -134,6 +146,82 @@ class DHCP
         
         // If no successful response, return the first response
         return $responses[0] ?? [];
+    }
+
+    /**
+     * Rollback a command on servers that succeeded before a failure occurred
+     */
+    private function rollbackCommand($originalCommand, $originalArguments, $serversToRollback)
+    {
+        if (empty($serversToRollback)) {
+            return;
+        }
+
+        error_log("DHCP Model: Rolling back command '{$originalCommand}' on " . count($serversToRollback) . " servers");
+        
+        // Determine the rollback command based on the original command
+        $rollbackCommand = null;
+        $rollbackArguments = [];
+        
+        switch ($originalCommand) {
+            case 'subnet6-add':
+                // Delete the subnet we just added
+                $rollbackCommand = 'subnet6-del';
+                if (isset($originalArguments['subnet6'][0]['id'])) {
+                    $rollbackArguments = ['id' => $originalArguments['subnet6'][0]['id']];
+                }
+                break;
+                
+            case 'subnet6-delta-add':
+                // This is trickier - we'd need to know what was there before
+                // For now, just log it
+                error_log("DHCP Model: Cannot automatically rollback subnet6-delta-add - manual intervention may be required");
+                return;
+                
+            case 'subnet6-del':
+                // Can't rollback a deletion without the full subnet data
+                error_log("DHCP Model: Cannot rollback subnet6-del - subnet is already deleted");
+                return;
+                
+            default:
+                error_log("DHCP Model: No rollback strategy for command '{$originalCommand}'");
+                return;
+        }
+        
+        if (!$rollbackCommand) {
+            return;
+        }
+        
+        // Execute rollback on each successful server
+        foreach ($serversToRollback as $server) {
+            $data = [
+                "command" => $rollbackCommand,
+                "service" => [$this->keaService],
+                "arguments" => $rollbackArguments
+            ];
+            
+            $ch = curl_init($server['api_url']);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            
+            $response = curl_exec($ch);
+            
+            if (curl_errno($ch)) {
+                error_log("DHCP Model: Rollback failed on {$server['name']}: " . curl_error($ch));
+            } else {
+                $decoded = json_decode($response, true);
+                if (isset($decoded[0]['result']) && $decoded[0]['result'] === 0) {
+                    error_log("DHCP Model: Successfully rolled back on {$server['name']}");
+                } else {
+                    error_log("DHCP Model: Rollback command failed on {$server['name']}: " . ($decoded[0]['text'] ?? 'Unknown error'));
+                }
+            }
+            
+            curl_close($ch);
+        }
     }
 
     private function reloadKeaConfig()
@@ -165,6 +253,94 @@ class DHCP
             error_log("DHCP Model: Warning - config-write failed: " . $e->getMessage());
             // Don't throw - write failure shouldn't fail the main operation, but log it prominently
             error_log("DHCP Model: WARNING - Changes are in-memory only and will be lost on Kea restart!");
+            return false;
+        }
+    }
+
+    /**
+     * Backup current Kea configuration before making changes
+     * Keeps only the last 12 backups per server
+     */
+    private function backupKeaConfig($operation = 'unknown')
+    {
+        try {
+            error_log("DHCP Model: Creating config backup before operation: {$operation}");
+            
+            // Get all active Kea servers
+            $stmt = $this->db->prepare("SELECT id, name, api_url FROM kea_servers WHERE is_active = 1");
+            $stmt->execute();
+            $servers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            foreach ($servers as $server) {
+                // Get current config from this server
+                $ch = curl_init($server['api_url']);
+                $data = [
+                    "command" => "config-get",
+                    "service" => [$this->keaService]
+                ];
+                
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                
+                $response = curl_exec($ch);
+                curl_close($ch);
+                
+                if (!$response) {
+                    error_log("DHCP Model: Failed to get config from {$server['name']} for backup");
+                    continue;
+                }
+                
+                $decoded = json_decode($response, true);
+                if (!isset($decoded[0]['result']) || $decoded[0]['result'] !== 0) {
+                    error_log("DHCP Model: Config-get failed for {$server['name']}");
+                    continue;
+                }
+                
+                // Store backup
+                $insertStmt = $this->db->prepare("
+                    INSERT INTO kea_config_backups (server_id, config_json, created_by, operation)
+                    VALUES (:server_id, :config_json, :created_by, :operation)
+                ");
+                
+                $insertStmt->execute([
+                    ':server_id' => $server['id'],
+                    ':config_json' => json_encode($decoded[0]['arguments']),
+                    ':created_by' => $_SESSION['user_name'] ?? 'system',
+                    ':operation' => $operation
+                ]);
+                
+                error_log("DHCP Model: Backed up config for {$server['name']}");
+                
+                // Clean up old backups - keep only last 12 per server
+                $cleanupStmt = $this->db->prepare("
+                    DELETE FROM kea_config_backups
+                    WHERE server_id = :server_id
+                    AND id NOT IN (
+                        SELECT id FROM (
+                            SELECT id FROM kea_config_backups
+                            WHERE server_id = :server_id
+                            ORDER BY created_at DESC
+                            LIMIT 12
+                        ) tmp
+                    )
+                ");
+                
+                $cleanupStmt->execute([':server_id' => $server['id']]);
+                
+                $deletedCount = $cleanupStmt->rowCount();
+                if ($deletedCount > 0) {
+                    error_log("DHCP Model: Cleaned up {$deletedCount} old backups for {$server['name']}");
+                }
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("DHCP Model: Warning - backup failed: " . $e->getMessage());
+            // Don't throw - backup failure shouldn't prevent the operation
             return false;
         }
     }
@@ -304,6 +480,9 @@ class DHCP
         error_log("DHCP Model: ====== Starting createSubnet ======");
         error_log("DHCP Model: Received data: " . json_encode($data, JSON_PRETTY_PRINT));
         try {
+            // Backup config before making changes
+            $this->backupKeaConfig('subnet-create');
+            
             $subnetId = $this->getNextAvailableSubnetId();
             
             // Create subnet without options first
@@ -459,6 +638,8 @@ class DHCP
         error_log("DHCP Model: ====== Starting updateSubnet ======");
         error_log("DHCP Model: Received data: " . json_encode($data, JSON_PRETTY_PRINT));
         try {
+            // Backup config before making changes
+            $this->backupKeaConfig('subnet-update');
             
             // First, update subnet configuration (pools, relay) without touching options
             $arguments = [
@@ -602,6 +783,9 @@ class DHCP
     public function deleteSubnet($subnetId)
     {
         try {
+            // Backup config before making changes
+            $this->backupKeaConfig('subnet-delete');
+            
             // $subnetId is the KEA subnet ID (not our database record ID)
             error_log("DHCP Model: deleteSubnet called with Kea subnet ID: $subnetId");
             
