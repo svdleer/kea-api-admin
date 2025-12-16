@@ -717,11 +717,9 @@ class DHCP
             if (!empty($data['ccap_core_address'])) {
                 // First, verify that vendor option definitions exist
                 if (!$this->checkVendorOptionDefinitions()) {
-                    // Clean up - delete the subnet we just created
-                    $this->sendKeaCommand('subnet6-del', [
-                        "id" => $subnetId
-                    ]);
-                    throw new Exception("Vendor option definitions (vendor-4491) are not configured in Kea. Please ensure option definitions for CableLabs vendor options are set in the Kea configuration file before creating subnets with CCAP core addresses.");
+                    // Don't create subnet - vendor options are required for CCAP core
+                    error_log("DHCP Model: ERROR - Vendor option definitions (vendor-4491) not configured. Cannot create subnet with CCAP core address.");
+                    throw new \Exception("VENDOR_OPTIONS_MISSING: Vendor option definitions (vendor-4491) are not configured in Kea. Please configure CableLabs vendor options in your Kea configuration file before creating subnets with CCAP core addresses.");
                 }
                 
                 $optionArgs = [

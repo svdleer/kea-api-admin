@@ -156,8 +156,16 @@ class DHCPController
 
         } catch (\Exception $e) {
             error_log("Error in DHCPController::create: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internal server error']);
+            
+            // Check if it's a vendor options missing error
+            if (strpos($e->getMessage(), 'VENDOR_OPTIONS_MISSING') === 0) {
+                http_response_code(400);
+                $message = str_replace('VENDOR_OPTIONS_MISSING: ', '', $e->getMessage());
+                echo json_encode(['success' => false, 'error' => $message]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            }
         }
     }
 
