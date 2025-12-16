@@ -151,6 +151,25 @@ class DHCP
     }
 
     /**
+     * Persist Kea configuration to file
+     * In Kea 3.x without MySQL backend, changes are in-memory only until written to file
+     */
+    private function saveKeaConfig()
+    {
+        error_log("DHCP Model: Persisting config to file with config-write");
+        try {
+            $response = $this->sendKeaCommand('config-write');
+            error_log("DHCP Model: Config-write response: " . json_encode($response));
+            return true;
+        } catch (Exception $e) {
+            error_log("DHCP Model: Warning - config-write failed: " . $e->getMessage());
+            // Don't throw - write failure shouldn't fail the main operation, but log it prominently
+            error_log("DHCP Model: WARNING - Changes are in-memory only and will be lost on Kea restart!");
+            return false;
+        }
+    }
+
+    /**
      * Check if vendor option definitions exist in Kea configuration
      * Returns true if definitions exist, false otherwise
      */
@@ -424,8 +443,8 @@ class DHCP
     
             error_log("DHCP Model: Remote subnet set successfully");
             
-            // Reload Kea config to immediately refresh cache
-            $this->reloadKeaConfig();
+            // Persist changes to Kea config file
+            $this->saveKeaConfig();
             
             return $subnetId;
     
@@ -615,9 +634,9 @@ class DHCP
             $rowsAffected = $deleteStmt->rowCount();
             error_log("DHCP Model: Deleted {$rowsAffected} rows from cin_bvi_dhcp_core table");
 
-            // Reload Kea config to immediately refresh cache if we deleted from Kea
+            // Persist config changes to file if we deleted from Kea
             if ($keaDeleted) {
-                $this->reloadKeaConfig();
+                $this->saveKeaConfig();
             }
 
             error_log("DHCP Model: ====== Completed deleteSubnet successfully ======");
@@ -939,7 +958,7 @@ class DHCP
             if (isset($response[0]['result']) && $response[0]['result'] === 0 && 
                 isset($response[0]['arguments']['count']) && $response[0]['arguments']['count'] > 0) {
                 error_log("DHCP Model: Successfully deleted orphaned subnet from Kea");
-                $this->reloadKeaConfig();
+                $this->saveKeaConfig();
                 return true;
             } else {
                 throw new Exception("Failed to delete orphaned subnet: " . ($response[0]['text'] ?? 'Unknown error'));
