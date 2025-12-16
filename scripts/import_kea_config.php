@@ -273,7 +273,7 @@ class KeaConfigImporter {
                 // Use Kea API to add option definition
                 $keaApiUrl = $_ENV['KEA_API_ENDPOINT'];
                 $keaCommand = [
-                    'command' => 'remote-option-def6-set',
+                    'command' => 'option-def6-set',
                     'service' => ['dhcp6'],
                     'arguments' => [
                         'option-defs' => [[
@@ -336,7 +336,7 @@ class KeaConfigImporter {
                 if ($subnetId) {
                     // Subnet-specific option
                     $keaCommand = [
-                        'command' => 'remote-option6-subnet-set',
+                        'command' => 'option6-subnet-set',
                         'service' => ['dhcp6'],
                         'arguments' => [
                             'subnets' => [[
@@ -355,7 +355,7 @@ class KeaConfigImporter {
                 } else {
                     // Global option
                     $keaCommand = [
-                        'command' => 'remote-option6-global-set',
+                        'command' => 'option6-global-set',
                         'service' => ['dhcp6'],
                         'arguments' => [
                             'options' => [[

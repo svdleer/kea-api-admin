@@ -116,24 +116,24 @@ class KeaStatusMonitor {
                     }
                 }
                 
-                // Try to get subnet information using remote-subnet6-list
-                $subnetResponse = $this->sendCommand($server['url'], 'remote-subnet6-list', [
+                // Try to get subnet information using subnet6-list
+                $subnetResponse = $this->sendCommand($server['url'], 'subnet6-list', [
                     'server-tags' => ['all']
                 ]);
                 if ($subnetResponse) {
                     // Check response structure
                     if (isset($subnetResponse['arguments']['subnets'])) {
                         $status['subnets'] = count($subnetResponse['arguments']['subnets']);
-                        error_log("{$server['name']}: Found {$status['subnets']} subnets via remote-subnet6-list");
+                        error_log("{$server['name']}: Found {$status['subnets']} subnets via subnet6-list");
                     } elseif (is_array($subnetResponse) && isset($subnetResponse[0]['arguments']['subnets'])) {
                         // Sometimes response is nested in array
                         $status['subnets'] = count($subnetResponse[0]['arguments']['subnets']);
-                        error_log("{$server['name']}: Found {$status['subnets']} subnets via remote-subnet6-list (nested)");
+                        error_log("{$server['name']}: Found {$status['subnets']} subnets via subnet6-list (nested)");
                     } else {
-                        error_log("{$server['name']}: No subnets in response structure from remote-subnet6-list");
+                        error_log("{$server['name']}: No subnets in response structure from subnet6-list");
                     }
                 } else {
-                    error_log("{$server['name']}: No response from remote-subnet6-list");
+                    error_log("{$server['name']}: No response from subnet6-list");
                 }
             } else {
                 $status['error'] = $response['text'] ?? ($response[0]['text'] ?? 'Unknown error');

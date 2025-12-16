@@ -107,7 +107,7 @@ class DHCP
             // Check if this server's response was successful
             // Result 0 = success, Result 3 = empty/not found (valid for list commands)
             $result = $decoded[0]['result'] ?? null;
-            $isSuccess = ($result === 0) || ($result === 3 && $command === 'remote-subnet6-list');
+            $isSuccess = ($result === 0) || ($result === 3 && $command === 'subnet6-list');
             
             if (!isset($decoded[0]['result']) || !$isSuccess) {
                 $error = "Kea command '{$command}' failed on {$server['name']}: " . ($decoded[0]['text'] ?? 'Unknown error');
@@ -126,7 +126,7 @@ class DHCP
         // Return the first successful response (for backward compatibility)
         foreach ($responses as $response) {
             $result = $response[0]['result'] ?? null;
-            $isSuccess = ($result === 0) || ($result === 3 && $command === 'remote-subnet6-list');
+            $isSuccess = ($result === 0) || ($result === 3 && $command === 'subnet6-list');
             if ($isSuccess) {
                 return $response;
             }
@@ -273,7 +273,7 @@ class DHCP
                 ]
             ];
     
-            $response = $this->sendKeaCommand('remote-subnet6-set', $arguments);
+            $response = $this->sendKeaCommand('subnet6-add', $arguments);
     
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
@@ -300,7 +300,7 @@ class DHCP
                 $success = false;
                 
                 for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-                    $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
+                    $optionResponse = $this->sendKeaCommand('option6-subnet-set', $optionArgs);
                     
                     if (isset($optionResponse[0]['result']) && $optionResponse[0]['result'] === 0) {
                         $success = true;
@@ -322,7 +322,7 @@ class DHCP
                 
                 if (!$success) {
                     // If option setting failed, delete the subnet to avoid orphans
-                    $this->sendKeaCommand('remote-subnet6-del', [
+                    $this->sendKeaCommand('subnet6-del', [
 
                         "subnets" => [["id" => $subnetId]]
                     ]);
@@ -418,7 +418,7 @@ class DHCP
                 ]
             ];
     
-            $response = $this->sendKeaCommand('remote-subnet6-set', $arguments);
+            $response = $this->sendKeaCommand('subnet6-add', $arguments);
     
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
                 throw new Exception("Failed to set remote subnet: " . json_encode($response));
@@ -443,7 +443,7 @@ class DHCP
                 $retryDelay = 1; // seconds
                 
                 for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-                    $optionResponse = $this->sendKeaCommand('remote-option6-subnet-set', $optionArgs);
+                    $optionResponse = $this->sendKeaCommand('option6-subnet-set', $optionArgs);
                     
                     if (isset($optionResponse[0]['result']) && $optionResponse[0]['result'] === 0) {
                         break;
@@ -546,7 +546,7 @@ class DHCP
     
             error_log("DHCP Model: Attempting to delete subnet from Kea with ID: $subnetId");
             
-            $response = $this->sendKeaCommand('remote-subnet6-del-by-id', $arguments);
+            $response = $this->sendKeaCommand('subnet6-del', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             // Check if the subnet was deleted from Kea or if it didn't exist
@@ -607,8 +607,8 @@ class DHCP
     
             error_log("DHCP Model: Arguments prepared: " . json_encode($arguments));
             
-            error_log("DHCP Model: Sending remote-subnet6-list command to KEA");
-            $response = $this->sendKeaCommand('remote-subnet6-list', $arguments);
+            error_log("DHCP Model: Sending subnet6-list command to KEA");
+            $response = $this->sendKeaCommand('subnet6-list', $arguments);
             error_log("DHCP Model: Response type: " . gettype($response));
             error_log("DHCP Model: Raw response: " . json_encode($response));
     
@@ -826,7 +826,7 @@ class DHCP
 
             error_log("DHCP Model: Getting subnet by ID: " . $subnetId);
             
-            $response = $this->sendKeaCommand('remote-subnet6-get-by-id', $arguments);
+            $response = $this->sendKeaCommand('subnet6-get', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             // Check if response is valid and has count > 0
@@ -896,7 +896,7 @@ class DHCP
 
             error_log("DHCP Model: Deleting orphaned subnet with Kea ID: $keaSubnetId");
             
-            $response = $this->sendKeaCommand('remote-subnet6-del-by-id', $arguments);
+            $response = $this->sendKeaCommand('subnet6-del', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             if (isset($response[0]['result']) && $response[0]['result'] === 0 && 

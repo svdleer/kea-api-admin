@@ -63,9 +63,9 @@ $errorCount = 0;
 foreach ($optionDefinitions as $optionDef) {
     echo "Setting option definition: {$optionDef['space']}.{$optionDef['name']} (code {$optionDef['code']})\n";
     
-    // Prepare the Kea API request using remote-option-def6-set
+    // Prepare the Kea API request using option-def6-set
     $data = [
-        "command" => "remote-option-def6-set",
+        "command" => "option-def6-set",
         "service" => ["dhcp6"],
         "arguments" => [
             "option-defs" => [$optionDef],

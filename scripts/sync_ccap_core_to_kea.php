@@ -54,7 +54,7 @@ try {
         
         // Get current subnet config from Kea
         $getCommand = [
-            'command' => 'remote-subnet6-get-by-id',
+            'command' => 'subnet6-get',
             'service' => ['dhcp6'],
             'arguments' => [
                 'remote' => ['type' => 'mysql'],
@@ -103,9 +103,9 @@ try {
         
         echo "  Sending option-data: " . json_encode($keaSubnet['option-data']) . "\n";
         
-        // First, set the option using remote-option6-subnet-set
+        // First, set the option using option6-subnet-set
         $optionCommand = [
-            'command' => 'remote-option6-subnet-set',
+            'command' => 'option6-subnet-set',
             'service' => ['dhcp6'],
             'arguments' => [
                 'remote' => ['type' => 'mysql'],

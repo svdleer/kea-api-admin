@@ -418,7 +418,7 @@ class AdminController
                 
                 // Send subnet creation to ALL Kea servers
                 $data = [
-                    "command" => 'remote-subnet6-set',
+                    "command" => 'subnet6-add',
                     "service" => ['dhcp6'],
                     "arguments" => [
                         "remote" => ["type" => "mysql"],
@@ -520,7 +520,7 @@ class AdminController
                     }
                     
                     $poolData = [
-                        "command" => 'remote-subnet6-set',
+                        "command" => 'subnet6-add',
                         "service" => ['dhcp6'],
                         "arguments" => [
                             "remote" => ["type" => "mysql"],
@@ -1508,7 +1508,7 @@ class AdminController
                     error_log("Deleting Kea subnet ID: $subnetId");
                     
                     $data = [
-                        'command' => 'remote-subnet6-del-by-id',
+                        'command' => 'subnet6-del',
                         'service' => ['dhcp6'],
                         'arguments' => [
                             'subnets' => [
@@ -1737,7 +1737,7 @@ class AdminController
             $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
             
             $data = [
-                'command' => 'remote-subnet6-list',
+                'command' => 'subnet6-list',
                 'service' => ['dhcp6'],
                 'arguments' => [
                     'remote' => ['type' => 'mysql'],

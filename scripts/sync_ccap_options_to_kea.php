@@ -3,7 +3,7 @@
 /**
  * Sync CCAP Core options from database to Kea
  * This script reads CCAP core addresses from cin_bvi_dhcp_core table
- * and sets them in Kea using the remote-option6-subnet-set command
+ * and sets them in Kea using the option6-subnet-set command
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -45,9 +45,9 @@ foreach ($subnets as $subnet) {
     
     echo "Setting CCAP core for subnet $subnetId to $ccapCore\n";
     
-    // Prepare the Kea API request using remote-option6-subnet-set
+    // Prepare the Kea API request using option6-subnet-set
     $data = [
-        "command" => "remote-option6-subnet-set",
+        "command" => "option6-subnet-set",
         "service" => ["dhcp6"],
         "arguments" => [
             "subnets" => [["id" => (int)$subnetId]],
