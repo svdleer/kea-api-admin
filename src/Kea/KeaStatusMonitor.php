@@ -118,7 +118,6 @@ class KeaStatusMonitor {
                 
                 // Try to get subnet information using remote-subnet6-list
                 $subnetResponse = $this->sendCommand($server['url'], 'remote-subnet6-list', [
-                    'remote' => ['type' => 'mysql'],
                     'server-tags' => ['all']
                 ]);
                 if ($subnetResponse) {

@@ -254,9 +254,6 @@ class DHCP
             
             // Create subnet without options first
             $arguments = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
                 "server-tags" => ["all"],
                 "subnets" => [
                     [
@@ -326,7 +323,7 @@ class DHCP
                 if (!$success) {
                     // If option setting failed, delete the subnet to avoid orphans
                     $this->sendKeaCommand('remote-subnet6-del', [
-                        "remote" => ["type" => "mysql"],
+
                         "subnets" => [["id" => $subnetId]]
                     ]);
                     throw new Exception("Failed to set option 61 after $maxRetries attempts. Subnet creation rolled back.");
@@ -402,9 +399,6 @@ class DHCP
             
             // First, update subnet configuration (pools, relay) without touching options
             $arguments = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
                 "server-tags" => ["all"],
                 "subnets" => [
                     [
@@ -434,7 +428,6 @@ class DHCP
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
-                    "remote" => ["type" => "mysql"],
                     "subnets" => [["id" => intval($data['subnet_id'])]],
                     "options" => [[
                         'code' => 61,
@@ -544,9 +537,6 @@ class DHCP
             
             // First, delete from Kea
             $arguments = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
                 "subnets" => [
                     [
                         "id" => intval($subnetId)
@@ -612,10 +602,7 @@ class DHCP
         try {
             error_log("DHCP Model: Preparing arguments for KEA command");
             $arguments = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
-                "server-tags" => ["all"],
+                "server-tags" => ["all"]
             ];
     
             error_log("DHCP Model: Arguments prepared: " . json_encode($arguments));
@@ -830,16 +817,13 @@ class DHCP
     {
         try {
             $arguments = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
                 "subnets" => [
                     [
                         "id" => intval($subnetId)
                     ]
                 ]
             ];
-    
+
             error_log("DHCP Model: Getting subnet by ID: " . $subnetId);
             
             $response = $this->sendKeaCommand('remote-subnet6-get-by-id', $arguments);
@@ -903,16 +887,13 @@ class DHCP
     {
         try {
             $arguments = [
-                "remote" => [
-                    "type" => "mysql"
-                ],
                 "subnets" => [
                     [
                         "id" => intval($keaSubnetId)
                     ]
                 ]
             ];
-    
+
             error_log("DHCP Model: Deleting orphaned subnet with Kea ID: $keaSubnetId");
             
             $response = $this->sendKeaCommand('remote-subnet6-del-by-id', $arguments);
