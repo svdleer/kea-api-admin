@@ -105,7 +105,11 @@ class DHCP
             $responses[] = $decoded;
             
             // Check if this server's response was successful
-            if (!isset($decoded[0]['result']) || $decoded[0]['result'] !== 0) {
+            // Result 0 = success, Result 3 = empty/not found (valid for list commands)
+            $result = $decoded[0]['result'] ?? null;
+            $isSuccess = ($result === 0) || ($result === 3 && $command === 'remote-subnet6-list');
+            
+            if (!isset($decoded[0]['result']) || !$isSuccess) {
                 $error = "Kea command '{$command}' failed on {$server['name']}: " . ($decoded[0]['text'] ?? 'Unknown error');
                 error_log($error);
                 $errors[] = $error;
@@ -121,7 +125,9 @@ class DHCP
         
         // Return the first successful response (for backward compatibility)
         foreach ($responses as $response) {
-            if (isset($response[0]['result']) && $response[0]['result'] === 0) {
+            $result = $response[0]['result'] ?? null;
+            $isSuccess = ($result === 0) || ($result === 3 && $command === 'remote-subnet6-list');
+            if ($isSuccess) {
                 return $response;
             }
         }
