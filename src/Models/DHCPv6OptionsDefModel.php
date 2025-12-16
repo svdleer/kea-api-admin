@@ -134,14 +134,20 @@ class DHCPv6OptionsDefModel extends KeaModel
             "server-tags" => ["all"]
         ];
 
-        $response = $this->sendKeaCommand("option-def6-get-all", $getOptionsDefsArguments);
-        
-        $result = $this->validateKeaResponse($response, 'get options');
-        
-        if ($result['result'] === self::KEA_EMPTY) {
-            return '[]';  // Return empty JSON array as string
+        try {
+            $response = $this->sendKeaCommand("option-def6-get-all", $getOptionsDefsArguments);
+            
+            $result = $this->validateKeaResponse($response, 'get options');
+            
+            if ($result['result'] === self::KEA_EMPTY) {
+                return '[]';  // Return empty JSON array as string
+            }
+            
+            return $response;  // Return original response string since it's already JSON
+        } catch (\Exception $e) {
+            // If command not supported (missing hook), return empty array
+            error_log("DHCPv6Options: option-def6-get-all not supported - returning empty definitions");
+            return '[]';
         }
-        
-        return $response;  // Return original response string since it's already JSON
     }
 }
