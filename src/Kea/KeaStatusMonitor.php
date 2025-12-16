@@ -95,9 +95,11 @@ class KeaStatusMonitor {
                     // Handle both array and object responses
                     $versionData = is_array($versionResponse) && isset($versionResponse[0]) ? $versionResponse[0] : $versionResponse;
                     if (isset($versionData['arguments']['extended'])) {
-                        // Extract just the version number (first line)
+                        // Extract just the version number (first line, remove tarball info)
                         $fullVersion = $versionData['arguments']['extended'];
-                        $status['version'] = strtok($fullVersion, "\n");
+                        $firstLine = strtok($fullVersion, "\n");
+                        // Remove (tarball) or similar packaging info
+                        $status['version'] = preg_replace('/\s*\([^)]*tarball[^)]*\)/i', '', $firstLine);
                     }
                 }
                 
