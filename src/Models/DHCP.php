@@ -255,7 +255,7 @@ class DHCP
             // Create subnet without options first
             $arguments = [
                 "server-tags" => ["all"],
-                "subnets" => [
+                "subnet6" => [
                     [
                         "subnet" => $data['subnet'],
                         "id" => $subnetId,
@@ -283,8 +283,9 @@ class DHCP
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
-                    "subnets" => [[
+                    "subnet6" => [[
                         "id" => $subnetId,
+                        "subnet" => $data['subnet'],
                         "option-data" => [[
                             'code' => 61,
                             'space' => 'vendor-4491',
@@ -324,8 +325,7 @@ class DHCP
                 if (!$success) {
                     // If option setting failed, delete the subnet to avoid orphans
                     $this->sendKeaCommand('subnet6-del', [
-
-                        "subnets" => [["id" => $subnetId]]
+                        "id" => $subnetId
                     ]);
                     throw new Exception("Failed to set option 61 after $maxRetries attempts. Subnet creation rolled back.");
                 }
@@ -401,7 +401,7 @@ class DHCP
             // First, update subnet configuration (pools, relay) without touching options
             $arguments = [
                 "server-tags" => ["all"],
-                "subnets" => [
+                "subnet6" => [
                     [
                         "subnet" => $data['subnet'],
                         "id" => intval($data['subnet_id']),
@@ -429,8 +429,9 @@ class DHCP
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
-                    "subnets" => [[
+                    "subnet6" => [[
                         "id" => intval($data['subnet_id']),
+                        "subnet" => $data['subnet'],
                         "option-data" => [[
                             'code' => 61,
                             'space' => 'vendor-4491',
@@ -540,11 +541,7 @@ class DHCP
             
             // First, delete from Kea
             $arguments = [
-                "subnets" => [
-                    [
-                        "id" => intval($subnetId)
-                    ]
-                ]
+                "id" => intval($subnetId)
             ];
     
             error_log("DHCP Model: Attempting to delete subnet from Kea with ID: $subnetId");
@@ -820,16 +817,12 @@ class DHCP
     {
         try {
             $arguments = [
-                "subnets" => [
-                    [
-                        "id" => intval($subnetId)
-                    ]
-                ]
+                "id" => intval($subnetId)
             ];
 
             error_log("DHCP Model: Getting subnet by ID: " . $subnetId);
             
-            $response = $this->sendKeaCommand('subnet6-get-by-id', $arguments);
+            $response = $this->sendKeaCommand('subnet6-get', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
     
             // Check if response is valid and has count > 0
@@ -890,11 +883,7 @@ class DHCP
     {
         try {
             $arguments = [
-                "subnets" => [
-                    [
-                        "id" => intval($keaSubnetId)
-                    ]
-                ]
+                "id" => intval($keaSubnetId)
             ];
 
             error_log("DHCP Model: Deleting orphaned subnet with Kea ID: $keaSubnetId");
