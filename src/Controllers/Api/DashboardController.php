@@ -355,4 +355,28 @@ class DashboardController
             ApiResponse::error('Failed to retrieve Kea status: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Get Kea configuration sync status across servers
+     */
+    public function getConfigSyncStatus()
+    {
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
+        try {
+            $dhcp = new \App\Models\DHCP($this->db);
+            $syncStatus = $dhcp->getConfigSyncStatus();
+            
+            ob_end_clean();
+            ApiResponse::success($syncStatus);
+        } catch (\Exception $e) {
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            ApiResponse::error('Failed to retrieve config sync status: ' . $e->getMessage(), 500);
+        }
+    }
 }

@@ -438,6 +438,108 @@ class DHCP
     }
 
     /**
+     * Check configuration sync status across all Kea servers
+     * Returns array with sync status and details
+     */
+    public function getConfigSyncStatus()
+    {
+        try {
+            // Get all active Kea servers
+            $stmt = $this->db->prepare("SELECT id, name, api_url FROM kea_servers WHERE is_active = 1");
+            $stmt->execute();
+            $servers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // If only 1 server, no sync check needed
+            if (count($servers) <= 1) {
+                return [
+                    'in_sync' => true,
+                    'server_count' => count($servers),
+                    'message' => 'Single server configuration'
+                ];
+            }
+            
+            $configs = [];
+            $errors = [];
+            
+            // Get config from each server
+            foreach ($servers as $server) {
+                $ch = curl_init($server['api_url']);
+                $data = [
+                    "command" => "config-get",
+                    "service" => [$this->keaService]
+                ];
+                
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                
+                $response = curl_exec($ch);
+                
+                if (curl_errno($ch)) {
+                    $errors[] = "{$server['name']}: " . curl_error($ch);
+                    curl_close($ch);
+                    continue;
+                }
+                
+                curl_close($ch);
+                
+                $decoded = json_decode($response, true);
+                if (!isset($decoded[0]['result']) || $decoded[0]['result'] !== 0) {
+                    $errors[] = "{$server['name']}: Config-get failed";
+                    continue;
+                }
+                
+                // Store subnet6 configuration for comparison
+                $configs[$server['name']] = $decoded[0]['arguments']['Dhcp6']['subnet6'] ?? [];
+            }
+            
+            if (empty($configs)) {
+                return [
+                    'in_sync' => false,
+                    'server_count' => count($servers),
+                    'message' => 'Failed to retrieve config from any server',
+                    'errors' => $errors
+                ];
+            }
+            
+            // Compare all configs
+            $baseConfig = reset($configs);
+            $baseServerName = key($configs);
+            $inSync = true;
+            $differences = [];
+            
+            foreach ($configs as $serverName => $config) {
+                if ($serverName === $baseServerName) continue;
+                
+                if (json_encode($config) !== json_encode($baseConfig)) {
+                    $inSync = false;
+                    $differences[] = "{$serverName} differs from {$baseServerName}";
+                }
+            }
+            
+            return [
+                'in_sync' => $inSync,
+                'server_count' => count($servers),
+                'checked_servers' => array_keys($configs),
+                'message' => $inSync ? 'All servers in sync' : 'Configuration mismatch detected',
+                'differences' => $differences,
+                'errors' => $errors
+            ];
+            
+        } catch (Exception $e) {
+            error_log("DHCP Model: Error checking config sync: " . $e->getMessage());
+            return [
+                'in_sync' => false,
+                'server_count' => 0,
+                'message' => 'Error checking sync status',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Check if two IPv6 subnets overlap
      */
     private function ipv6SubnetsOverlap($net1, $prefix1, $net2, $prefix2)

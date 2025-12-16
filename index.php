@@ -162,6 +162,8 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->get('/api/dashboard/kea-status', [new \App\Controllers\Api\DashboardController(), 'getKeaStatus'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/dashboard/config-sync', [new \App\Controllers\Api\DashboardController(), 'getConfigSyncStatus'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
  
 

@@ -45,6 +45,14 @@ ob_start();
 
     <!-- Dashboard Content (Hidden until loaded) -->
     <div id="dashboard-content" class="hidden">
+        <!-- Config Sync Status (Only shown for multiple servers) -->
+        <div id="config-sync-section" class="px-4 sm:px-0 mb-6 hidden">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Configuration Sync Status</h3>
+            <div id="config-sync-status" class="bg-white shadow rounded-lg p-6">
+                <!-- Sync status will be inserted here -->
+            </div>
+        </div>
+
         <!-- Kea DHCP Status Section -->
         <div class="px-4 sm:px-0 mb-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Kea DHCPv6 Server Status</h3>
@@ -86,30 +94,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadDashboard() {
     try {
-        // Load dashboard stats and Kea status in parallel
-        const [statsResponse, keaResponse] = await Promise.all([
+        // Load dashboard stats, Kea status, and config sync in parallel
+        const [statsResponse, keaResponse, syncResponse] = await Promise.all([
             fetch('/api/dashboard/stats'),
-            fetch('/api/dashboard/kea-status')
+            fetch('/api/dashboard/kea-status'),
+            fetch('/api/dashboard/config-sync')
         ]);
 
-        if (!statsResponse.ok || !keaResponse.ok) {
+        if (!statsResponse.ok || !keaResponse.ok || !syncResponse.ok) {
             throw new Error('Failed to load dashboard data');
         }
 
         const statsData = await statsResponse.json();
         const keaData = await keaResponse.json();
+        const syncData = await syncResponse.json();
 
-        if (statsData.success && keaData.success) {
+        if (statsData.success && keaData.success && syncData.success) {
             renderStats(statsData.data);
             renderKeaStatus(keaData.data);
             renderDhcpStats(statsData.data.dhcp);
             renderRadiusStats(statsData.data.radius);
+            renderConfigSync(syncData.data);
             
             // Hide loading, show content
             document.getElementById('loading-spinner').classList.add('hidden');
             document.getElementById('dashboard-content').classList.remove('hidden');
         } else {
-            throw new Error(statsData.message || keaData.message || 'Unknown error');
+            throw new Error(statsData.message || keaData.message || syncData.message || 'Unknown error');
         }
     } catch (error) {
         console.error('Dashboard error:', error);
@@ -334,6 +345,53 @@ function renderRadiusStats(data) {
     html += '</div></div>';
     
     radiusStatsEl.innerHTML = html;
+}
+
+function renderConfigSync(data) {
+    // Only show if more than 1 server
+    if (data.server_count <= 1) {
+        return;
+    }
+    
+    const section = document.getElementById('config-sync-section');
+    const container = document.getElementById('config-sync-status');
+    
+    let html = '<div class="flex items-start">';
+    
+    // Status icon and color
+    if (data.in_sync) {
+        html += '<div class="flex-shrink-0"><svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>';
+        html += '<div class="ml-3 flex-1">';
+        html += '<h3 class="text-sm font-medium text-green-800">Configuration In Sync</h3>';
+        html += '<div class="mt-2 text-sm text-green-700">';
+        html += '<p>All ' + data.server_count + ' Kea servers have identical configurations.</p>';
+    } else {
+        html += '<div class="flex-shrink-0"><svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>';
+        html += '<div class="ml-3 flex-1">';
+        html += '<h3 class="text-sm font-medium text-red-800">Configuration Mismatch</h3>';
+        html += '<div class="mt-2 text-sm text-red-700">';
+        html += '<p>' + data.message + '</p>';
+        if (data.differences && data.differences.length > 0) {
+            html += '<ul class="mt-2 list-disc list-inside">';
+            data.differences.forEach(diff => {
+                html += '<li>' + diff + '</li>';
+            });
+            html += '</ul>';
+        }
+    }
+    
+    if (data.checked_servers && data.checked_servers.length > 0) {
+        html += '<p class="mt-2 text-xs">Checked servers: ' + data.checked_servers.join(', ') + '</p>';
+    }
+    
+    if (data.errors && data.errors.length > 0) {
+        html += '<p class="mt-2 text-xs text-gray-600">Errors: ' + data.errors.join(', ') + '</p>';
+    }
+    
+    html += '</div></div></div>';
+    
+    container.innerHTML = html;
+    section.classList.remove('hidden');
 }
 
 // Auto-refresh dashboard every 30 seconds
