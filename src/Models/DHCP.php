@@ -118,9 +118,9 @@ class DHCP
             }
         }
         
-        // If ALL servers failed, throw an exception
-        if (count($errors) === count($serversToContact)) {
-            throw new Exception("Kea command failed on all servers: " . implode("; ", $errors));
+        // If ANY server failed, throw an exception to keep all servers in sync
+        if (!empty($errors)) {
+            throw new Exception("Kea command failed on one or more servers. All servers must succeed to maintain sync: " . implode("; ", $errors));
         }
         
         // Return the first successful response (for backward compatibility)
