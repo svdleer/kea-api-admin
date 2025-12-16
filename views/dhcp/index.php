@@ -121,6 +121,12 @@ require BASE_PATH . '/views/dhcp-menu.php';
     <!-- Table Container -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
         <?php 
+        // Debug: Log the switches array
+        error_log("DEBUG - Total switches in array: " . count($switches));
+        foreach ($switches as $idx => $switch) {
+            error_log("DEBUG - Switch $idx: bvi_interface = '" . ($switch['bvi_interface'] ?? 'NOT SET') . "' (type: " . gettype($switch['bvi_interface'] ?? null) . ")");
+        }
+        
         // Check if there are any BVI interfaces at all
         $hasBviInterfaces = false;
         foreach ($switches as $switch) {
@@ -129,6 +135,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 break;
             }
         }
+        error_log("DEBUG - hasBviInterfaces: " . ($hasBviInterfaces ? 'true' : 'false'));
         ?>
         <?php if (!$hasBviInterfaces): ?>
             <!-- Empty state - no BVI interfaces -->

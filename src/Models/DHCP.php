@@ -1091,11 +1091,9 @@ class DHCP
                 throw new Exception("Missing result code in KEA response");
             }
     
-            // Check if it's a valid "no subnets" response
-            if ($firstResponse['result'] === 3 && 
-                isset($firstResponse['arguments']['count']) && 
-                $firstResponse['arguments']['count'] === 0) {
-                error_log("DHCP Model: No subnets found (valid empty response)");
+            // Check if it's a valid "no subnets" response (result code 3)
+            if ($firstResponse['result'] === 3) {
+                error_log("DHCP Model: No subnets found (result code 3 - valid empty response)");
                 return [];
             }
     
