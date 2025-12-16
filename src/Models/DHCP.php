@@ -726,7 +726,7 @@ class DHCP
                     }
                     
                     error_log("DHCP Model: ERROR - Vendor option definitions (vendor-4491) not configured. Cannot create subnet with CCAP core address.");
-                    throw new \Exception("VENDOR_OPTIONS_MISSING: Vendor option definitions (vendor-4491) are not configured in Kea. Please configure CableLabs vendor options in your Kea configuration file before creating subnets with CCAP core addresses.");
+                    throw new \Exception("VENDOR_OPTIONS_MISSING: Vendor option definitions (vendor-4491) are not configured. Please configure CableLabs vendor options in the DHCP options menu before creating subnets with CCAP Cores.");
                 }
                 
                 $optionArgs = [
