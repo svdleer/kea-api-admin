@@ -488,7 +488,7 @@ class DHCPController
                 SELECT id FROM cin_bvi_dhcp_core 
                 WHERE switch_id = ? AND interface_number = ?
             ");
-            $checkStmt->execute([$switchId, 100]);
+            $checkStmt->execute([$switchId, 0]);
             $existingLink = $checkStmt->fetch(\PDO::FETCH_ASSOC);
             
             if ($existingLink) {
@@ -526,7 +526,7 @@ class DHCPController
                 $stmt->execute([
                     $switchId,
                     $keaSubnetId,
-                    100,
+                    0,  // Store as 0, display adds 100 to show BVI100
                     $bviIpv6,
                     $poolStart,
                     $poolEnd,
