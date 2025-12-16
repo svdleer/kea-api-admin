@@ -124,7 +124,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
         // Check if there are any BVI interfaces at all
         $hasBviInterfaces = false;
         foreach ($switches as $switch) {
-            if (!empty($switch['bvi_interface'])) {
+            if (isset($switch['bvi_interface']) && $switch['bvi_interface'] !== '') {
                 $hasBviInterfaces = true;
                 break;
             }
