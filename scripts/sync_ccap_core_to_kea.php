@@ -103,21 +103,22 @@ try {
         
         echo "  Sending option-data: " . json_encode($keaSubnet['option-data']) . "\n";
         
-        // First, set the option using option6-subnet-set
+        // First, set the option using subnet6-delta-add
         $optionCommand = [
-            'command' => 'option6-subnet-set',
+            'command' => 'subnet6-delta-add',
             'service' => ['dhcp6'],
             'arguments' => [
-                'remote' => ['type' => 'mysql'],
                 'server-tags' => ['all'],
-                'subnet-id' => (int)$subnetId,
-                'options' => [[
-                    'name' => 'ccap-core',
-                    'code' => 61,
-                    'space' => 'vendor-4491',
-                    'csv-format' => true,
-                    'data' => $ccapCore,
-                    'always-send' => true
+                'subnets' => [[
+                    'id' => (int)$subnetId,
+                    'option-data' => [[
+                        'name' => 'ccap-core',
+                        'code' => 61,
+                        'space' => 'vendor-4491',
+                        'csv-format' => true,
+                        'data' => $ccapCore,
+                        'always-send' => true
+                    ]]
                 ]]
             ]
         ];

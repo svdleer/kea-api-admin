@@ -45,21 +45,22 @@ foreach ($subnets as $subnet) {
     
     echo "Setting CCAP core for subnet $subnetId to $ccapCore\n";
     
-    // Prepare the Kea API request using option6-subnet-set
+    // Prepare the Kea API request using subnet6-delta-add
     $data = [
-        "command" => "option6-subnet-set",
+        "command" => "subnet6-delta-add",
         "service" => ["dhcp6"],
         "arguments" => [
-            "subnets" => [["id" => (int)$subnetId]],
-            "options" => [[
-                "name" => "ccap-core",
-                "code" => 61,
-                "space" => "vendor-4491",
-                "csv-format" => true,
-                "data" => $ccapCore,
-                "always-send" => true
-            ]],
-            "remote" => ["type" => "mysql"]
+            "subnets" => [[
+                "id" => (int)$subnetId,
+                "option-data" => [[
+                    "name" => "ccap-core",
+                    "code" => 61,
+                    "space" => "vendor-4491",
+                    "csv-format" => true,
+                    "data" => $ccapCore,
+                    "always-send" => true
+                ]]
+            ]]
         ]
     ];
     

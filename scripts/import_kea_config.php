@@ -336,7 +336,7 @@ class KeaConfigImporter {
                 if ($subnetId) {
                     // Subnet-specific option
                     $keaCommand = [
-                        'command' => 'option6-subnet-set',
+                        'command' => 'subnet6-delta-add',
                         'service' => ['dhcp6'],
                         'arguments' => [
                             'subnets' => [[
@@ -348,7 +348,6 @@ class KeaConfigImporter {
                                     'space' => $option['space'] ?? 'dhcp6'
                                 ]]
                             ]],
-                            'remote' => ['type' => 'mysql'],
                             'server-tags' => ['all']
                         ]
                     ];

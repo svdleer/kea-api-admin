@@ -283,14 +283,15 @@ class DHCP
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
-                    "remote" => ["type" => "mysql"],
-                    "subnets" => [["id" => $subnetId]],
-                    "options" => [[
-                        'code' => 61,
-                        'space' => 'vendor-4491',
-                        'csv-format' => true,
-                        'data' => $data['ccap_core_address'],
-                        'always-send' => true
+                    "subnets" => [[
+                        "id" => $subnetId,
+                        "option-data" => [[
+                            'code' => 61,
+                            'space' => 'vendor-4491',
+                            'csv-format' => true,
+                            'data' => $data['ccap_core_address'],
+                            'always-send' => true
+                        ]]
                     ]]
                 ];
 
@@ -300,7 +301,7 @@ class DHCP
                 $success = false;
                 
                 for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-                    $optionResponse = $this->sendKeaCommand('option6-subnet-set', $optionArgs);
+                    $optionResponse = $this->sendKeaCommand('subnet6-delta-add', $optionArgs);
                     
                     if (isset($optionResponse[0]['result']) && $optionResponse[0]['result'] === 0) {
                         $success = true;
@@ -428,13 +429,15 @@ class DHCP
             // Options 34, 37, 38 are at global level and inherited
             if (!empty($data['ccap_core_address'])) {
                 $optionArgs = [
-                    "subnets" => [["id" => intval($data['subnet_id'])]],
-                    "options" => [[
-                        'code' => 61,
-                        'space' => 'vendor-4491',
-                        'csv-format' => true,
-                        'data' => $data['ccap_core_address'],
-                        'always-send' => true
+                    "subnets" => [[
+                        "id" => intval($data['subnet_id']),
+                        "option-data" => [[
+                            'code' => 61,
+                            'space' => 'vendor-4491',
+                            'csv-format' => true,
+                            'data' => $data['ccap_core_address'],
+                            'always-send' => true
+                        ]]
                     ]]
                 ];
 
@@ -443,7 +446,7 @@ class DHCP
                 $retryDelay = 1; // seconds
                 
                 for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-                    $optionResponse = $this->sendKeaCommand('option6-subnet-set', $optionArgs);
+                    $optionResponse = $this->sendKeaCommand('subnet6-delta-add', $optionArgs);
                     
                     if (isset($optionResponse[0]['result']) && $optionResponse[0]['result'] === 0) {
                         break;
