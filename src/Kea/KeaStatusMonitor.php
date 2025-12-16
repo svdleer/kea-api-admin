@@ -95,7 +95,9 @@ class KeaStatusMonitor {
                     // Handle both array and object responses
                     $versionData = is_array($versionResponse) && isset($versionResponse[0]) ? $versionResponse[0] : $versionResponse;
                     if (isset($versionData['arguments']['extended'])) {
-                        $status['version'] = $versionData['arguments']['extended'];
+                        // Extract just the version number (first line)
+                        $fullVersion = $versionData['arguments']['extended'];
+                        $status['version'] = strtok($fullVersion, "\n");
                     }
                 }
                 
