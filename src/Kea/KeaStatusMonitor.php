@@ -91,8 +91,12 @@ class KeaStatusMonitor {
                 
                 // Try to get version info
                 $versionResponse = $this->sendCommand($server['url'], 'version-get');
-                if ($versionResponse && isset($versionResponse['arguments']['extended'])) {
-                    $status['version'] = $versionResponse['arguments']['extended'];
+                if ($versionResponse) {
+                    // Handle both array and object responses
+                    $versionData = is_array($versionResponse) && isset($versionResponse[0]) ? $versionResponse[0] : $versionResponse;
+                    if (isset($versionData['arguments']['extended'])) {
+                        $status['version'] = $versionData['arguments']['extended'];
+                    }
                 }
                 
                 // Try to get lease statistics
