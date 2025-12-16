@@ -915,7 +915,7 @@ function showEditSubnetModal(subnetData, relay) {
             } else {
                 Swal.fire({
                     title: 'Error!',
-                    text: data.message || 'Failed to save subnet configuration.',
+                    text: data.error || data.message || 'Failed to save subnet configuration.',
                     icon: 'error',
                     confirmButtonColor: '#3085d6'
                 });
