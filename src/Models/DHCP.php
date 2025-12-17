@@ -246,10 +246,8 @@ class DHCP
     {
         error_log("DHCP Model: Persisting config to file with config-write");
         try {
-            $arguments = [
-                "filename" => "/opt/kea/etc/kea/kea-dhcp6.conf"
-            ];
-            $response = $this->sendKeaCommand('config-write', $arguments);
+            // Let Kea save to its configured location - don't specify filename
+            $response = $this->sendKeaCommand('config-write');
             error_log("DHCP Model: Config-write response: " . json_encode($response));
             return true;
         } catch (Exception $e) {
@@ -1079,15 +1077,11 @@ class DHCP
         error_log("DHCP Model: ====== Starting getAllSubnets ======");
         
         try {
-            error_log("DHCP Model: Preparing arguments for KEA command");
-            $arguments = [];
-    
-            error_log("DHCP Model: Arguments prepared: " . json_encode($arguments));
+            error_log("DHCP Model: Getting running configuration from KEA");
             
-            error_log("DHCP Model: Sending subnet6-list command to KEA");
-            $response = $this->sendKeaCommand('subnet6-list', $arguments);
+            error_log("DHCP Model: Sending config-get command to KEA");
+            $response = $this->sendKeaCommand('config-get');
             error_log("DHCP Model: Response type: " . gettype($response));
-            error_log("DHCP Model: Raw response: " . json_encode($response));
     
             if (!is_array($response) || empty($response) || !isset($response[0])) {
                 error_log("DHCP Model: ERROR - Invalid response format");
@@ -1101,20 +1095,14 @@ class DHCP
                 throw new Exception("Missing result code in KEA response");
             }
     
-            // Check if it's a valid "no subnets" response (result code 3)
-            if ($firstResponse['result'] === 3) {
-                error_log("DHCP Model: No subnets found (result code 3 - valid empty response)");
-                return [];
-            }
-    
-            // For other non-zero results, throw an exception
             if ($firstResponse['result'] !== 0) {
                 error_log("DHCP Model: ERROR - Non-zero result code: " . $firstResponse['result']);
-                throw new Exception("Failed to get subnets: " . json_encode($response));
+                throw new Exception("Failed to get config: " . json_encode($response));
             }
     
-            $subnets = $firstResponse['arguments']['subnets'] ?? [];
-            error_log("DHCP Model: Number of subnets retrieved: " . count($subnets));
+            // Extract subnets from the Dhcp6 configuration
+            $subnets = $firstResponse['arguments']['Dhcp6']['subnet6'] ?? [];
+            error_log("DHCP Model: Number of subnets retrieved from config: " . count($subnets));
             
             if (!empty($subnets)) {
                 error_log("DHCP Model: First subnet example: " . json_encode($subnets[0]));
