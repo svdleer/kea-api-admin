@@ -72,9 +72,8 @@ try {
     error_log('Dedicated DHCP View Exception: ' . $e->getMessage());
 }
 
-require BASE_PATH . '/templates/header.php';
+ob_start();
 require BASE_PATH . '/views/dhcp-menu.php';
-
 ?>
 
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1553,4 +1552,8 @@ async function deleteDedicatedSubnet(id, subnetCidr) {
     }
 }
 </script>
-<?php require BASE_PATH . '/templates/footer.php'; ?>
+
+<?php
+$content = ob_get_clean();
+require BASE_PATH . '/views/layout.php';
+?>
