@@ -719,14 +719,45 @@ function openEditModal(option) {
 
 // Function to delete an option
 function deleteOption(code, space) {
+    // Find the option definition to get the name
+    const optionDef = optionsDef.find(def => def.code == code && def.space == space);
+    const optionName = optionDef ? optionDef.name : 'Unknown';
+    
     Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this!",
+        title: 'Delete DHCPv6 Option?',
+        html: `
+            <div class="text-left">
+                <p class="mb-2">You are about to delete:</p>
+                <div class="bg-gray-50 p-3 rounded-md mb-4">
+                    <p><span class="font-semibold">Name:</span> ${optionName}</p>
+                    <p><span class="font-semibold">Code:</span> ${code}</p>
+                    <p><span class="font-semibold">Space:</span> ${space}</p>
+                </div>
+                <p class="text-red-600 mb-4">This will remove the option from the RPD client class. This action cannot be undone!</p>
+                <input type="text" id="delete-option-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
+            </div>
+        `,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, delete it!',
+        customClass: {
+            popup: 'bg-white rounded-lg shadow-xl',
+            title: 'text-gray-800 text-xl font-bold',
+            content: 'text-gray-600',
+            htmlContainer: 'text-left',
+            confirmButton: 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline',
+            cancelButton: 'bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline'
+        },
+        preConfirm: () => {
+            const confirmation = document.getElementById('delete-option-confirmation').value;
+            if (confirmation !== 'I AM SURE!') {
+                Swal.showValidationMessage('Please type "I AM SURE!" to confirm deletion');
+                return false;
+            }
+            return true;
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             // Perform delete operation with both code and space
