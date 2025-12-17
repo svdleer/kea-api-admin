@@ -1204,7 +1204,11 @@ class DHCP
                     'switch_id' => $customConfig['switch_id'] ?? null,
                     'switch_hostname' => $switchHostname,  // Add switch hostname
                     'created_at' => $customConfig['created_at'] ?? null,
-                    'updated_at' => $customConfig['updated_at'] ?? null
+                    'updated_at' => $customConfig['updated_at'] ?? null,
+                    'valid_lifetime' => $subnet['valid-lifetime'] ?? 7200,
+                    'preferred_lifetime' => $subnet['preferred-lifetime'] ?? 3600,
+                    'renew_timer' => $subnet['renew-timer'] ?? 1000,
+                    'rebind_timer' => $subnet['rebind-timer'] ?? 2000
                 ];
                 
                 error_log("DHCP Model: Enriched subnet data: " . json_encode($enrichedSubnet));
@@ -1318,7 +1322,11 @@ class DHCP
                 }, $subnet['pools']),
                 'relay_addresses' => $subnet['relay']['ip-addresses'] ?? [],
                 'shared_network_name' => $subnet['shared-network-name'],
-                'option_data' => $subnet['option-data']
+                'option_data' => $subnet['option-data'],
+                'valid_lifetime' => $subnet['valid-lifetime'] ?? 7200,
+                'preferred_lifetime' => $subnet['preferred-lifetime'] ?? 3600,
+                'renew_timer' => $subnet['renew-timer'] ?? 1000,
+                'rebind_timer' => $subnet['rebind-timer'] ?? 2000
             ];
     
         } catch (Exception $e) {
