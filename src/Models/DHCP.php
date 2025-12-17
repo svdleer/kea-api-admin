@@ -247,7 +247,7 @@ class DHCP
         error_log("DHCP Model: Persisting config to file with config-write");
         try {
             $arguments = [
-                "filename" => "/etc/kea/kea-dhcp6.conf"
+                "filename" => "/opt/kea/etc/kea/kea-dhcp6.conf"
             ];
             $response = $this->sendKeaCommand('config-write', $arguments);
             error_log("DHCP Model: Config-write response: " . json_encode($response));
