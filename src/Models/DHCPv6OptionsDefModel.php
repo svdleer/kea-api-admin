@@ -64,31 +64,41 @@ class DHCPv6OptionsDefModel extends KeaModel
             // Get database connection
             $db = \App\Database\Database::getInstance();
             
+            // Get the first active server ID
+            $stmt = $db->query("SELECT id FROM kea_servers WHERE is_active = 1 LIMIT 1");
+            $server = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$server) {
+                error_log("DHCPv6OptionsDefModel: No active Kea server found, skipping backup");
+                return;
+            }
+            
             // Store backup
             $stmt = $db->prepare("
                 INSERT INTO kea_config_backups (server_id, config_json, created_by, operation)
-                VALUES (1, :config_json, :created_by, :operation)
+                VALUES (:server_id, :config_json, :created_by, :operation)
             ");
             
             $stmt->execute([
+                ':server_id' => $server['id'],
                 ':config_json' => json_encode($result['arguments']),
                 ':created_by' => $_SESSION['user_name'] ?? 'system',
                 ':operation' => $operation
             ]);
             
             // Clean up old backups - keep only last 12
-            $db->exec("
+            $db->prepare("
                 DELETE FROM kea_config_backups
-                WHERE server_id = 1
+                WHERE server_id = :server_id
                 AND id NOT IN (
                     SELECT id FROM (
                         SELECT id FROM kea_config_backups
-                        WHERE server_id = 1
+                        WHERE server_id = :server_id
                         ORDER BY created_at DESC
                         LIMIT 12
                     ) tmp
                 )
-            ");
+            ")->execute([':server_id' => $server['id']]);
             
             error_log("DHCPv6OptionsDefModel: Config backup created successfully");
         } catch (\Exception $e) {
@@ -109,7 +119,8 @@ class DHCPv6OptionsDefModel extends KeaModel
         $this->validateKeaResponse($response, 'set config');
         
         // Write config to disk to persist changes across restarts
-        $writeResponse = $this->sendKeaCommand("config-write");
+        // config-write takes an optional filename argument, pass empty object if no filename
+        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
         $this->validateKeaResponse($writeResponse, 'write config');
         
         error_log("DHCPv6OptionsDefModel: Config written to disk successfully");
