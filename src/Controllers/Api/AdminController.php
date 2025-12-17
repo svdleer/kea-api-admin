@@ -2151,29 +2151,32 @@ class AdminController
     public function viewKeaConfig()
     {
         try {
-            // Use DHCP model to send Kea command
-            require_once BASE_PATH . '/src/Models/DHCP.php';
-            $dhcpModel = new \App\Models\DHCP($this->db);
+            // Get the first active Kea server from database
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 LIMIT 1");
+            $stmt->execute();
+            $server = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // Get config via the model's sendKeaCommand method (we need to use reflection to access private method)
-            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            if (!$server) {
+                throw new \Exception('No active Kea server found');
+            }
             
             $command = [
                 'command' => 'config-get',
                 'service' => ['dhcp6']
             ];
             
-            $ch = curl_init($keaApiUrl);
+            $ch = curl_init($server['api_url']);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
             
             $responseJson = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
             
-            if ($httpCode !== 200) {
+            if ($httpCode !== 200 || !$responseJson) {
                 throw new \Exception('Failed to communicate with Kea API');
             }
             
