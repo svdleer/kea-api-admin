@@ -994,7 +994,7 @@ class DHCP
             error_log("DHCP Model: Remote subnet reconfigured successfully");
             
             // Persist changes to disk
-            $this->writeKeaConfig();
+            $this->saveKeaConfig();
             
             return $data['subnet_id'];
     
