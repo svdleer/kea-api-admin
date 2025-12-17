@@ -47,6 +47,7 @@ class DHCPv6OptionsDefModel extends KeaModel
         
         // Try to delete existing definition first (ignore errors if it doesn't exist)
         $deleteArgs = [
+            "remote" => ["type" => "mysql"],
             "server-tags" => ["all"],
             'option-defs' => [
                 [
@@ -57,7 +58,7 @@ class DHCPv6OptionsDefModel extends KeaModel
         ];
         
         try {
-            $this->sendKeaCommand("remote-option-def6-del", $deleteArgs);
+            $this->sendKeaCommand("option-def6-del", $deleteArgs);
         } catch (\Exception $e) {
             // Ignore error - definition might not exist yet
             error_log("Delete option def (expected for create): " . $e->getMessage());
@@ -65,6 +66,7 @@ class DHCPv6OptionsDefModel extends KeaModel
         
         // Now create the new definition
         $createOptionsDefArguments = [
+            "remote" => ["type" => "mysql"],
             "server-tags" => ["all"],
             'option-defs' => [
                 [
@@ -77,9 +79,7 @@ class DHCPv6OptionsDefModel extends KeaModel
             ]
         ];
 
-        $response = $this->sendKeaCommand("remote-option-def6-set", $createOptionsDefArguments);
-        
-        error_log("DHCPv6Options: RAW KEA RESPONSE for remote-option-def6-set: " . $response);
+        $response = $this->sendKeaCommand("option-def6-set", $createOptionsDefArguments);
         
         $result = $this->validateKeaResponse($response, 'create option');
         return $optionData;
@@ -88,6 +88,7 @@ class DHCPv6OptionsDefModel extends KeaModel
     public function updateOptionDef(array $optionData): array
     {
         $updateOptionsDefArguments = [
+            "remote" => ["type" => "mysql"],
             "server-tags" => ["all"],
             'option-defs' => [
                 [
@@ -100,7 +101,7 @@ class DHCPv6OptionsDefModel extends KeaModel
             ]
         ];
 
-        $response = $this->sendKeaCommand("remote-option-def6-set", $updateOptionsDefArguments);
+        $response = $this->sendKeaCommand("option-def6-set", $updateOptionsDefArguments);
         
         $result = $this->validateKeaResponse($response, 'update option');
         return $optionData;
@@ -109,6 +110,7 @@ class DHCPv6OptionsDefModel extends KeaModel
     public function deleteOptionDef(array $data): array
     {
         $deleteOptionsDefArguments = [
+            "remote" => ["type" => "mysql"],
             "server-tags" => ["all"],
             'option-defs' => [
                 [
@@ -117,7 +119,7 @@ class DHCPv6OptionsDefModel extends KeaModel
                 ]
             ]
         ];
-        $response = $this->sendKeaCommand("remote-option-def6-del", $deleteOptionsDefArguments);
+        $response = $this->sendKeaCommand("option-def6-del", $deleteOptionsDefArguments);
         
         $result = $this->validateKeaResponse($response, 'delete option');
         return ['code' => $data['code']];  // Return the code from the input data
@@ -128,14 +130,15 @@ class DHCPv6OptionsDefModel extends KeaModel
     public function getOptionsDef()
     {
         $getOptionsDefsArguments = [
+            "remote" => ["type" => "mysql"],
             "server-tags" => ["all"]
         ];
 
         try {
-            $response = $this->sendKeaCommand("remote-option-def6-get-all", $getOptionsDefsArguments);
+            $response = $this->sendKeaCommand("option-def6-get-all", $getOptionsDefsArguments);
         } catch (\Exception $e) {
             // If command fails completely, return empty array
-            error_log("DHCPv6Options: remote-option-def6-get-all command failed - returning empty definitions");
+            error_log("DHCPv6Options: option-def6-get-all command failed - returning empty definitions");
             return '[]';
         }
         
@@ -143,7 +146,7 @@ class DHCPv6OptionsDefModel extends KeaModel
             $result = $this->validateKeaResponse($response, 'get options');
         } catch (\Exception $e) {
             // If validation fails (e.g., UNSUPPORTED), return empty array
-            error_log("DHCPv6Options: remote-option-def6-get-all not supported - returning empty definitions");
+            error_log("DHCPv6Options: option-def6-get-all not supported - returning empty definitions");
             return '[]';
         }
         
