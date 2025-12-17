@@ -718,7 +718,7 @@ function openEditModal(option) {
 
 
 // Function to delete an option
-function deleteOption(code, space) {
+async function deleteOption(code, space) {
     // Find the option from optionsData to get the name
     const option = optionsData.find(opt => 
         opt.definition && opt.definition.code == code && opt.definition.space == space
@@ -760,37 +760,41 @@ function deleteOption(code, space) {
             }
             return true;
         }
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            // Perform delete operation with both code and space
-            fetch(`/api/dhcp/options/${code}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    space: space
-                })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return Swal.fire(
-                    'Deleted!',
-                    'Option has been deleted.',
-                    'success'
-                );
-            })
-            .then(() => {
-                loadOptions(); 
-            })
-            .catch(error => {
+            try {
+                const response = await fetch(`/api/dhcp/options/${code}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ space: space })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to delete option');
+                }
+
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: 'DHCPv6 Option has been deleted.',
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                });
+
+                await loadOptions();
+            } catch (error) {
                 console.error('Error:', error);
-                Swal.fire(
-                    'Error!',
-                    'Failed to delete option.',
-                    'error'
-                );
-            });
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'Failed to delete option.',
+                    icon: 'error',
+                    confirmButtonColor: '#EF4444'
+                });
+            }
         }
     });
 }
