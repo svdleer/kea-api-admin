@@ -107,6 +107,12 @@ class DHCPv6OptionsDefModel extends KeaModel
         
         $response = $this->sendKeaCommand("config-set", $configWrapper);
         $this->validateKeaResponse($response, 'set config');
+        
+        // Write config to disk to persist changes across restarts
+        $writeResponse = $this->sendKeaCommand("config-write");
+        $this->validateKeaResponse($writeResponse, 'write config');
+        
+        error_log("DHCPv6OptionsDefModel: Config written to disk successfully");
     }
 
     public function createEditOptionDef(array $optionData): array
