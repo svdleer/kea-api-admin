@@ -311,12 +311,7 @@ try {
     $router->get('/api/dhcp/search-leases', [new \App\Controllers\Api\DHCPv6LeaseSearchController(), 'searchLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
-    // IPv6 Subnets (Kea DHCP management)
-    $router->get('/ipv6', function() use ($auth) {
-        $currentPage = 'ipv6';
-        require BASE_PATH . '/views/ipv6/index.php';
-    });
-
+    // IPv6 Subnets API (Kea DHCP management)
     $router->get('/api/ipv6/subnets', [IPv6Controller::class, 'list']);
     $router->get('/api/ipv6/subnets/{subnetId}', [IPv6Controller::class, 'getById']);
     $router->post('/api/ipv6/subnets', [IPv6Controller::class, 'create']);

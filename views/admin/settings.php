@@ -123,7 +123,7 @@ ob_start();
         </a>
 
         <!-- IPv6 Subnets -->
-        <a href="/ipv6" class="block bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
+        <a href="/dhcp" class="block bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
             <div class="flex items-center mb-4">
                 <div class="bg-red-100 p-3 rounded-lg">
                     <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,7 +132,7 @@ ob_start();
                 </div>
                 <h2 class="ml-4 text-xl font-semibold text-gray-900">IPv6 Subnets</h2>
             </div>
-            <p class="text-gray-600 text-sm">Manage IPv6 subnet allocations and assignments</p>
+            <p class="text-gray-600 text-sm">Manage DHCP IPv6 subnet allocations and assignments</p>
             <div class="mt-4 flex items-center text-red-600 text-sm font-medium">
                 <span>Manage Subnets</span>
                 <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
