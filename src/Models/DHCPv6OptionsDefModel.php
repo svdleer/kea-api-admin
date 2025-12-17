@@ -129,33 +129,9 @@ class DHCPv6OptionsDefModel extends KeaModel
 
     public function getOptionsDef()
     {
-        $getOptionsDefsArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"]
-        ];
-
-        try {
-            $response = $this->sendKeaCommand("option-def6-get-all", $getOptionsDefsArguments);
-            error_log("DHCPv6Options: RAW response from option-def6-get-all: " . $response);
-        } catch (\Exception $e) {
-            // If command fails completely, return empty array
-            error_log("DHCPv6Options: option-def6-get-all command failed - returning empty definitions");
-            return '[]';
-        }
-        
-        try {
-            $result = $this->validateKeaResponse($response, 'get options');
-            error_log("DHCPv6Options: Result code from validation: " . $result['result']);
-        } catch (\Exception $e) {
-            // If validation fails (e.g., UNSUPPORTED), return empty array
-            error_log("DHCPv6Options: option-def6-get-all validation failed: " . $e->getMessage());
-            return '[]';
-        }
-        
-        if ($result['result'] === self::KEA_EMPTY) {
-            return '[]';  // Return empty JSON array as string
-        }
-        
-        return $response;  // Return original response string since it's already JSON
+        // Note: option-def6-get-all is not supported by this Kea installation
+        // Option definitions can be created/deleted but not listed via API
+        // Return empty array so the page loads without errors
+        return '[]';
     }
 }
