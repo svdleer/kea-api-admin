@@ -1052,9 +1052,29 @@ function showEditSubnetModal(subnetData, relay) {
         // Create changes summary
         let changesHtml = '<div class="text-left">';
         if (formData.ccap_core_address !== originalFormData.ccap_core_address) {
-            changesHtml += `<p>CCAP Core Address: <br>
+            changesHtml += `<p><strong>CCAP Core Address:</strong><br>
                 <span class="text-red-500">${originalFormData.ccap_core_address}</span> → 
                 <span class="text-green-500">${formData.ccap_core_address}</span></p>`;
+        }
+        if (formData.valid_lifetime !== originalFormData.valid_lifetime) {
+            changesHtml += `<p><strong>Valid Lifetime:</strong><br>
+                <span class="text-red-500">${originalFormData.valid_lifetime}s</span> → 
+                <span class="text-green-500">${formData.valid_lifetime}s</span></p>`;
+        }
+        if (formData.preferred_lifetime !== originalFormData.preferred_lifetime) {
+            changesHtml += `<p><strong>Preferred Lifetime:</strong><br>
+                <span class="text-red-500">${originalFormData.preferred_lifetime}s</span> → 
+                <span class="text-green-500">${formData.preferred_lifetime}s</span></p>`;
+        }
+        if (formData.renew_timer !== originalFormData.renew_timer) {
+            changesHtml += `<p><strong>Renew Timer (T1):</strong><br>
+                <span class="text-red-500">${originalFormData.renew_timer}s</span> → 
+                <span class="text-green-500">${formData.renew_timer}s</span></p>`;
+        }
+        if (formData.rebind_timer !== originalFormData.rebind_timer) {
+            changesHtml += `<p><strong>Rebind Timer (T2):</strong><br>
+                <span class="text-red-500">${originalFormData.rebind_timer}s</span> → 
+                <span class="text-green-500">${formData.rebind_timer}s</span></p>`;
         }
         changesHtml += '</div>';
 
