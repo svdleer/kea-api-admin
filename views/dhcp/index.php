@@ -405,6 +405,44 @@ require BASE_PATH . '/views/dhcp-menu.php';
                     </div>
                 </div>
 
+                <!-- Lease Timers Section -->
+                <div class="mt-6 mb-4">
+                    <h4 class="text-md font-semibold text-gray-700 mb-3">Lease Timers (seconds)</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_valid_lifetime">
+                                Valid Lifetime
+                            </label>
+                            <input type="number" id="create_valid_lifetime" name="valid_lifetime" value="7200"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_preferred_lifetime">
+                                Preferred Lifetime
+                            </label>
+                            <input type="number" id="create_preferred_lifetime" name="preferred_lifetime" value="3600"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_renew_timer">
+                                Renew Timer (T1)
+                            </label>
+                            <input type="number" id="create_renew_timer" name="renew_timer" value="1000"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_rebind_timer">
+                                Rebind Timer (T2)
+                            </label>
+                            <input type="number" id="create_rebind_timer" name="rebind_timer" value="2000"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-end mt-6">
                     <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2"
                             onclick="document.getElementById('createSubnetModal').classList.add('hidden')">
