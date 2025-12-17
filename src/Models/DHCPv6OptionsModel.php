@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use Exception;
+use PDO;
 
 class DHCPv6OptionsModel extends KeaModel
 {
@@ -9,6 +10,7 @@ class DHCPv6OptionsModel extends KeaModel
     private const KEA_ERROR = 1;
     private const KEA_UNSUPPORTED = 2;
     private const KEA_EMPTY = 3;
+    private const CLASS_NAME = 'RPD'; // The client class name for cable modems
 
 
     private function validateKeaResponse(string $response, string $operation): array 
@@ -40,92 +42,209 @@ class DHCPv6OptionsModel extends KeaModel
         }
     }
 
+    /**
+     * Backup current RPD class configuration before making changes
+     */
+    private function backupCurrentConfig(string $operation): void
+    {
+        try {
+            // Get current RPD class configuration
+            $classGetResponse = $this->sendKeaCommand("class-get", [
+                "name" => self::CLASS_NAME
+            ]);
+            
+            $classData = json_decode($classGetResponse, true);
+            
+            if ($classData[0]['result'] === self::KEA_SUCCESS) {
+                // Save to database
+                $username = $_SESSION['username'] ?? 'system';
+                $stmt = $this->db->prepare(
+                    "INSERT INTO kea_config_backups (config_json, created_by, operation) 
+                     VALUES (?, ?, ?)"
+                );
+                $stmt->execute([
+                    json_encode($classData[0]['arguments']['client-classes'][0]),
+                    $username,
+                    $operation
+                ]);
+            }
+        } catch (Exception $e) {
+            error_log("Failed to backup RPD class config: " . $e->getMessage());
+            // Don't fail the operation if backup fails
+        }
+    }
+
+    /**
+     * Save configuration to disk after successful update
+     */
+    private function saveConfigToDisk(): void
+    {
+        try {
+            $this->sendKeaCommand("config-write", [
+                "filename" => "/etc/kea/kea-dhcp6.conf"
+            ]);
+        } catch (Exception $e) {
+            error_log("Failed to write config to disk: " . $e->getMessage());
+            // Don't fail the operation if config write fails
+        }
+    }
+
+    /**
+     * Get current RPD class with all options
+     */
+    private function getRPDClass(): array
+    {
+        $response = $this->sendKeaCommand("class-get", [
+            "name" => self::CLASS_NAME
+        ]);
+        
+        $result = $this->validateKeaResponse($response, 'get RPD class');
+        
+        if (!isset($result['arguments']['client-classes'][0])) {
+            throw new Exception("RPD class not found in Kea configuration");
+        }
+        
+        return $result['arguments']['client-classes'][0];
+    }
+
+    /**
+     * Create or update an option in the RPD class
+     */
     public function createEditOption($data)
     {
-        $keaRequest = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            "options" => [
-                    [
-                        "always-send" => true,
-                        "csv-format" => true,
-                        "code" => intval($data['code']),
-                        "space" => $data['space'],
-                        "data" => $data['data']
-                    ]
-            ],
+        // Backup current config
+        $this->backupCurrentConfig('option_update');
+
+        // Get current RPD class
+        $rpdClass = $this->getRPDClass();
         
+        // Initialize option-data array if it doesn't exist
+        if (!isset($rpdClass['option-data'])) {
+            $rpdClass['option-data'] = [];
+        }
+        
+        // Find if option already exists
+        $optionIndex = null;
+        foreach ($rpdClass['option-data'] as $index => $option) {
+            if ($option['code'] == $data['code'] && $option['space'] == $data['space']) {
+                $optionIndex = $index;
+                break;
+            }
+        }
+        
+        // Build the new option
+        $newOption = [
+            "always-send" => true,
+            "csv-format" => true,
+            "code" => intval($data['code']),
+            "space" => $data['space'],
+            "data" => $data['data']
+        ];
+        
+        // Update or add option
+        if ($optionIndex !== null) {
+            $rpdClass['option-data'][$optionIndex] = $newOption;
+        } else {
+            $rpdClass['option-data'][] = $newOption;
+        }
+        
+        // Update the class using class-update
+        $keaRequest = [
+            "client-classes" => [$rpdClass]
         ];
 
-
-        error_log("Sending Kea request: " . json_encode($keaRequest));
-        $response = $this->sendKeaCommand("option6-global-set", $keaRequest);
-        error_log("Received Kea response: " . json_encode($response));
+        error_log("Sending class-update request: " . json_encode($keaRequest));
+        $response = $this->sendKeaCommand("class-update", $keaRequest);
+        error_log("Received class-update response: " . json_encode($response));
         
-        $result = $this->validateKeaResponse($response, 'create option');
+        $result = $this->validateKeaResponse($response, 'update RPD class option');
+        
+        // Save config to disk
+        $this->saveConfigToDisk();
+        
         return $result;
     }
 
-
-
-    public function updateOption(array $optionData): array
-    {
-        $updateOptionsArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            'option-defs' => [
-                [
-                    'code' => intval($optionData['code']),
-                    'name' => $optionData['name'],
-                    'space' => $optionData['space'],
-                    'type' => $optionData['type'],
-                    'array' => isset($optionData['array']) ? (bool)$optionData['array'] : false,
-                ]
-            ]
-        ];
-
-        $response = $this->sendKeaCommand("option6-global-set", $updateOptionsArguments);
-        
-        $result = $this->validateKeaResponse($response, 'update option');
-        return $optionData;
-    }
-
+    /**
+     * Delete an option from the RPD class
+     */
     public function deleteOption(array $data): array
     {
-        $deleteOptionsArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            'options' => [
-                [
-                    'code' => $data['code'],
-                    'space' => $data['space']
-                ]
-            ]
-        ];
-        $response = $this->sendKeaCommand("option6-global-del", $deleteOptionsArguments);
-        
-        $result = $this->validateKeaResponse($response, 'delete option');
-        return ['code' => $data['code']];  // Return the code from the input data
-    }
+        // Backup current config
+        $this->backupCurrentConfig('option_delete');
 
-    
-
-    public function getOptions()
-    {
-        $getOptionsArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"]
-        ];
-
-        $response = $this->sendKeaCommand("option6-global-get-all", $getOptionsArguments);
+        // Get current RPD class
+        $rpdClass = $this->getRPDClass();
         
-        $result = $this->validateKeaResponse($response, 'get options');
-        
-        if ($result['result'] === self::KEA_EMPTY) {
-            return '[]';  // Return empty JSON array as string
+        // Find and remove the option
+        if (!isset($rpdClass['option-data'])) {
+            throw new Exception("No options found in RPD class");
         }
         
-        return $response;  // Return original response string since it's already JSON
+        $found = false;
+        $newOptionData = [];
+        foreach ($rpdClass['option-data'] as $option) {
+            if ($option['code'] == $data['code'] && $option['space'] == $data['space']) {
+                $found = true;
+                continue; // Skip this option (delete it)
+            }
+            $newOptionData[] = $option;
+        }
+        
+        if (!$found) {
+            throw new Exception("Option not found in RPD class");
+        }
+        
+        // Update the option-data
+        $rpdClass['option-data'] = $newOptionData;
+        
+        // Update the class using class-update
+        $keaRequest = [
+            "client-classes" => [$rpdClass]
+        ];
+
+        error_log("Sending class-update for delete: " . json_encode($keaRequest));
+        $response = $this->sendKeaCommand("class-update", $keaRequest);
+        
+        $result = $this->validateKeaResponse($response, 'delete RPD class option');
+        
+        // Save config to disk
+        $this->saveConfigToDisk();
+        
+        return ['code' => $data['code']];
+    }
+
+    /**
+     * Get all options from the RPD class
+     */
+    public function getOptions()
+    {
+        try {
+            $rpdClass = $this->getRPDClass();
+            
+            // Build response in the format expected by the controller
+            $response = [
+                [
+                    'result' => self::KEA_SUCCESS,
+                    'arguments' => [
+                        'options' => $rpdClass['option-data'] ?? []
+                    ]
+                ]
+            ];
+            
+            return json_encode($response);
+        } catch (Exception $e) {
+            // Return empty array if class doesn't exist or has no options
+            error_log("Error getting RPD class options: " . $e->getMessage());
+            return json_encode([
+                [
+                    'result' => self::KEA_EMPTY,
+                    'arguments' => [
+                        'options' => []
+                    ]
+                ]
+            ]);
+        }
     }
 
     public function addStaticLease($subnetId, $duid, $ipv6, $options = [])
