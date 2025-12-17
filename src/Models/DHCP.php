@@ -251,12 +251,6 @@ class DHCP
             ];
             $response = $this->sendKeaCommand('config-write', $arguments);
             error_log("DHCP Model: Config-write response: " . json_encode($response));
-            
-            // Reload config from file to apply changes
-            error_log("DHCP Model: Reloading config from file with config-reload");
-            $reloadResponse = $this->sendKeaCommand('config-reload');
-            error_log("DHCP Model: Config-reload response: " . json_encode($reloadResponse));
-            
             return true;
         } catch (Exception $e) {
             error_log("DHCP Model: Warning - config-write failed: " . $e->getMessage());
