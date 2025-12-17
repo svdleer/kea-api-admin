@@ -118,6 +118,7 @@ class DHCPv6OptionsModel extends KeaModel
         
         // Extract current RPD class configuration
         $rpdClass = $result['arguments'] ?? null;
+        error_log("DHCPv6OptionsModel: class-get returned: " . json_encode($rpdClass));
         
         if (!$rpdClass) {
             throw new Exception("RPD client class not found");
