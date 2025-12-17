@@ -21,11 +21,15 @@ class ApiKey {
                 VALUES (?, ?, ?, NOW())";
 
         try {
+            error_log("ApiKey Model: Creating API key - name: $name, read_only: " . ($readOnly ? '1' : '0'));
             $stmt = $this->db->prepare($sql);
             $success = $stmt->execute([$name, $hashedKey, $readOnly ? 1 : 0]);
+            error_log("ApiKey Model: Execute success: " . ($success ? 'true' : 'false'));
 
             return $success ? $apiKey : null;
         } catch (\PDOException $e) {
+            error_log("ApiKey Model: PDOException: " . $e->getMessage());
+            error_log("ApiKey Model: SQL State: " . $e->getCode());
             return null;
         }
     }
