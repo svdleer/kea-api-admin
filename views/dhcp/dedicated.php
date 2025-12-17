@@ -189,72 +189,56 @@ require BASE_PATH . '/views/dhcp-menu.php';
     </div>
 </div>
 
-    <!-- Create Modal -->
-<div id="createSubnetModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <!-- Create Dedicated Subnet Modal -->
+<div id="createDedicatedSubnetModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
         <div class="mt-3">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">Create New DHCPv6 Subnet</h3>
-            <form id="createSubnetForm" class="mt-2">
-                <input type="hidden" id="create_switch_id" name="switch_id">
-                <input type="hidden" id="create_subnet_id" name="subnet_id">
-                <input type="hidden" id="create_interface" name="interface">
-                <input type="hidden" id="create_interface_id" name="interface_id">
-
-
+            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">Create Dedicated DHCPv6 Subnet</h3>
+            <form id="createDedicatedSubnetForm" class="mt-2">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_subnet">
-                            Subnet Prefix
+                    <div class="mb-4 col-span-2">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_subnet">
+                            Subnet Prefix (e.g., 2001:db8::/64)
                         </label>
-                        <input type="text" id="create_subnet" name="subnet" required 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            onchange="validateIPv6Address(this)">
-                        <span id="create_subnetError" class="text-red-500 text-xs hidden"></span>
+                        <input type="text" id="create_dedicated_subnet" name="subnet" required 
+                            placeholder="2001:db8::/64"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_mask">
-                            Prefix Length
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_pool_start">
+                            Pool Start Address
                         </label>
-                        <input type="text" id="create_mask" name="mask" value="64" readonly
-                               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        <input type="text" id="create_dedicated_pool_start" name="pool_start" required
+                            placeholder="2001:db8::2"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_pool_start">
-                            Pool Start
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_pool_end">
+                            Pool End Address
                         </label>
-                        <input type="text" id="create_pool_start" name="pool_start" readonly disabled
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
-                        <span id="create_pool_startError" class="text-red-500 text-xs hidden"></span>
+                        <input type="text" id="create_dedicated_pool_end" name="pool_end" required
+                            placeholder="2001:db8::fffe"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_pool_end">
-                            Pool End
-                        </label>
-                        <input type="text" id="create_pool_end" name="pool_end" readonly disabled
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
-                        <span id="create_pool_endError" class="text-red-500 text-xs hidden"></span>
-                    </div>
-
-
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_ccap_core_address">
-                            CCAP Core Address
-                        </label>
-                        <input type="text" id="create_ccap_core_address" name="ccap_core_address" required
-                               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                               onchange="validateIPv6Address(this)">
-                        <span id="create_ccap_core_addressError" class="text-red-500 text-xs hidden"></span>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_relay_address">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_relay">
                             Relay Address
                         </label>
-                        <input type="text" id="create_relay_address" name="relay_address" required readonly
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        <input type="text" id="create_dedicated_relay" name="relay_address" required
+                            placeholder="2001:db8::1"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_ccap">
+                            CCAP Core Address
+                        </label>
+                        <input type="text" id="create_dedicated_ccap" name="ccap_core_address" required
+                            placeholder="2001:db8::ffff"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
                 </div>
 
@@ -263,34 +247,34 @@ require BASE_PATH . '/views/dhcp-menu.php';
                     <h4 class="text-md font-semibold text-gray-700 mb-3">Lease Timers (seconds)</h4>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_valid_lifetime">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_valid">
                                 Valid Lifetime
                             </label>
-                            <input type="number" id="create_valid_lifetime" name="valid_lifetime" value="7200"
+                            <input type="number" id="create_dedicated_valid" name="valid_lifetime" value="7200"
                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_preferred_lifetime">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_preferred">
                                 Preferred Lifetime
                             </label>
-                            <input type="number" id="create_preferred_lifetime" name="preferred_lifetime" value="3600"
+                            <input type="number" id="create_dedicated_preferred" name="preferred_lifetime" value="3600"
                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_renew_timer">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_renew">
                                 Renew Timer (T1)
                             </label>
-                            <input type="number" id="create_renew_timer" name="renew_timer" value="1000"
+                            <input type="number" id="create_dedicated_renew" name="renew_timer" value="1000"
                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         </div>
 
                         <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_rebind_timer">
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_rebind">
                                 Rebind Timer (T2)
                             </label>
-                            <input type="number" id="create_rebind_timer" name="rebind_timer" value="2000"
+                            <input type="number" id="create_dedicated_rebind" name="rebind_timer" value="2000"
                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         </div>
                     </div>
@@ -298,7 +282,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
                 <div class="flex items-center justify-end mt-6">
                     <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2"
-                            onclick="document.getElementById('createSubnetModal').classList.add('hidden')">
+                            onclick="closeDedicatedModal()">
                         Cancel
                     </button>
                     <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
@@ -1453,12 +1437,70 @@ require BASE_PATH . '/views/layout.php';
 
 <script>
 function showCreateDedicatedSubnetModal() {
-    Swal.fire({
-        title: "Coming Soon",
-        text: "Dedicated subnet creation functionality will be implemented next",
-        icon: "info"
-    });
+    document.getElementById('createDedicatedSubnetModal').classList.remove('hidden');
 }
+
+function closeDedicatedModal() {
+    document.getElementById('createDedicatedSubnetModal').classList.add('hidden');
+    document.getElementById('createDedicatedSubnetForm').reset();
+}
+
+// Handle form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('createDedicatedSubnetForm');
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                subnet: document.getElementById('create_dedicated_subnet').value,
+                pool_start: document.getElementById('create_dedicated_pool_start').value,
+                pool_end: document.getElementById('create_dedicated_pool_end').value,
+                relay_address: document.getElementById('create_dedicated_relay').value,
+                ccap_core_address: document.getElementById('create_dedicated_ccap').value,
+                valid_lifetime: parseInt(document.getElementById('create_dedicated_valid').value),
+                preferred_lifetime: parseInt(document.getElementById('create_dedicated_preferred').value),
+                renew_timer: parseInt(document.getElementById('create_dedicated_renew').value),
+                rebind_timer: parseInt(document.getElementById('create_dedicated_rebind').value),
+                dedicated: true
+            };
+            
+            try {
+                const response = await fetch('/api/dhcp/subnets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Dedicated subnet created successfully',
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.error || 'Failed to create dedicated subnet',
+                        icon: 'error'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to create dedicated subnet: ' + error.message,
+                    icon: 'error'
+                });
+            }
+        });
+    }
+});
 
 function editDedicatedSubnet(subnet) {
     Swal.fire({
@@ -1480,7 +1522,34 @@ async function deleteDedicatedSubnet(id, subnetCidr) {
     });
     
     if (result.isConfirmed) {
-        Swal.fire("Coming Soon", "Delete functionality will be implemented next", "info");
+        try {
+            const response = await fetch(`/api/dhcp/subnets/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Dedicated subnet has been deleted.',
+                    icon: 'success'
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                const data = await response.json();
+                Swal.fire({
+                    title: 'Error',
+                    text: data.error || 'Failed to delete subnet',
+                    icon: 'error'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to delete subnet: ' + error.message,
+                icon: 'error'
+            });
+        }
     }
 }
 </script>
