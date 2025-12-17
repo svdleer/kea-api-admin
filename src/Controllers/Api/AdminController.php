@@ -803,7 +803,7 @@ class AdminController
             error_log('Lease backup error: ' . $e->getMessage());
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Backup failed: ' . implode("\n", $output)
+                'message' => 'Backup failed: ' . $e->getMessage()
             ], 500);
         }
     }
