@@ -117,15 +117,13 @@ class DHCPv6OptionsModel extends KeaModel
         $result = $this->validateKeaResponse($response, 'get class');
         
         // Extract current RPD class configuration
-        $rpdClass = $result['arguments'] ?? null;
-        error_log("DHCPv6OptionsModel: class-get returned: " . json_encode($rpdClass));
-        
-        if (!$rpdClass) {
+        // class-get returns {"client-classes": [{...}]}
+        if (!isset($result['arguments']['client-classes'][0])) {
             throw new Exception("RPD client class not found");
         }
         
-        // Ensure the name field is set (required for class-update)
-        $rpdClass['name'] = 'RPD';
+        $rpdClass = $result['arguments']['client-classes'][0];
+        error_log("DHCPv6OptionsModel: RPD class: " . json_encode($rpdClass));
         
         // Initialize option-data array if it doesn't exist
         if (!isset($rpdClass['option-data'])) {
@@ -194,11 +192,14 @@ class DHCPv6OptionsModel extends KeaModel
         ]);
         
         $result = $this->validateKeaResponse($response, 'get class');
-        $rpdClass = $result['arguments'] ?? null;
         
-        if (!$rpdClass) {
+        // Extract current RPD class configuration  
+        // class-get returns {"client-classes": [{...}]}
+        if (!isset($result['arguments']['client-classes'][0])) {
             throw new Exception("RPD client class not found");
         }
+        
+        $rpdClass = $result['arguments']['client-classes'][0];
         
         // Ensure the name field is set (required for class-update)
         $rpdClass['name'] = 'RPD';
