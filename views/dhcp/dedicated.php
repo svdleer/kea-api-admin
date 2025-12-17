@@ -26,57 +26,23 @@ $pageTitle = 'Dedicated DHCP Subnets';
 
 try {
     $db = Database::getInstance();
-    $cinSwitch = new CinSwitch($db);
     $subnetModel = new DHCP($db); 
-    $switches = $cinSwitch->getAllSwitches();
     
-    // Add DHCP subnets
-    $dhcp = new DHCP($db);
-    error_log("====== DHCP View: About to call DHCPModel->getEnrichedSubnets() ======");
+    // Get all subnets from Kea
+    error_log("====== Dedicated DHCP View: Getting all subnets ======");
     $subnets = $subnetModel->getEnrichedSubnets();
-    error_log("getEnrichedSubnets returned " . count($subnets) . " subnets");
-    error_log("Subnets data: " . json_encode($subnets));
-    error_log("====== DHCP View: Returned from DHCPModel->getEnrichedSubnets() ======");
-
-    // Create an expanded list of switches with their BVI interfaces
-    $expandedSwitches = [];
-    foreach ($switches as $switch) {
-        $bviInterfaces = $cinSwitch->getBVIInterfaces($switch['id']);
-
-        if (!empty($bviInterfaces)) {
-            foreach ($bviInterfaces as $bvi) {
-                $expandedSwitch = $switch;
-                $expandedSwitch['switch_id'] = $switch['id'] ?? '';
-                $expandedSwitch['bvi_interface'] = $bvi['interface_number'] ?? '';
-                $expandedSwitch['bvi_interface_id'] = $bvi['id'] ?? '';
-                $expandedSwitch['ipv6_address'] = $bvi['ipv6_address'] ?? '';
-
-                $matchingSubnet = array_filter($subnets, function($subnet) use ($bvi) {
-                    return isset($subnet['bvi_interface_id']) && 
-                           isset($bvi['id']) && 
-                           $subnet['bvi_interface_id'] == $bvi['id'];
-                });
-                $expandedSwitch['subnet'] = !empty($matchingSubnet) ? reset($matchingSubnet) : null;
-                $expandedSwitches[] = $expandedSwitch;
-            }
-        } else {
-            $expandedSwitch = $switch;
-            $expandedSwitch['switch_id'] = '';
-            $expandedSwitch['bvi_interface'] = '';
-            $expandedSwitch['bvi_interface_id'] = '';
-            $expandedSwitch['ipv6_address'] = '';
-            $expandedSwitch['subnet'] = '';
-            $expandedSwitches[] = $expandedSwitch;
-        }
-    }
     
-    $switches = $expandedSwitches;
-    error_log('Expanded switches: ' . json_encode($switches));
+    // Filter out subnets that have BVI associations (only show dedicated ones)
+    $dedicatedSubnets = array_filter($subnets, function($subnet) {
+        return empty($subnet['bvi_interface_id']) || $subnet['bvi_interface_id'] === null;
+    });
+    
+    error_log("Total subnets: " . count($subnets) . ", Dedicated subnets: " . count($dedicatedSubnets));
+    
 } catch (\Exception $e) {
-    $subnets = [];
-    $switches = [];
+    $dedicatedSubnets = [];
     $error = $e->getMessage();
-    error_log('DHCP View Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    error_log('Dedicated DHCP View Exception: ' . $e->getMessage());
 }
 
 // Start output buffering
@@ -96,9 +62,16 @@ require BASE_PATH . '/views/dhcp-menu.php';
     <div class="mb-6">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-semibold text-gray-900">DHCP Subnet Configuration</h1>
-                <p class="mt-1 text-sm text-gray-600">Configure and manage DHCP subnets for switches and interfaces</p>
+                <h1 class="text-2xl font-semibold text-gray-900">Dedicated DHCP Subnets</h1>
+                <p class="mt-1 text-sm text-gray-600">IPv6 subnets without BVI interface association</p>
             </div>
+            <button onclick="showCreateDedicatedSubnetModal()" 
+                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create Dedicated Subnet
+            </button>
         </div>
     </div>
 
@@ -120,125 +93,71 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
     <!-- Table Container -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
-        <?php 
-        // Debug: Log the switches array
-        error_log("DEBUG - Total switches in array: " . count($switches));
-        foreach ($switches as $idx => $switch) {
-            error_log("DEBUG - Switch $idx: bvi_interface = '" . ($switch['bvi_interface'] ?? 'NOT SET') . "' (type: " . gettype($switch['bvi_interface'] ?? null) . ")");
-        }
-        
-        // Check if there are any BVI interfaces at all
-        $hasBviInterfaces = false;
-        foreach ($switches as $switch) {
-            if (isset($switch['bvi_interface']) && $switch['bvi_interface'] !== '') {
-                $hasBviInterfaces = true;
-                break;
-            }
-        }
-        error_log("DEBUG - hasBviInterfaces: " . ($hasBviInterfaces ? 'true' : 'false'));
-        ?>
-        <?php if (!$hasBviInterfaces): ?>
-            <!-- Empty state - no BVI interfaces -->
+        <?php if (empty($dedicatedSubnets)): ?>
+            <!-- Empty state -->
             <div class="px-6 py-12 text-center text-sm text-gray-500">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No BVI interfaces configured</h3>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No dedicated subnets configured</h3>
                 <p class="mt-1 text-sm text-gray-500">
-                    Get started by adding BVI interfaces to your switches, or import from existing configuration.
+                    Get started by creating a dedicated DHCP subnet without BVI interface.
                 </p>
-                <div class="mt-6 flex justify-center gap-3">
-                    <a href="/bvi" 
-                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Add BVI Interface
-                    </a>
-                    <a href="/admin/import-wizard" 
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                        </svg>
-                        Import Configuration
-                    </a>
-                </div>
             </div>
         <?php else: ?>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Switch Name</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BVI Interface</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subnet ID</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DHCP Subnet</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pool Range</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relay Address</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CCAP Core</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php foreach ($switches as $switch): ?>
+                    <?php foreach ($dedicatedSubnets as $subnet): ?>
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?= htmlspecialchars($switch['hostname'] ?? '') ?>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <?= htmlspecialchars($subnet['id'] ?? '') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?= isset($switch['bvi_interface']) && $switch['bvi_interface'] !== '' ? 'BVI' . (100 + intval($switch['bvi_interface'])) : '' ?>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
-                                    <?= htmlspecialchars($switch['subnet']['subnet']) ?>
-                                <?php else: ?>
-                                    <span class="text-gray-400">Not Configured</span>
-                                <?php endif; ?>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <?= htmlspecialchars($subnet['subnet'] ?? '') ?>
                             </td>
                             <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
-                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet']) && isset($switch['subnet']['pool'])): ?>
+                                <?php if (isset($subnet['pool'])): ?>
                                     <div class="flex flex-col">
-                                        <span class="mb-1"><?= htmlspecialchars($switch['subnet']['pool']['start']) ?></span>
-                                        <span><?= htmlspecialchars($switch['subnet']['pool']['end']) ?></span>
+                                        <span class="mb-1"><?= htmlspecialchars($subnet['pool']['start']) ?></span>
+                                        <span><?= htmlspecialchars($subnet['pool']['end']) ?></span>
                                     </div>
                                 <?php else: ?>
                                     <span class="text-gray-400">Not configured</span>
                                 <?php endif; ?>
                             </td>
-
-
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
-                                    <?= htmlspecialchars($switch['subnet']['ccap_core'] ?? 'Not set') ?>
-                                <?php else: ?>
-                                    <span class="text-gray-400">Not configured</span>
-                                <?php endif; ?>
+                                <?= htmlspecialchars($subnet['relay'] ?? '-') ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <?= htmlspecialchars($subnet['ccap_core'] ?? 'Not set') ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end space-x-2">
-                                    <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
-                                        <button onclick="showEditSubnetModal('<?= htmlspecialchars(json_encode($switch['subnet']), ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>')"
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
-                                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                            Edit
+                                    <button onclick='editDedicatedSubnet(<?= json_encode($subnet) ?>)'
+                                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                        Edit
                                         </button>
-                                        <button onclick="deleteSubnet('<?= $switch['subnet']['id'] ?>', '<?= htmlspecialchars(json_encode($switch['subnet']['subnet']), ENT_QUOTES, 'UTF-8') ?>')"
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                            Delete
-                                        </button>
-                                    <?php else: ?>
-                                        <button onclick="showCreateSubnetModal('<?= htmlspecialchars($switch['switch_id'] ?? '') ?>','<?= htmlspecialchars($switch['bvi_interface'] ?? '') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '') ?>', '<?= htmlspecialchars($switch['bvi_interface_id'] ?? '') ?>')" 
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            </svg>
-                                            Configure
-                                        </button>
-                                    <?php endif; ?>
+                                    <button onclick="deleteDedicatedSubnet('<?= $subnet['id'] ?>', '<?= htmlspecialchars($subnet['subnet'], ENT_QUOTES, 'UTF-8') ?>')"
+                                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        Delete
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1597,3 +1516,37 @@ function showEditSubnetModal(subnetData, relay) {
 $content = ob_get_clean();
 require BASE_PATH . '/views/layout.php';
 ?>
+
+<script>
+function showCreateDedicatedSubnetModal() {
+    Swal.fire({
+        title: "Coming Soon",
+        text: "Dedicated subnet creation functionality will be implemented next",
+        icon: "info"
+    });
+}
+
+function editDedicatedSubnet(subnet) {
+    Swal.fire({
+        title: "Coming Soon",
+        text: "Edit functionality will be implemented next",
+        icon: "info"
+    });
+}
+
+async function deleteDedicatedSubnet(id, subnetCidr) {
+    const result = await Swal.fire({
+        title: "Delete Dedicated Subnet?",
+        text: `Are you sure you want to delete subnet ${subnetCidr}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!"
+    });
+    
+    if (result.isConfirmed) {
+        Swal.fire("Coming Soon", "Delete functionality will be implemented next", "info");
+    }
+}
+</script>
