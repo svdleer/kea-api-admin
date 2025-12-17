@@ -2,7 +2,6 @@
 namespace App\Models;
 
 use Exception;
-use PDO;
 
 class DHCPv6OptionsModel extends KeaModel
 {
@@ -10,7 +9,6 @@ class DHCPv6OptionsModel extends KeaModel
     private const KEA_ERROR = 1;
     private const KEA_UNSUPPORTED = 2;
     private const KEA_EMPTY = 3;
-    private const CLASS_NAME = 'RPD'; // The client class name for cable modems
 
 
     private function validateKeaResponse(string $response, string $operation): array 
@@ -42,97 +40,88 @@ class DHCPv6OptionsModel extends KeaModel
         }
     }
 
-    /**
-     * Backup current RPD class configuration before making changes
-     */
-    private function backupCurrentConfig(string $operation): void
+    private function backupKeaConfig(string $operation): void
     {
         try {
-            // Get current RPD class configuration
-            $classGetResponse = $this->sendKeaCommand("class-get", [
-                "name" => self::CLASS_NAME
-            ]);
+            error_log("DHCPv6OptionsModel: Creating config backup before operation: {$operation}");
             
-            $classData = json_decode($classGetResponse, true);
+            // Get current config
+            $response = $this->sendKeaCommand("config-get");
+            $result = $this->validateKeaResponse($response, 'get config');
             
-            if ($classData[0]['result'] === self::KEA_SUCCESS) {
-                // Save to database
-                $username = $_SESSION['username'] ?? 'system';
-                $stmt = $this->db->prepare(
-                    "INSERT INTO kea_config_backups (config_json, created_by, operation) 
-                     VALUES (?, ?, ?)"
-                );
-                $stmt->execute([
-                    json_encode($classData[0]['arguments']['client-classes'][0]),
-                    $username,
-                    $operation
-                ]);
+            // Get database connection
+            $db = \App\Database\Database::getInstance();
+            
+            // Get the first active server ID
+            $stmt = $db->query("SELECT id FROM kea_servers WHERE is_active = 1 LIMIT 1");
+            $server = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$server) {
+                error_log("DHCPv6OptionsModel: No active Kea server found, skipping backup");
+                return;
             }
-        } catch (Exception $e) {
-            error_log("Failed to backup RPD class config: " . $e->getMessage());
-            // Don't fail the operation if backup fails
-        }
-    }
-
-    /**
-     * Save configuration to disk after successful update
-     */
-    private function saveConfigToDisk(): void
-    {
-        try {
-            $this->sendKeaCommand("config-write", [
-                "filename" => "/etc/kea/kea-dhcp6.conf"
+            
+            // Store backup
+            $stmt = $db->prepare("
+                INSERT INTO kea_config_backups (server_id, config_json, created_by, operation)
+                VALUES (:server_id, :config_json, :created_by, :operation)
+            ");
+            
+            $stmt->execute([
+                ':server_id' => $server['id'],
+                ':config_json' => json_encode($result['arguments']),
+                ':created_by' => $_SESSION['user_name'] ?? 'system',
+                ':operation' => $operation
             ]);
-        } catch (Exception $e) {
-            error_log("Failed to write config to disk: " . $e->getMessage());
-            // Don't fail the operation if config write fails
+            
+            // Clean up old backups - keep only last 12
+            $db->prepare("
+                DELETE FROM kea_config_backups
+                WHERE server_id = :server_id
+                AND id NOT IN (
+                    SELECT id FROM (
+                        SELECT id FROM kea_config_backups
+                        WHERE server_id = :server_id
+                        ORDER BY created_at DESC
+                        LIMIT 12
+                    ) tmp
+                )
+            ")->execute([':server_id' => $server['id']]);
+            
+            error_log("DHCPv6OptionsModel: Config backup created successfully");
+        } catch (\Exception $e) {
+            error_log("DHCPv6OptionsModel: Failed to create backup: " . $e->getMessage());
+            // Don't throw - backup failure shouldn't block the operation
         }
     }
 
-    /**
-     * Get current RPD class with all options
-     */
-    private function getRPDClass(): array
-    {
-        $response = $this->sendKeaCommand("class-get", [
-            "name" => self::CLASS_NAME
-        ]);
-        
-        $result = $this->validateKeaResponse($response, 'get RPD class');
-        
-        if (!isset($result['arguments']['client-classes'][0])) {
-            throw new Exception("RPD class not found in Kea configuration");
-        }
-        
-        return $result['arguments']['client-classes'][0];
-    }
-
-    /**
-     * Create or update an option in the RPD class
-     */
     public function createEditOption($data)
     {
-        // Backup current config
-        $this->backupCurrentConfig('option_update');
-
-        // Get current RPD class
-        $rpdClass = $this->getRPDClass();
+        // Backup config before making changes
+        $this->backupKeaConfig('dhcp-option-create');
+        
+        // Get current RPD class configuration using class-get
+        $response = $this->sendKeaCommand("class-get", [
+            "client-classes" => [
+                ["name" => "RPD"]
+            ]
+        ]);
+        
+        $result = $this->validateKeaResponse($response, 'get class');
+        
+        // Extract current RPD class configuration
+        $rpdClass = $result['arguments']['client-classes'][0] ?? null;
+        
+        if (!$rpdClass) {
+            throw new Exception("RPD client class not found");
+        }
         
         // Initialize option-data array if it doesn't exist
         if (!isset($rpdClass['option-data'])) {
             $rpdClass['option-data'] = [];
         }
         
-        // Find if option already exists
-        $optionIndex = null;
-        foreach ($rpdClass['option-data'] as $index => $option) {
-            if ($option['code'] == $data['code'] && $option['space'] == $data['space']) {
-                $optionIndex = $index;
-                break;
-            }
-        }
-        
-        // Build the new option
+        // Prepare new option
         $newOption = [
             "always-send" => true,
             "csv-format" => true,
@@ -141,109 +130,114 @@ class DHCPv6OptionsModel extends KeaModel
             "data" => $data['data']
         ];
         
-        // Update or add option
-        if ($optionIndex !== null) {
-            $rpdClass['option-data'][$optionIndex] = $newOption;
-        } else {
-            $rpdClass['option-data'][] = $newOption;
-        }
+        // Remove existing option with same code and space if exists
+        $rpdClass['option-data'] = array_filter($rpdClass['option-data'], function($opt) use ($data) {
+            return !($opt['code'] == intval($data['code']) && $opt['space'] == $data['space']);
+        });
+        
+        // Add new option
+        $rpdClass['option-data'][] = $newOption;
+        
+        // Re-index array
+        $rpdClass['option-data'] = array_values($rpdClass['option-data']);
         
         // Update the class using class-update
-        $keaRequest = [
+        $updateResponse = $this->sendKeaCommand("class-update", [
             "client-classes" => [$rpdClass]
-        ];
-
-        error_log("Sending class-update request: " . json_encode($keaRequest));
-        $response = $this->sendKeaCommand("class-update", $keaRequest);
-        error_log("Received class-update response: " . json_encode($response));
+        ]);
         
-        $result = $this->validateKeaResponse($response, 'update RPD class option');
+        $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
-        // Save config to disk
-        $this->saveConfigToDisk();
+        // Write config to disk
+        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
+        $this->validateKeaResponse($writeResponse, 'write config');
         
-        return $result;
+        error_log("DHCPv6OptionsModel: Option added to RPD class and config written to disk");
+        
+        return $updateResult;
     }
 
-    /**
-     * Delete an option from the RPD class
-     */
+
+    public function updateOption(array $optionData): array
+    {
+        // Same as create - it will replace if exists
+        return $this->createEditOption($optionData);
+    }
+
     public function deleteOption(array $data): array
     {
-        // Backup current config
-        $this->backupCurrentConfig('option_delete');
-
-        // Get current RPD class
-        $rpdClass = $this->getRPDClass();
+        // Backup config before making changes
+        $this->backupKeaConfig('dhcp-option-delete');
         
-        // Find and remove the option
-        if (!isset($rpdClass['option-data'])) {
-            throw new Exception("No options found in RPD class");
+        // Get current RPD class configuration
+        $response = $this->sendKeaCommand("class-get", [
+            "client-classes" => [
+                ["name" => "RPD"]
+            ]
+        ]);
+        
+        $result = $this->validateKeaResponse($response, 'get class');
+        $rpdClass = $result['arguments']['client-classes'][0] ?? null;
+        
+        if (!$rpdClass) {
+            throw new Exception("RPD client class not found");
         }
         
-        $found = false;
-        $newOptionData = [];
-        foreach ($rpdClass['option-data'] as $option) {
-            if ($option['code'] == $data['code'] && $option['space'] == $data['space']) {
-                $found = true;
-                continue; // Skip this option (delete it)
-            }
-            $newOptionData[] = $option;
+        // Remove option with matching code and space
+        if (isset($rpdClass['option-data'])) {
+            $rpdClass['option-data'] = array_filter($rpdClass['option-data'], function($opt) use ($data) {
+                return !($opt['code'] == intval($data['code']) && $opt['space'] == $data['space']);
+            });
+            
+            // Re-index array
+            $rpdClass['option-data'] = array_values($rpdClass['option-data']);
         }
         
-        if (!$found) {
-            throw new Exception("Option not found in RPD class");
-        }
-        
-        // Update the option-data
-        $rpdClass['option-data'] = $newOptionData;
-        
-        // Update the class using class-update
-        $keaRequest = [
+        // Update the class
+        $updateResponse = $this->sendKeaCommand("class-update", [
             "client-classes" => [$rpdClass]
-        ];
-
-        error_log("Sending class-update for delete: " . json_encode($keaRequest));
-        $response = $this->sendKeaCommand("class-update", $keaRequest);
+        ]);
         
-        $result = $this->validateKeaResponse($response, 'delete RPD class option');
+        $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
-        // Save config to disk
-        $this->saveConfigToDisk();
+        // Write config to disk
+        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
+        $this->validateKeaResponse($writeResponse, 'write config');
+        
+        error_log("DHCPv6OptionsModel: Option removed from RPD class and config written to disk");
         
         return ['code' => $data['code']];
     }
 
-    /**
-     * Get all options from the RPD class
-     */
     public function getOptions()
     {
         try {
-            $rpdClass = $this->getRPDClass();
-            
-            // Build response in the format expected by the controller
-            $response = [
-                [
-                    'result' => self::KEA_SUCCESS,
-                    'arguments' => [
-                        'options' => $rpdClass['option-data'] ?? []
-                    ]
+            // Get RPD class configuration
+            $response = $this->sendKeaCommand("class-get", [
+                "client-classes" => [
+                    ["name" => "RPD"]
                 ]
-            ];
+            ]);
             
-            return json_encode($response);
-        } catch (Exception $e) {
-            // Return empty array if class doesn't exist or has no options
-            error_log("Error getting RPD class options: " . $e->getMessage());
+            $result = $this->validateKeaResponse($response, 'get class');
+            $rpdClass = $result['arguments']['client-classes'][0] ?? null;
+            
+            if (!$rpdClass || !isset($rpdClass['option-data'])) {
+                return '[]';
+            }
+            
+            // Return options in the expected format
             return json_encode([
                 [
-                    'result' => self::KEA_EMPTY,
+                    'result' => 0,
                     'arguments' => [
-                        'options' => []
+                        'options' => $rpdClass['option-data']
                     ]
                 ]
             ]);
+        } catch (\Exception $e) {
+            error_log("DHCPv6Options: Failed to get options: " . $e->getMessage());
+            return '[]';
         }
     }
 
