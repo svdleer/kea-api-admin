@@ -271,6 +271,10 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/dhcp/create-cin-and-link', [new DHCPController($dhcpModel, $auth), 'createCINAndLink'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    
+    // Dedicated Subnets API Routes
+    $router->put('/api/dhcp/dedicated-subnets/{id}', [new DHCPController($dhcpModel, $auth), 'updateDedicatedSubnet'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // DHCPv6 Options Definitions API Routes
     $optionsDefModel = new \App\Models\DHCPv6OptionsDefModel($database);

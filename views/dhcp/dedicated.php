@@ -37,6 +37,14 @@ try {
     $stmt->execute();
     $bviSubnetIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
     
+    // Get dedicated subnet names from database
+    $stmt = $db->prepare("SELECT kea_subnet_id, name FROM dedicated_subnets");
+    $stmt->execute();
+    $dedicatedSubnetNames = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $dedicatedSubnetNames[$row['kea_subnet_id']] = $row['name'];
+    }
+    
     error_log("BVI-associated subnet IDs: " . json_encode($bviSubnetIds));
     
     // Filter: only show subnets that are NOT in the BVI tracking table
@@ -49,7 +57,7 @@ try {
         return $isDedicated;
     });
     
-    // Enrich with pool data
+    // Enrich with pool data and name
     foreach ($dedicatedSubnets as &$subnet) {
         if (isset($subnet['pools'][0]['pool'])) {
             $poolParts = explode('-', $subnet['pools'][0]['pool']);
@@ -60,8 +68,18 @@ try {
         }
         // Extract relay address
         $subnet['relay'] = $subnet['relay']['ip-addresses'][0] ?? null;
-        // Note: CCAP core is not in Kea config for dedicated subnets
+        // Get CCAP core from option-data if available
         $subnet['ccap_core'] = null;
+        if (isset($subnet['option-data'])) {
+            foreach ($subnet['option-data'] as $option) {
+                if ($option['code'] == 61 && $option['space'] == 'vendor-4491') {
+                    $subnet['ccap_core'] = $option['data'];
+                    break;
+                }
+            }
+        }
+        // Add name from database
+        $subnet['name'] = $dedicatedSubnetNames[$subnet['id']] ?? 'Unnamed';
     }
     
     error_log("Total Kea subnets: " . count($allKeaSubnets) . ", Dedicated subnets: " . count($dedicatedSubnets));
@@ -128,6 +146,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subnet ID</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DHCP Subnet</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pool Range</th>
@@ -139,6 +158,9 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($dedicatedSubnets as $subnet): ?>
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <?= htmlspecialchars($subnet['name'] ?? 'Unnamed') ?>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <?= htmlspecialchars($subnet['id'] ?? '') ?>
                             </td>
@@ -1632,9 +1654,65 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function editDedicatedSubnet(subnet) {
     Swal.fire({
-        title: "Coming Soon",
-        text: "Edit functionality will be implemented next",
-        icon: "info"
+        title: 'Edit Subnet Name',
+        html: `
+            <div class="text-left">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Subnet Name</label>
+                <input type="text" id="edit_subnet_name" value="${subnet.name || ''}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                       placeholder="e.g., Management Network, Guest WiFi">
+                <p class="mt-2 text-sm text-gray-500">Subnet: ${subnet.subnet}</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const name = document.getElementById('edit_subnet_name').value;
+            if (!name || name.trim() === '') {
+                Swal.showValidationMessage('Name is required');
+                return false;
+            }
+            return { name: name.trim() };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`/api/dhcp/dedicated-subnets/${subnet.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: result.value.name
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Subnet name updated successfully',
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.error || 'Failed to update subnet name',
+                        icon: 'error'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to update subnet: ' + error.message,
+                    icon: 'error'
+                });
+            }
+        }
     });
 }
 

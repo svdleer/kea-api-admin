@@ -661,6 +661,46 @@ class DHCPController
             ]);
         }
     }
-}
-
-
+    
+    public function updateDedicatedSubnet()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $id = $_SERVER['REQUEST_URI'];
+            preg_match('/\/api\/dhcp\/dedicated-subnets\/(\d+)/', $id, $matches);
+            $subnetId = $matches[1] ?? null;
+            
+            if (!$subnetId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid subnet ID']);
+                return;
+            }
+            
+            if (empty($data['name'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Name is required']);
+                return;
+            }
+            
+            $db = \App\Database\Database::getInstance();
+            $stmt = $db->prepare("UPDATE dedicated_subnets SET name = ? WHERE kea_subnet_id = ?");
+            $stmt->execute([$data['name'], $subnetId]);
+            
+            if ($stmt->rowCount() === 0) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Dedicated subnet not found']);
+                return;
+            }
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Subnet name updated successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Error in updateDedicatedSubnet: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
