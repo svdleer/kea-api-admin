@@ -267,6 +267,9 @@ function displaySubnets(subnets) {
                                 <input type="text" placeholder="Subnet Name (e.g., Management Network, Guest WiFi)" 
                                        class="dedicated-name text-sm border-gray-300 rounded-md w-full" data-index="${index}"
                                        value="">
+                                <textarea placeholder="Description (optional)" 
+                                       class="dedicated-description text-sm border-gray-300 rounded-md w-full mt-1" data-index="${index}" 
+                                       rows="2">Dedicated subnet - ${subnet.subnet}</textarea>
                                 <p class="text-xs text-gray-500 mt-1">
                                     Required: Enter a descriptive name for this dedicated subnet
                                 </p>
@@ -369,6 +372,7 @@ async function executeImport() {
             importConfig.bvi_id = document.querySelector(`#bvi-select-${index} select`).value;
         } else if (action === 'dedicated') {
             importConfig.dedicated_name = document.querySelector(`.dedicated-name[data-index="${index}"]`).value;
+            importConfig.dedicated_description = document.querySelector(`.dedicated-description[data-index="${index}"]`).value;
             if (!importConfig.dedicated_name || importConfig.dedicated_name.trim() === '') {
                 throw new Error(`Subnet ${subnet.subnet}: Name is required for dedicated subnets`);
             }
