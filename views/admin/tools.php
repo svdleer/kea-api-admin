@@ -689,10 +689,22 @@ async function exportKeaLeases() {
         const response = await fetch('/api/admin/export/kea-leases-csv');
         
         if (!response.ok) {
-            const data = await response.json();
+            // Try to parse as JSON, fall back to text
+            const contentType = response.headers.get('content-type');
+            let message = 'No leases found to export';
+            
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    const data = await response.json();
+                    message = data.message || message;
+                } catch (e) {
+                    // JSON parse failed, use default message
+                }
+            }
+            
             Swal.fire({
                 title: 'Export Failed',
-                text: data.message || 'No leases found to export',
+                text: message,
                 icon: 'info'
             });
             return;
