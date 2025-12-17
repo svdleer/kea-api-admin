@@ -123,6 +123,13 @@ function showCreateSubnetModal() {
                 ${bviOptions}
             </select>
             <textarea id="description" class="swal2-textarea" placeholder="Description"></textarea>
+            <div class="mt-4 text-left">
+                <h3 class="font-semibold mb-2">Lease Timers (seconds)</h3>
+                <input id="valid_lifetime" type="number" class="swal2-input" placeholder="Valid Lifetime (default: 7200)" value="7200">
+                <input id="preferred_lifetime" type="number" class="swal2-input" placeholder="Preferred Lifetime (default: 3600)" value="3600">
+                <input id="renew_timer" type="number" class="swal2-input" placeholder="Renew Timer T1 (default: 1000)" value="1000">
+                <input id="rebind_timer" type="number" class="swal2-input" placeholder="Rebind Timer T2 (default: 2000)" value="2000">
+            </div>
         `,
         focusConfirm: false,
         showCancelButton: true,
@@ -132,7 +139,11 @@ function showCreateSubnetModal() {
                 name: document.getElementById('name').value,
                 prefix: document.getElementById('prefix').value,
                 bvi_id: document.getElementById('bvi_id').value,
-                description: document.getElementById('description').value
+                description: document.getElementById('description').value,
+                valid_lifetime: parseInt(document.getElementById('valid_lifetime').value) || 7200,
+                preferred_lifetime: parseInt(document.getElementById('preferred_lifetime').value) || 3600,
+                renew_timer: parseInt(document.getElementById('renew_timer').value) || 1000,
+                rebind_timer: parseInt(document.getElementById('rebind_timer').value) || 2000
             }
         }
     }).then((result) => {
@@ -183,6 +194,13 @@ function editSubnet(subnetId) {
                         ${bviOptions}
                     </select>
                     <textarea id="description" class="swal2-textarea" placeholder="Description">${subnet.description || ''}</textarea>
+                    <div class="mt-4 text-left">
+                        <h3 class="font-semibold mb-2">Lease Timers (seconds)</h3>
+                        <input id="valid_lifetime" type="number" class="swal2-input" placeholder="Valid Lifetime" value="${subnet.valid_lifetime || 7200}">
+                        <input id="preferred_lifetime" type="number" class="swal2-input" placeholder="Preferred Lifetime" value="${subnet.preferred_lifetime || 3600}">
+                        <input id="renew_timer" type="number" class="swal2-input" placeholder="Renew Timer T1" value="${subnet.renew_timer || 1000}">
+                        <input id="rebind_timer" type="number" class="swal2-input" placeholder="Rebind Timer T2" value="${subnet.rebind_timer || 2000}">
+                    </div>
                     <div class="flex items-center mt-4">
                         <input id="active" type="checkbox" class="form-checkbox" ${subnet.active ? 'checked' : ''}>
                         <label for="active" class="ml-2">Active</label>
@@ -197,7 +215,12 @@ function editSubnet(subnetId) {
                         prefix: document.getElementById('prefix').value,
                         bvi_id: document.getElementById('bvi_id').value,
                         description: document.getElementById('description').value,
-                        active: document.getElementById('active').checked
+                        active: document.getElementById('active').checked,
+                        valid_lifetime: parseInt(document.getElementById('valid_lifetime').value) || 7200,
+                        preferred_lifetime: parseInt(document.getElementById('preferred_lifetime').value) || 3600,
+                        renew_timer: parseInt(document.getElementById('renew_timer').value) || 1000,
+                        rebind_timer: parseInt(document.getElementById('rebind_timer').value) || 2000
+                    }
                     }
                 }
             }).then((result) => {
