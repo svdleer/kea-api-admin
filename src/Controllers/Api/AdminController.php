@@ -845,7 +845,7 @@ class AdminController
         header('Content-Type: text/plain');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
-        $query = "SELECT nasname, shortname, type, secret, description FROM radius_clients ORDER BY nasname";
+        $query = "SELECT nasname, shortname, type, secret, description FROM nas ORDER BY nasname";
         $stmt = $this->db->query($query);
 
         echo "# FreeRADIUS clients.conf\n";
@@ -856,7 +856,7 @@ class AdminController
             echo "    ipv6addr = " . $row['nasname'] . "\n";
             echo "    secret = " . $row['secret'] . "\n";
             echo "    shortname = " . $row['shortname'] . "\n";
-            echo "    nastype = " . $row['type'] . "\n";
+            echo "    nastype = " . ($row['type'] ?? 'other') . "\n";
             if ($row['description']) {
                 echo "    # " . $row['description'] . "\n";
             }
