@@ -40,9 +40,70 @@ class DHCPv6OptionsModel extends KeaModel
         }
     }
 
+    private function backupKeaConfig(string $operation): void
+    {
+        try {
+            error_log("DHCPv6OptionsModel: Creating config backup before operation: {$operation}");
+            
+            // Get current config
+            $response = $this->sendKeaCommand("config-get");
+            $result = $this->validateKeaResponse($response, 'get config');
+            
+            // Get database connection
+            $db = \App\Database\Database::getInstance();
+            
+            // Get the first active server ID
+            $stmt = $db->query("SELECT id FROM kea_servers WHERE is_active = 1 LIMIT 1");
+            $server = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$server) {
+                error_log("DHCPv6OptionsModel: No active Kea server found, skipping backup");
+                return;
+            }
+            
+            // Store backup
+            $stmt = $db->prepare("
+                INSERT INTO kea_config_backups (server_id, config_json, created_by, operation)
+                VALUES (?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $server['id'],
+                json_encode($result['arguments']),
+                $_SESSION['user_name'] ?? 'system',
+                $operation
+            ]);
+            
+            // Clean up old backups - keep only last 12
+            $deleteStmt = $db->prepare("
+                DELETE FROM kea_config_backups
+                WHERE server_id = ?
+                AND id NOT IN (
+                    SELECT id FROM (
+                        SELECT id FROM kea_config_backups
+                        WHERE server_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT 12
+                    ) tmp
+                )
+            ");
+            $deleteStmt->execute([$server['id'], $server['id']]);
+            
+            error_log("DHCPv6OptionsModel: Config backup created successfully");
+        } catch (\Exception $e) {
+            error_log("DHCPv6OptionsModel: Failed to create backup: " . $e->getMessage());
+            // Don't throw - backup failure shouldn't block the operation
+        }
+    }
+
     public function createEditOption($data)
     {
-        // Get current RPD class configuration using class-get
+        // 1. Backup current config to database
+        $this->backupKeaConfig('dhcp-option-create');
+        // 1. Backup current config to database
+        $this->backupKeaConfig('dhcp-option-create');
+        
+        // 2. Get current RPD class configuration using class-get
         $response = $this->sendKeaCommand("class-get", [
             "name" => "RPD"
         ]);
@@ -88,7 +149,11 @@ class DHCPv6OptionsModel extends KeaModel
         
         $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
-        error_log("DHCPv6OptionsModel: Option added to RPD class");
+        // 3. Write config to disk to persist changes
+        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
+        $this->validateKeaResponse($writeResponse, 'write config');
+        
+        error_log("DHCPv6OptionsModel: Option added to RPD class and config written to disk");
         
         return $updateResult;
     }
@@ -102,7 +167,10 @@ class DHCPv6OptionsModel extends KeaModel
 
     public function deleteOption(array $data): array
     {
-        // Get current RPD class configuration
+        // 1. Backup current config to database
+        $this->backupKeaConfig('dhcp-option-delete');
+        
+        // 2. Get current RPD class configuration
         $response = $this->sendKeaCommand("class-get", [
             "name" => "RPD"
         ]);
@@ -131,7 +199,11 @@ class DHCPv6OptionsModel extends KeaModel
         
         $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
-        error_log("DHCPv6OptionsModel: Option removed from RPD class");
+        // 3. Write config to disk to persist changes
+        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
+        $this->validateKeaResponse($writeResponse, 'write config');
+        
+        error_log("DHCPv6OptionsModel: Option removed from RPD class and config written to disk");
         
         return ['code' => $data['code']];
     }
