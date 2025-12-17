@@ -681,9 +681,35 @@ class AdminController
                     
                     $details[] = "✓ Linked subnet {$subnet['subnet']} to existing BVI{$bvi['interface_number']}";
                 } elseif ($action === 'dedicated') {
-                    // Create as dedicated subnet - no CIN/BVI association
-                    // Subnet already created in Kea, just mark as imported without any database linking
-                    $details[] = "✓ Created dedicated subnet {$subnet['subnet']} (no BVI association)";
+                    // Create as dedicated subnet - store with name in dedicated_subnets table
+                    if (empty($config['dedicated_name'])) {
+                        throw new \Exception("Name is required for dedicated subnets");
+                    }
+                    
+                    // Parse pool
+                    $poolStart = null;
+                    $poolEnd = null;
+                    if ($subnet['pool'] && preg_match('/^(.+?)\s*-\s*(.+?)$/', $subnet['pool'], $matches)) {
+                        $poolStart = trim($matches[1]);
+                        $poolEnd = trim($matches[2]);
+                    }
+                    
+                    // Store in dedicated_subnets table
+                    $stmt = $this->db->prepare("
+                        INSERT INTO dedicated_subnets 
+                        (name, kea_subnet_id, subnet, pool_start, pool_end, ccap_core)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $config['dedicated_name'],
+                        $subnet['id'],
+                        $subnet['subnet'],
+                        $poolStart,
+                        $poolEnd,
+                        $subnet['ccap_core'] ?? null
+                    ]);
+                    
+                    $details[] = "✓ Created dedicated subnet '{$config['dedicated_name']}' ({$subnet['subnet']})";
                 }
                 
                 $imported++;

@@ -263,6 +263,14 @@ function displaySubnets(subnets) {
                                     ${subnet.suggested_cin_name ? '<span class="text-green-600">✓ Name suggested from config comments</span>' : 'Optional: Leave empty to create subnet only, fill to create CIN switch + BVI100'}
                                 </p>
                             </div>
+                            <div class="mt-2 hidden" id="dedicated-input-${index}">
+                                <input type="text" placeholder="Subnet Name (e.g., Management Network, Guest WiFi)" 
+                                       class="dedicated-name text-sm border-gray-300 rounded-md w-full" data-index="${index}"
+                                       value="">
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Required: Enter a descriptive name for this dedicated subnet
+                                </p>
+                            </div>
                         </td>
                     </tr>
                 `}).join('')}
@@ -280,10 +288,12 @@ function displaySubnets(subnets) {
             
             const bviSelect = document.getElementById(`bvi-select-${index}`);
             const cinInput = document.getElementById(`cin-input-${index}`);
+            const dedicatedInput = document.getElementById(`dedicated-input-${index}`);
             
-            // Hide both first
+            // Hide all first
             if (bviSelect) bviSelect.classList.add('hidden');
             if (cinInput) cinInput.classList.add('hidden');
+            if (dedicatedInput) dedicatedInput.classList.add('hidden');
             
             if (value === 'link') {
                 if (bviSelect) {
@@ -294,8 +304,12 @@ function displaySubnets(subnets) {
                 if (cinInput) {
                     cinInput.classList.remove('hidden');
                 }
+            } else if (value === 'dedicated') {
+                if (dedicatedInput) {
+                    dedicatedInput.classList.remove('hidden');
+                }
             }
-            // If value === 'skip' or 'dedicated', both remain hidden
+            // If value === 'skip', all remain hidden
         });
     });
 }
@@ -354,8 +368,10 @@ async function executeImport() {
         } else if (action === 'link') {
             importConfig.bvi_id = document.querySelector(`#bvi-select-${index} select`).value;
         } else if (action === 'dedicated') {
-            // Dedicated subnets don't need CIN/BVI info
-            importConfig.is_dedicated = true;
+            importConfig.dedicated_name = document.querySelector(`.dedicated-name[data-index="${index}"]`).value;
+            if (!importConfig.dedicated_name || importConfig.dedicated_name.trim() === '') {
+                throw new Error(`Subnet ${subnet.subnet}: Name is required for dedicated subnets`);
+            }
         }
         
         subnetsToImport.push(importConfig);
