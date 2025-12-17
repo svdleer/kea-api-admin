@@ -694,11 +694,11 @@ class AdminController
                         $poolEnd = trim($matches[2]);
                     }
                     
-                    // Store in dedicated_subnets table
+                    // Store in dedicated_subnets table (without description)
                     $stmt = $this->db->prepare("
                         INSERT INTO dedicated_subnets 
-                        (name, kea_subnet_id, subnet, pool_start, pool_end, ccap_core, description)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (name, kea_subnet_id, subnet, pool_start, pool_end, ccap_core)
+                        VALUES (?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([
                         $config['dedicated_name'],
@@ -706,8 +706,7 @@ class AdminController
                         $subnet['subnet'],
                         $poolStart,
                         $poolEnd,
-                        $subnet['ccap_core'] ?? null,
-                        $config['dedicated_description'] ?? null
+                        $subnet['ccap_core'] ?? null
                     ]);
                     
                     $details[] = "✓ Created dedicated subnet '{$config['dedicated_name']}' ({$subnet['subnet']})";
