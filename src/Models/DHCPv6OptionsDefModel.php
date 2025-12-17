@@ -79,6 +79,8 @@ class DHCPv6OptionsDefModel extends KeaModel
 
         $response = $this->sendKeaCommand("remote-option-def6-set", $createOptionsDefArguments);
         
+        error_log("DHCPv6Options: RAW KEA RESPONSE for remote-option-def6-set: " . $response);
+        
         $result = $this->validateKeaResponse($response, 'create option');
         return $optionData;
     }
