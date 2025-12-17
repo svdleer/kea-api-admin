@@ -233,7 +233,7 @@ error_log('isAdmin result: ' . ($auth->isAdmin() ? 'true' : 'false'));
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center">
                 <div class="text-sm text-gray-500">
-                    &copy; <?php echo date('Y'); ?> VFZ RPD Infrastructure Management
+                    &copy; <?php echo date('Y'); ?> Kea API Admin
                 </div>
                 <div class="text-sm text-gray-500">
                     Version 0.1
