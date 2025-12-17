@@ -117,6 +117,9 @@ class DHCPv6OptionsModel extends KeaModel
             throw new Exception("RPD client class not found");
         }
         
+        // Ensure the name field is set (required for class-update)
+        $rpdClass['name'] = 'RPD';
+        
         // Initialize option-data array if it doesn't exist
         if (!isset($rpdClass['option-data'])) {
             $rpdClass['option-data'] = [];
@@ -184,6 +187,9 @@ class DHCPv6OptionsModel extends KeaModel
         if (!$rpdClass) {
             throw new Exception("RPD client class not found");
         }
+        
+        // Ensure the name field is set (required for class-update)
+        $rpdClass['name'] = 'RPD';
         
         // Remove option with matching code and space
         if (isset($rpdClass['option-data'])) {
