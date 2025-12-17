@@ -993,8 +993,8 @@ class DHCP
     
             error_log("DHCP Model: Remote subnet reconfigured successfully");
             
-            // Don't reload config - it wipes out option-data that wasn't saved to MySQL
-            // $this->reloadKeaConfig();
+            // Persist changes to disk
+            $this->writeKeaConfig();
             
             return $data['subnet_id'];
     
