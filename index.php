@@ -247,6 +247,13 @@ try {
         require BASE_PATH . '/views/dhcp/index.php';
     })->middleware(new \App\Middleware\AuthMiddleware($auth));
 
+    // Dedicated DHCP Subnets
+    $router->get('/dhcp/dedicated', function() use ($auth) {
+        $currentPage = 'dhcp';
+        $subPage = 'dedicated';
+        require BASE_PATH . '/views/dhcp/dedicated.php';
+    })->middleware(new \App\Middleware\AuthMiddleware($auth));
+
     // DHCP API Routes
     $router->get('/api/dhcp/subnets', [new DHCPController($dhcpModel, $auth), 'getAllSubnets'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
