@@ -275,11 +275,13 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_ccap">
-                            CCAP Core Address
+                            CCAP Core Address (Optional)
                         </label>
-                        <input type="text" id="create_dedicated_ccap" name="ccap_core_address" required
-                            placeholder="2001:db8::ffff"
+                        <input type="text" id="create_dedicated_ccap" name="ccap_core_address"
+                            placeholder="2001:db8::ffff (optional)"
+                            onchange="validateIPv6Address(this)"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <span id="create_dedicated_ccapError" class="text-red-500 text-xs hidden"></span>
                     </div>
                 </div>
 
@@ -1567,8 +1569,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Validate CCAP core address
-            if (!validateIPv6Address(ccapInput)) {
+            // Validate CCAP core address if provided
+            if (ccapInput.value && ccapInput.value.trim() !== '' && !validateIPv6Address(ccapInput)) {
                 Swal.fire({
                     title: 'Validation Error',
                     text: 'Please enter a valid CCAP Core IPv6 address',
@@ -1607,13 +1609,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 pool_start: document.getElementById('create_dedicated_pool_start').value,
                 pool_end: document.getElementById('create_dedicated_pool_end').value,
                 relay_address: document.getElementById('create_dedicated_relay').value,
-                ccap_core_address: ccapInput.value,
                 valid_lifetime: parseInt(document.getElementById('create_dedicated_valid').value),
                 preferred_lifetime: parseInt(document.getElementById('create_dedicated_preferred').value),
                 renew_timer: parseInt(document.getElementById('create_dedicated_renew').value),
                 rebind_timer: parseInt(document.getElementById('create_dedicated_rebind').value),
                 dedicated: true
             };
+            
+            // Only include CCAP core if it's filled in
+            if (ccapInput.value && ccapInput.value.trim() !== '') {
+                formData.ccap_core_address = ccapInput.value;
+            }
             
             try {
                 const response = await fetch('/api/dhcp/subnets', {

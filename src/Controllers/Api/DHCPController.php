@@ -35,16 +35,17 @@ class DHCPController
             'subnet',
             'pool_start',
             'pool_end',
-            'ccap_core_address',
             'relay_address'
         ];
         
         // BVI interface ID is only required for non-dedicated subnets
         if (!$isDedicated) {
             $requiredFields[] = 'bvi_interface_id';
+            $requiredFields[] = 'ccap_core_address'; // CCAP core required for BVI subnets
         } else {
             // Name is required for dedicated subnets
             $requiredFields[] = 'name';
+            // CCAP core is optional for dedicated subnets
         }
 
         foreach ($requiredFields as $field) {
