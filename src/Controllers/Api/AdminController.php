@@ -947,16 +947,16 @@ class AdminController
             $keaFilename = 'kea-db.sql';
             $keaFilepath = $backupDir . '/' . $keaFilename;
             
-            $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
-            $dbName = $_ENV['DB_NAME'] ?? 'kea_db';
-            $dbUser = $_ENV['DB_USER'] ?? 'kea_db_user';
-            $dbPass = $_ENV['DB_PASSWORD'] ?? '';
+            $dbHost = getenv('DB_HOST') ?: 'localhost';
+            $dbName = getenv('DB_NAME') ?: 'kea_db';
+            $dbUser = getenv('DB_USER') ?: 'kea_db_user';
+            $dbPass = getenv('DB_PASSWORD') ?: '';
 
             $command = sprintf(
-                "mysqldump -h %s -u %s -p'%s' %s > %s 2>&1",
+                "mysqldump -h %s -u %s -p%s %s > %s 2>&1",
                 escapeshellarg($dbHost),
                 escapeshellarg($dbUser),
-                $dbPass,
+                escapeshellarg($dbPass),
                 escapeshellarg($dbName),
                 escapeshellarg($keaFilepath)
             );
