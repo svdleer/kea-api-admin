@@ -201,6 +201,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         </label>
                         <input type="text" id="create_dedicated_subnet" name="subnet" required 
                             placeholder="2001:db8::/64"
+                            onchange="autofillDedicatedPool(this)"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
 
@@ -1428,6 +1429,26 @@ function showEditSubnetModal(subnetData, relay) {
 </script>
 
 <script>
+function autofillDedicatedPool(input) {
+    const subnetValue = input.value.trim();
+    
+    // Check if it's a valid IPv6 subnet format (e.g., 2001:db8::/64)
+    if (!subnetValue.includes('/')) {
+        return;
+    }
+    
+    // Extract the prefix part before ::
+    const prefix = subnetValue.split('::')[0];
+    if (!prefix) {
+        return;
+    }
+    
+    // Auto-fill pool start, end, and relay addresses
+    document.getElementById('create_dedicated_pool_start').value = prefix + '::2';
+    document.getElementById('create_dedicated_pool_end').value = prefix + '::fffe';
+    document.getElementById('create_dedicated_relay').value = prefix + '::1';
+}
+
 function showCreateDedicatedSubnetModal() {
     document.getElementById('createDedicatedSubnetModal').classList.remove('hidden');
 }
