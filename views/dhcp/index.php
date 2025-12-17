@@ -466,20 +466,31 @@ require BASE_PATH . '/views/dhcp-menu.php';
 let originalFormData = {};
 
 function checkFormChanges() {
-    console.debug('Checking form changes'); // Debug
+    console.debug('Checking form changes');
     const ccapCoreField = document.getElementById('edit_ccap_core_address');
+    const validLifetimeField = document.getElementById('edit_valid_lifetime');
+    const preferredLifetimeField = document.getElementById('edit_preferred_lifetime');
+    const renewTimerField = document.getElementById('edit_renew_timer');
+    const rebindTimerField = document.getElementById('edit_rebind_timer');
     const saveButton = document.getElementById('editSubnetSaveButton');
     
     if (ccapCoreField && saveButton) {
-        const currentValue = ccapCoreField.value;
-        const isOriginalValue = currentValue === originalFormData.ccap_core_address;
+        const currentCcapCore = ccapCoreField.value;
+        const ccapCoreChanged = currentCcapCore !== originalFormData.ccap_core_address;
         
-        console.debug('Current value:', currentValue); // Debug
-        console.debug('Original value:', originalFormData.ccap_core_address); // Debug
-        console.debug('Is original value:', isOriginalValue); // Debug
+        // Check if any lifetime fields have changed
+        const validLifetimeChanged = validLifetimeField && (parseInt(validLifetimeField.value) || 7200) !== (originalFormData.valid_lifetime || 7200);
+        const preferredLifetimeChanged = preferredLifetimeField && (parseInt(preferredLifetimeField.value) || 3600) !== (originalFormData.preferred_lifetime || 3600);
+        const renewTimerChanged = renewTimerField && (parseInt(renewTimerField.value) || 1000) !== (originalFormData.renew_timer || 1000);
+        const rebindTimerChanged = rebindTimerField && (parseInt(rebindTimerField.value) || 2000) !== (originalFormData.rebind_timer || 2000);
         
-        // Disable button if it's the original value or invalid IPv6
-        saveButton.disabled = isOriginalValue || !validateIPv6Address(ccapCoreField);
+        const anyFieldChanged = ccapCoreChanged || validLifetimeChanged || preferredLifetimeChanged || renewTimerChanged || rebindTimerChanged;
+        
+        console.debug('CCAP Core changed:', ccapCoreChanged);
+        console.debug('Any field changed:', anyFieldChanged);
+        
+        // Enable button if any field changed AND IPv6 is valid
+        saveButton.disabled = !anyFieldChanged || !validateIPv6Address(ccapCoreField);
     }
 }
 
@@ -794,7 +805,11 @@ function showEditSubnetModal(subnetData, relay) {
 
         // Set original form data
         originalFormData = {
-            ccap_core_address: subnet.ccap_core
+            ccap_core_address: subnet.ccap_core,
+            valid_lifetime: subnet.valid_lifetime || 7200,
+            preferred_lifetime: subnet.preferred_lifetime || 3600,
+            renew_timer: subnet.renew_timer || 1000,
+            rebind_timer: subnet.rebind_timer || 2000
         };
 
         const saveButton = document.getElementById('editSubnetSaveButton');
@@ -815,6 +830,15 @@ function showEditSubnetModal(subnetData, relay) {
                 checkFormChanges();
             });
         }
+        
+        // Add event listeners to lifetime fields
+        ['edit_valid_lifetime', 'edit_preferred_lifetime', 'edit_renew_timer', 'edit_rebind_timer'].forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', checkFormChanges);
+                field.addEventListener('change', checkFormChanges);
+            }
+        });
 
 
 
