@@ -1229,7 +1229,7 @@ async function checkRadiusOrphans() {
             const report = data.report;
             let html = `
                 <div class="text-left">
-                    <p class="mb-3"><strong>Valid BVI Interface IDs:</strong> ${report.valid_bvi_ids.join(', ') || 'None'}</p>
+                    <p class="mb-3"><strong>Valid BVI IPs:</strong> ${report.valid_bvi_ips ? report.valid_bvi_ips.join(', ') : 'None'}</p>
                     <p class="mb-2"><strong>Total Orphans Found:</strong> ${data.total_orphans}</p>
             `;
 
@@ -1241,7 +1241,7 @@ async function checkRadiusOrphans() {
                         <ul class="text-xs text-red-800 list-disc list-inside">
                 `;
                 report.local_orphans.forEach(orphan => {
-                    html += `<li>ID ${orphan.id}: ${orphan.nasname} (BVI ID: ${orphan.bvi_interface_id})</li>`;
+                    html += `<li>ID ${orphan.id}: ${orphan.nasname} (${orphan.shortname || 'No name'})</li>`;
                 });
                 html += `</ul></div>`;
             } else {
@@ -1265,7 +1265,7 @@ async function checkRadiusOrphans() {
                                 <ul class="text-xs text-red-800 list-disc list-inside">
                         `;
                         serverData.entries.forEach(orphan => {
-                            html += `<li>ID ${orphan.id}: ${orphan.nasname} (BVI ID: ${orphan.bvi_interface_id})</li>`;
+                            html += `<li>ID ${orphan.id}: ${orphan.nasname} (${orphan.shortname || 'No name'})</li>`;
                         });
                         html += `</ul></div>`;
                     }
