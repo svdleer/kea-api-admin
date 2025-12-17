@@ -785,6 +785,33 @@ function showEditSubnetModal(subnetData, relay) {
                         <span id="edit_ccap_core_addressError" class="text-red-500 text-xs hidden"></span>
                     </div>
 
+                    <!-- Lease Timers Section -->
+                    <div class="mt-4 mb-4">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3">Lease Timers (seconds)</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="edit_valid_lifetime" class="block text-gray-700 text-xs font-bold mb-1">Valid Lifetime</label>
+                                <input type="number" id="edit_valid_lifetime" name="valid_lifetime" value="${subnet.valid_lifetime || 7200}"
+                                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
+                            </div>
+                            <div>
+                                <label for="edit_preferred_lifetime" class="block text-gray-700 text-xs font-bold mb-1">Preferred Lifetime</label>
+                                <input type="number" id="edit_preferred_lifetime" name="preferred_lifetime" value="${subnet.preferred_lifetime || 3600}"
+                                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
+                            </div>
+                            <div>
+                                <label for="edit_renew_timer" class="block text-gray-700 text-xs font-bold mb-1">Renew Timer (T1)</label>
+                                <input type="number" id="edit_renew_timer" name="renew_timer" value="${subnet.renew_timer || 1000}"
+                                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
+                            </div>
+                            <div>
+                                <label for="edit_rebind_timer" class="block text-gray-700 text-xs font-bold mb-1">Rebind Timer (T2)</label>
+                                <input type="number" id="edit_rebind_timer" name="rebind_timer" value="${subnet.rebind_timer || 2000}"
+                                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mt-4 flex justify-end">
                     <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2"
                             onclick="document.getElementById('editSubnetModal').classList.add('hidden')">
