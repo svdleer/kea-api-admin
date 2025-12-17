@@ -791,22 +791,22 @@ function showEditSubnetModal(subnetData, relay) {
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label for="edit_valid_lifetime" class="block text-gray-700 text-xs font-bold mb-1">Valid Lifetime</label>
-                                <input type="number" id="edit_valid_lifetime" name="valid_lifetime" value="${subnet.valid_lifetime || 7200}"
+                                <input type="number" id="edit_valid_lifetime" name="valid_lifetime"
                                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
                             </div>
                             <div>
                                 <label for="edit_preferred_lifetime" class="block text-gray-700 text-xs font-bold mb-1">Preferred Lifetime</label>
-                                <input type="number" id="edit_preferred_lifetime" name="preferred_lifetime" value="${subnet.preferred_lifetime || 3600}"
+                                <input type="number" id="edit_preferred_lifetime" name="preferred_lifetime"
                                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
                             </div>
                             <div>
                                 <label for="edit_renew_timer" class="block text-gray-700 text-xs font-bold mb-1">Renew Timer (T1)</label>
-                                <input type="number" id="edit_renew_timer" name="renew_timer" value="${subnet.renew_timer || 1000}"
+                                <input type="number" id="edit_renew_timer" name="renew_timer"
                                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
                             </div>
                             <div>
                                 <label for="edit_rebind_timer" class="block text-gray-700 text-xs font-bold mb-1">Rebind Timer (T2)</label>
-                                <input type="number" id="edit_rebind_timer" name="rebind_timer" value="${subnet.rebind_timer || 2000}"
+                                <input type="number" id="edit_rebind_timer" name="rebind_timer"
                                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 text-sm leading-tight focus:outline-none focus:shadow-outline">
                             </div>
                         </div>
@@ -839,6 +839,12 @@ function showEditSubnetModal(subnetData, relay) {
         setInputValueWithoutValidation('edit_pool_end', subnet.pool.end, true);
         setInputValueWithoutValidation('edit_ccap_core_address', subnet.ccap_core);
         setInputValueWithoutValidation('edit_relay_address', relay, true);
+        
+        // Set lifetime timer values (editable)
+        setInputValueWithoutValidation('edit_valid_lifetime', subnet.valid_lifetime || 7200, false);
+        setInputValueWithoutValidation('edit_preferred_lifetime', subnet.preferred_lifetime || 3600, false);
+        setInputValueWithoutValidation('edit_renew_timer', subnet.renew_timer || 1000, false);
+        setInputValueWithoutValidation('edit_rebind_timer', subnet.rebind_timer || 2000, false);
 
         // Set original form data
         originalFormData = {
