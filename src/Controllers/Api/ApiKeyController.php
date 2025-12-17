@@ -18,41 +18,52 @@ class ApiKeyController {
 
     public function create() {
         try {
+            error_log("ApiKeyController: create() called");
+            
             if (!$this->auth->isAdmin()) {
+                error_log("ApiKeyController: Unauthorized - not admin");
                 http_response_code(403);
                 echo json_encode(['error' => 'Unauthorized: Admin access required']);
                 exit;
             }
     
             $data = json_decode(file_get_contents('php://input'), true);
+            error_log("ApiKeyController: Received data: " . json_encode($data));
     
             if (!isset($data['name'])) {
+                error_log("ApiKeyController: Missing name field");
                 http_response_code(400);
                 echo json_encode(['error' => 'Missing required fields']);
                 exit;
             }
     
             $readOnly = isset($data['read_only']) ? (bool)$data['read_only'] : false;
+            error_log("ApiKeyController: Creating API key - name: {$data['name']}, read_only: " . ($readOnly ? 'true' : 'false'));
             
             $apiKey = $this->apiKeyModel->createApiKey(
                 $data['name'],
                 $readOnly
             );
     
+            error_log("ApiKeyController: API key created: " . json_encode($apiKey));
+    
             if ($apiKey) {
                 header('Content-Type: application/json');
                 echo json_encode([
                     'status' => 'success',
-                    'apiKey' => $apiKey, // Make sure this is included
+                    'apiKey' => $apiKey,
                     'message' => 'API key created successfully'
                 ]);
                 exit;
             }
     
+            error_log("ApiKeyController: Failed to create API key - returned false/null");
             http_response_code(500);
             echo json_encode(['error' => 'Failed to create API key']);
             exit;
         } catch (\Exception $e) {
+            error_log("ApiKeyController: Exception: " . $e->getMessage());
+            error_log("ApiKeyController: Stack trace: " . $e->getTraceAsString());
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
             exit;
