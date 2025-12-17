@@ -680,6 +680,10 @@ class AdminController
                     ]);
                     
                     $details[] = "✓ Linked subnet {$subnet['subnet']} to existing BVI{$bvi['interface_number']}";
+                } elseif ($action === 'dedicated') {
+                    // Create as dedicated subnet - no CIN/BVI association
+                    // Subnet already created in Kea, just mark as imported without any database linking
+                    $details[] = "✓ Created dedicated subnet {$subnet['subnet']} (no BVI association)";
                 }
                 
                 $imported++;

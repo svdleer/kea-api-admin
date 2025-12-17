@@ -242,6 +242,7 @@ function displaySubnets(subnets) {
                         <td class="px-4 py-4 text-sm">
                             <select class="subnet-action text-sm border-gray-300 rounded-md" data-index="${index}">
                                 <option value="create" ${defaultAction === 'create' ? 'selected' : ''}>Create New CIN + BVI</option>
+                                <option value="dedicated">Create as Dedicated Subnet</option>
                                 <option value="skip" ${defaultAction === 'skip' ? 'selected' : ''}>Skip (Already imported)</option>
                                 <option value="link">Link to Existing BVI</option>
                             </select>
@@ -294,7 +295,7 @@ function displaySubnets(subnets) {
                     cinInput.classList.remove('hidden');
                 }
             }
-            // If value === 'skip', both remain hidden
+            // If value === 'skip' or 'dedicated', both remain hidden
         });
     });
 }
@@ -352,6 +353,9 @@ async function executeImport() {
             importConfig.bvi_number = 100; // Always BVI100
         } else if (action === 'link') {
             importConfig.bvi_id = document.querySelector(`#bvi-select-${index} select`).value;
+        } else if (action === 'dedicated') {
+            // Dedicated subnets don't need CIN/BVI info
+            importConfig.is_dedicated = true;
         }
         
         subnetsToImport.push(importConfig);
