@@ -760,29 +760,14 @@ class AdminController
         try {
             $filename = 'kea-leases-' . date('Y-m-d-His') . '.json';
             
-            // Get Kea configuration
-            $keaConfig = require BASE_PATH . '/config/kea.php';
-            $keaUrl = $keaConfig['control_agent_url'] ?? 'http://localhost:8000';
+            // Use KEA Model to communicate with Kea API
+            require_once BASE_PATH . '/src/Models/KeaModel.php';
+            $keaModel = new \App\Models\KeaModel();
             
-            // Retrieve leases from Kea via API
-            $command = [
-                'command' => 'lease6-get-all'
-            ];
-            
-            $ch = curl_init($keaUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-            
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            if ($httpCode !== 200 || !$response) {
-                throw new \Exception('Failed to retrieve leases from Kea API');
-            }
+            // Retrieve all leases using lease6-get-all command
+            $response = $keaModel->sendKeaCommand('lease6-get-all', [
+                'subnets' => []  // Empty array means all subnets
+            ]);
             
             $data = json_decode($response, true);
             
