@@ -329,11 +329,14 @@ class RadiusClient
             
             $success = $stmt->rowCount() > 0;
             
-            // Sync deletion to all RADIUS servers
+            // Sync deletion to all RADIUS servers and clean up auth history
             if ($success && $client) {
                 try {
                     $syncResults = $this->radiusSync->syncClientToAllServers($client, 'DELETE');
                     error_log("RADIUS client deleted from servers: " . json_encode($syncResults));
+                    
+                    // Also delete radpostauth entries for this NAS
+                    $this->radiusSync->cleanupRadPostAuthForNAS($client['nasname']);
                 } catch (\Exception $e) {
                     error_log("Failed to sync RADIUS client deletion to servers: " . $e->getMessage());
                 }

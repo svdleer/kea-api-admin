@@ -441,6 +441,48 @@ class RadiusDatabaseSync
     }
 
     /**
+     * Clean up radpostauth entries for a specific NAS device
+     */
+    public function cleanupRadPostAuthForNAS($nasname)
+    {
+        $results = [];
+        
+        foreach ($this->servers as $server) {
+            try {
+                $conn = $this->getConnection($server['name']);
+                if (!$conn) {
+                    $results[$server['name']] = [
+                        'success' => false,
+                        'message' => 'Could not connect to server'
+                    ];
+                    continue;
+                }
+
+                // Delete radpostauth entries for this NAS
+                $stmt = $conn->prepare("DELETE FROM radpostauth WHERE nasipaddress = ?");
+                $stmt->execute([$nasname]);
+                $deleted = $stmt->rowCount();
+
+                $results[$server['name']] = [
+                    'success' => true,
+                    'deleted' => $deleted,
+                    'message' => "Deleted $deleted radpostauth entries for NAS $nasname"
+                ];
+                
+                error_log("Cleaned up $deleted radpostauth entries for NAS $nasname on {$server['name']}");
+            } catch (PDOException $e) {
+                $results[$server['name']] = [
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ];
+                error_log("Error cleaning radpostauth for NAS $nasname on {$server['name']}: " . $e->getMessage());
+            }
+        }
+
+        return $results;
+    }
+
+    /**
      * Get list of configured servers
      */
     public function getServers()

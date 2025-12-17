@@ -225,11 +225,12 @@ class DashboardController
                     
                     $serverStat = ['name' => $server['name'], 'online' => true];
                     
-                    // Count NAS devices
-                    $stmt = $radiusDb->query("SELECT COUNT(*) as total FROM nas");
+                    // Count NAS devices (distinct by nasname to avoid duplicates across servers)
+                    $stmt = $radiusDb->query("SELECT COUNT(DISTINCT nasname) as total FROM nas");
                     $nasCount = $stmt->fetch(\PDO::FETCH_ASSOC)['total'] ?? 0;
                     $serverStat['nas'] = $nasCount;
-                    $totalNas += $nasCount;
+                    // Use max instead of sum since NAS devices are duplicated across servers
+                    $totalNas = max($totalNas, $nasCount);
                     
                     // Count users (from radcheck)
                     $stmt = $radiusDb->query("SELECT COUNT(DISTINCT username) as total FROM radcheck");
