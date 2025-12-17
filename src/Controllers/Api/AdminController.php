@@ -907,20 +907,23 @@ class AdminController
         exec($command, $output, $returnCode);
 
         if ($returnCode === 0 && file_exists($filepath)) {
-            // Clean up old backups (keep last 7 per type)
-            $this->cleanupOldBackups('radius-' . $type, 7);
+            // Send file for download
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . filesize($filepath));
+            header('Cache-Control: no-cache, must-revalidate');
+            header('Pragma: public');
             
-            $this->jsonResponse([
-                'success' => true,
-                'message' => ucfirst($type) . ' RADIUS backup created successfully on server',
-                'filename' => $filename,
-                'size' => $this->formatFileSize(filesize($filepath)),
-                'path' => '/backups/' . $filename
-            ]);
+            readfile($filepath);
+            
+            // Clean up the backup file after download
+            unlink($filepath);
+            
+            exit;
         } else {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Backup failed'
+                'message' => 'Backup failed: ' . implode("\n", $output)
             ], 500);
         }
     }
