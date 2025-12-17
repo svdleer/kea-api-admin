@@ -28,16 +28,43 @@ try {
     $db = Database::getInstance();
     $subnetModel = new DHCP($db); 
     
-    // Get all subnets from Kea
-    error_log("====== Dedicated DHCP View: Getting all subnets ======");
-    $subnets = $subnetModel->getEnrichedSubnets();
+    // Get all subnets from Kea config
+    error_log("====== Dedicated DHCP View: Getting all subnets from Kea ======");
+    $allKeaSubnets = $subnetModel->getAllSubnetsfromKEA();
     
-    // Filter out subnets that have BVI associations (only show dedicated ones)
-    $dedicatedSubnets = array_filter($subnets, function($subnet) {
-        return empty($subnet['bvi_interface_id']) || $subnet['bvi_interface_id'] === null;
+    // Get BVI-associated subnet IDs from database
+    $stmt = $db->prepare("SELECT DISTINCT kea_subnet_id FROM cin_bvi_dhcp_core WHERE kea_subnet_id IS NOT NULL");
+    $stmt->execute();
+    $bviSubnetIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
+    
+    error_log("BVI-associated subnet IDs: " . json_encode($bviSubnetIds));
+    
+    // Filter: only show subnets that are NOT in the BVI tracking table
+    $dedicatedSubnets = array_filter($allKeaSubnets, function($subnet) use ($bviSubnetIds) {
+        $subnetId = $subnet['id'] ?? null;
+        $isDedicated = !in_array($subnetId, $bviSubnetIds);
+        if ($isDedicated) {
+            error_log("Subnet " . ($subnet['subnet'] ?? 'unknown') . " (ID: $subnetId) is dedicated");
+        }
+        return $isDedicated;
     });
     
-    error_log("Total subnets: " . count($subnets) . ", Dedicated subnets: " . count($dedicatedSubnets));
+    // Enrich with pool data
+    foreach ($dedicatedSubnets as &$subnet) {
+        if (isset($subnet['pools'][0]['pool'])) {
+            $poolParts = explode('-', $subnet['pools'][0]['pool']);
+            $subnet['pool'] = [
+                'start' => trim($poolParts[0] ?? ''),
+                'end' => trim($poolParts[1] ?? '')
+            ];
+        }
+        // Extract relay address
+        $subnet['relay'] = $subnet['relay']['ip-addresses'][0] ?? null;
+        // Note: CCAP core is not in Kea config for dedicated subnets
+        $subnet['ccap_core'] = null;
+    }
+    
+    error_log("Total Kea subnets: " . count($allKeaSubnets) . ", Dedicated subnets: " . count($dedicatedSubnets));
     
 } catch (\Exception $e) {
     $dedicatedSubnets = [];
