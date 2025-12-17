@@ -1959,22 +1959,21 @@ class AdminController
     public function checkRadiusOrphans()
     {
         try {
-            // Get all valid BVI interface IDs
-            $validBviIds = $this->db->query("SELECT id FROM cin_switch_bvi_interfaces")->fetchAll(PDO::FETCH_COLUMN);
+            // Get all valid BVI IPv6 addresses (these should have NAS entries)
+            $validBviIds = $this->db->query("SELECT ipv6_address FROM cin_switch_bvi_interfaces")->fetchAll(PDO::FETCH_COLUMN);
             
             $report = [
-                'valid_bvi_ids' => $validBviIds,
+                'valid_bvi_ips' => $validBviIds,
                 'local_orphans' => [],
                 'remote_orphans' => []
             ];
             
             // Check local nas table
             $localOrphans = $this->db->query("
-                SELECT n.id, n.nasname, n.bvi_interface_id, n.shortname
+                SELECT n.id, n.nasname, n.shortname
                 FROM nas n
-                LEFT JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
-                WHERE n.bvi_interface_id IS NOT NULL 
-                AND b.id IS NULL
+                LEFT JOIN cin_switch_bvi_interfaces b ON n.nasname = b.ipv6_address
+                WHERE b.id IS NULL
             ")->fetchAll(PDO::FETCH_ASSOC);
             
             $report['local_orphans'] = $localOrphans;
@@ -2003,12 +2002,14 @@ class AdminController
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     ]);
                     
-                    $stmt = $remoteDb->query("SELECT id, nasname, shortname, bvi_interface_id FROM nas WHERE bvi_interface_id IS NOT NULL");
+                    // Get all NAS entries from remote server
+                    $stmt = $remoteDb->query("SELECT id, nasname, shortname FROM nas");
                     $nasEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     $serverOrphans = [];
                     foreach ($nasEntries as $entry) {
-                        if (!in_array($entry['bvi_interface_id'], $validBviIds)) {
+                        // Check if this NAS IP exists in our BVI table
+                        if (!in_array($entry['nasname'], $validBviIds)) {
                             $serverOrphans[] = $entry;
                         }
                     }
@@ -2056,8 +2057,8 @@ class AdminController
     public function cleanRadiusOrphans()
     {
         try {
-            // Get all valid BVI interface IDs
-            $validBviIds = $this->db->query("SELECT id FROM cin_switch_bvi_interfaces")->fetchAll(PDO::FETCH_COLUMN);
+            // Get all valid BVI IPv6 addresses (these should have NAS entries)
+            $validBviIps = $this->db->query("SELECT ipv6_address FROM cin_switch_bvi_interfaces")->fetchAll(PDO::FETCH_COLUMN);
             
             $report = [
                 'local_deleted' => 0,
@@ -2065,13 +2066,12 @@ class AdminController
                 'errors' => []
             ];
             
-            // Clean local nas table
+            // Clean local nas table - delete NAS entries not matching any BVI IP
             $localOrphans = $this->db->query("
-                SELECT n.id, n.nasname, n.bvi_interface_id
+                SELECT n.id, n.nasname, n.shortname
                 FROM nas n
-                LEFT JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
-                WHERE n.bvi_interface_id IS NOT NULL 
-                AND b.id IS NULL
+                LEFT JOIN cin_switch_bvi_interfaces b ON n.nasname = b.ipv6_address
+                WHERE b.id IS NULL
             ")->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($localOrphans as $orphan) {
@@ -2104,12 +2104,14 @@ class AdminController
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     ]);
                     
-                    $stmt = $remoteDb->query("SELECT id, nasname, bvi_interface_id FROM nas WHERE bvi_interface_id IS NOT NULL");
+                    // Get all NAS entries from remote server
+                    $stmt = $remoteDb->query("SELECT id, nasname, shortname FROM nas");
                     $nasEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     $deletedCount = 0;
                     foreach ($nasEntries as $entry) {
-                        if (!in_array($entry['bvi_interface_id'], $validBviIds)) {
+                        // Delete if NAS IP doesn't match any valid BVI IP
+                        if (!in_array($entry['nasname'], $validBviIps)) {
                             $deleteStmt = $remoteDb->prepare("DELETE FROM nas WHERE id = ?");
                             $deleteStmt->execute([$entry['id']]);
                             $deletedCount++;
