@@ -771,7 +771,21 @@ class AdminController
             
             $data = json_decode($response, true);
             
-            if (!isset($data[0]['result']) || $data[0]['result'] !== 0) {
+            // Kea result codes: 0 = success, 3 = empty (no results)
+            $resultCode = $data[0]['result'] ?? null;
+            
+            if ($resultCode === 3 || (isset($data[0]['text']) && strpos($data[0]['text'], '0 IPv6 lease(s) found') !== false)) {
+                // No leases found - return empty array
+                header('Content-Type: application/json');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Cache-Control: no-cache, must-revalidate');
+                header('Pragma: public');
+                
+                echo json_encode([], JSON_PRETTY_PRINT);
+                exit;
+            }
+            
+            if ($resultCode !== 0) {
                 throw new \Exception('Kea API returned error: ' . ($data[0]['text'] ?? 'Unknown error'));
             }
             

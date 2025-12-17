@@ -628,16 +628,60 @@ async function restoreKeaDatabase() {
 }
 
 async function backupKeaLeases() {
-    Swal.fire({
-        title: 'Creating Backup...',
-        text: 'Download will start shortly',
-        icon: 'info',
-        timer: 2000,
-        showConfirmButton: false
-    });
-    
-    // Trigger download
-    window.location.href = '/api/admin/backup/kea-leases';
+    try {
+        const response = await fetch('/api/admin/backup/kea-leases');
+        
+        if (!response.ok) {
+            const data = await response.json();
+            Swal.fire({
+                title: 'Backup Failed',
+                text: data.message || 'Failed to backup leases',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        // Check if it's a JSON response (success) or error
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const blob = await response.blob();
+            
+            // Check if the blob is empty or has no leases
+            const text = await blob.text();
+            const leases = JSON.parse(text);
+            
+            if (!leases || leases.length === 0) {
+                Swal.fire({
+                    title: 'No Leases Found',
+                    text: 'There are currently no active DHCP leases to backup',
+                    icon: 'info'
+                });
+                return;
+            }
+            
+            // Download the file
+            const url = window.URL.createObjectURL(new Blob([text]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'kea-leases-' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            Swal.fire({
+                title: 'Backup Complete!',
+                text: `${leases.length} lease(s) backed up successfully`,
+                icon: 'success'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to backup leases: ' + error.message,
+            icon: 'error'
+        });
+    }
 }
 
 async function exportKeaLeases() {
