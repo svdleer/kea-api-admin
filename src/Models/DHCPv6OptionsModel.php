@@ -40,77 +40,17 @@ class DHCPv6OptionsModel extends KeaModel
         }
     }
 
-    private function backupKeaConfig(string $operation): void
-    {
-        try {
-            error_log("DHCPv6OptionsModel: Creating config backup before operation: {$operation}");
-            
-            // Get current config
-            $response = $this->sendKeaCommand("config-get");
-            $result = $this->validateKeaResponse($response, 'get config');
-            
-            // Get database connection
-            $db = \App\Database\Database::getInstance();
-            
-            // Get the first active server ID
-            $stmt = $db->query("SELECT id FROM kea_servers WHERE is_active = 1 LIMIT 1");
-            $server = $stmt->fetch(\PDO::FETCH_ASSOC);
-            
-            if (!$server) {
-                error_log("DHCPv6OptionsModel: No active Kea server found, skipping backup");
-                return;
-            }
-            
-            // Store backup
-            $stmt = $db->prepare("
-                INSERT INTO kea_config_backups (server_id, config_json, created_by, operation)
-                VALUES (:server_id, :config_json, :created_by, :operation)
-            ");
-            
-            $stmt->execute([
-                ':server_id' => $server['id'],
-                ':config_json' => json_encode($result['arguments']),
-                ':created_by' => $_SESSION['user_name'] ?? 'system',
-                ':operation' => $operation
-            ]);
-            
-            // Clean up old backups - keep only last 12
-            $db->prepare("
-                DELETE FROM kea_config_backups
-                WHERE server_id = :server_id
-                AND id NOT IN (
-                    SELECT id FROM (
-                        SELECT id FROM kea_config_backups
-                        WHERE server_id = :server_id
-                        ORDER BY created_at DESC
-                        LIMIT 12
-                    ) tmp
-                )
-            ")->execute([':server_id' => $server['id']]);
-            
-            error_log("DHCPv6OptionsModel: Config backup created successfully");
-        } catch (\Exception $e) {
-            error_log("DHCPv6OptionsModel: Failed to create backup: " . $e->getMessage());
-            // Don't throw - backup failure shouldn't block the operation
-        }
-    }
-
     public function createEditOption($data)
     {
-        // Backup config before making changes
-        $this->backupKeaConfig('dhcp-option-create');
-        
         // Get current RPD class configuration using class-get
         $response = $this->sendKeaCommand("class-get", [
-            "client-classes" => [
-                ["name" => "RPD"]
-            ]
+            "name" => "RPD"
         ]);
         
         $result = $this->validateKeaResponse($response, 'get class');
         
         // Extract current RPD class configuration
-        $rpdClass = $result['arguments']['client-classes'][0] ?? null;
+        $rpdClass = $result['arguments'] ?? null;
         
         if (!$rpdClass) {
             throw new Exception("RPD client class not found");
@@ -166,18 +106,13 @@ class DHCPv6OptionsModel extends KeaModel
 
     public function deleteOption(array $data): array
     {
-        // Backup config before making changes
-        $this->backupKeaConfig('dhcp-option-delete');
-        
         // Get current RPD class configuration
         $response = $this->sendKeaCommand("class-get", [
-            "client-classes" => [
-                ["name" => "RPD"]
-            ]
+            "name" => "RPD"
         ]);
         
         $result = $this->validateKeaResponse($response, 'get class');
-        $rpdClass = $result['arguments']['client-classes'][0] ?? null;
+        $rpdClass = $result['arguments'] ?? null;
         
         if (!$rpdClass) {
             throw new Exception("RPD client class not found");
@@ -214,13 +149,16 @@ class DHCPv6OptionsModel extends KeaModel
         try {
             // Get RPD class configuration
             $response = $this->sendKeaCommand("class-get", [
-                "client-classes" => [
-                    ["name" => "RPD"]
-                ]
+                "name" => "RPD"
             ]);
             
             $result = $this->validateKeaResponse($response, 'get class');
-            $rpdClass = $result['arguments']['client-classes'][0] ?? null;
+            
+            if (!isset($result['arguments'])) {
+                return '[]';
+            }
+            
+            $rpdClass = $result['arguments'] ?? null;
             
             if (!$rpdClass || !isset($rpdClass['option-data'])) {
                 return '[]';
