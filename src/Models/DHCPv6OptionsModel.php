@@ -248,13 +248,14 @@ class DHCPv6OptionsModel extends KeaModel
             
             $result = $this->validateKeaResponse($response, 'get class');
             
-            if (!isset($result['arguments'])) {
+            // class-get returns {"client-classes": [{...}]}
+            if (!isset($result['arguments']['client-classes'][0])) {
                 return '[]';
             }
             
-            $rpdClass = $result['arguments'] ?? null;
+            $rpdClass = $result['arguments']['client-classes'][0];
             
-            if (!$rpdClass || !isset($rpdClass['option-data'])) {
+            if (!isset($rpdClass['option-data'])) {
                 return '[]';
             }
             
