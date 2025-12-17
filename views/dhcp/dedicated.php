@@ -6,8 +6,7 @@ use App\Database\Database;
 use App\Models\DHCP;
 
 // Initialize required objects
-$database = Database::getInstance();
-$db = $database->getConnection();
+$db = Database::getInstance();
 $dhcpModel = new DHCP($db);
 
 $pageTitle = 'Dedicated DHCP Subnets';
