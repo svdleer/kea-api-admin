@@ -941,7 +941,11 @@ function showEditSubnetModal(subnetData, relay) {
             pool_end: document.getElementById('create_pool_end').value,
             ccap_core_address: document.getElementById('create_ccap_core_address').value,
             relay_address: document.getElementById('create_relay_address').value,
-            ipv6_address: document.getElementById('create_relay_address').value
+            ipv6_address: document.getElementById('create_relay_address').value,
+            valid_lifetime: parseInt(document.getElementById('create_valid_lifetime').value) || 7200,
+            preferred_lifetime: parseInt(document.getElementById('create_preferred_lifetime').value) || 3600,
+            renew_timer: parseInt(document.getElementById('create_renew_timer').value) || 1000,
+            rebind_timer: parseInt(document.getElementById('create_rebind_timer').value) || 2000
 
             
         };
@@ -1060,7 +1064,11 @@ function showEditSubnetModal(subnetData, relay) {
             pool_end: document.getElementById('edit_pool_end').value,
             ccap_core_address: document.getElementById('edit_ccap_core_address').value,
             relay_address: document.getElementById('edit_relay_address').value,
-            ipv6_address: document.getElementById('edit_relay_address').value
+            ipv6_address: document.getElementById('edit_relay_address').value,
+            valid_lifetime: parseInt(document.getElementById('edit_valid_lifetime').value) || 7200,
+            preferred_lifetime: parseInt(document.getElementById('edit_preferred_lifetime').value) || 3600,
+            renew_timer: parseInt(document.getElementById('edit_renew_timer').value) || 1000,
+            rebind_timer: parseInt(document.getElementById('edit_rebind_timer').value) || 2000
         };
 
         console.log('Sending data:', formData); // Add this debug log
