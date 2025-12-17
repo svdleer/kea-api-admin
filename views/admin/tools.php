@@ -638,27 +638,22 @@ async function backupKeaLeases() {
             }
         });
 
-        const response = await fetch('/api/admin/backup/kea-leases');
-        const data = await response.json();
+        // Download the backup file
+        const link = document.createElement('a');
+        link.href = '/api/admin/backup/kea-leases';
+        link.download = 'kea-leases-backup.sql';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-        if (data.success) {
+        // Show success message
+        setTimeout(() => {
             Swal.fire({
-                title: 'Backup Created!',
-                html: `
-                    <p class="mb-2">${data.message}</p>
-                    <div class="text-sm text-left bg-gray-50 p-3 rounded">
-                        <p><strong>File:</strong> ${data.filename}</p>
-                        <p><strong>Size:</strong> ${data.size}</p>
-                        <p class="mt-2 text-gray-600">Backup saved on server. Keeping last 7 backups.</p>
-                    </div>
-                `,
+                title: 'Backup Downloaded!',
+                text: 'Kea leases database backup has been downloaded',
                 icon: 'success'
-            }).then(() => {
-                loadRecentBackups();
             });
-        } else {
-            Swal.fire('Error', data.message, 'error');
-        }
+        }, 500);
     } catch (error) {
         Swal.fire('Error', 'Failed to create backup', 'error');
     }
