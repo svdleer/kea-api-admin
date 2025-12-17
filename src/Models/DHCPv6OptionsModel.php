@@ -150,7 +150,7 @@ class DHCPv6OptionsModel extends KeaModel
         $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
         // 3. Write config to disk to persist changes
-        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
+        $writeResponse = $this->sendKeaCommand("config-write", []);
         $this->validateKeaResponse($writeResponse, 'write config');
         
         error_log("DHCPv6OptionsModel: Option added to RPD class and config written to disk");
@@ -200,7 +200,7 @@ class DHCPv6OptionsModel extends KeaModel
         $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
         // 3. Write config to disk to persist changes
-        $writeResponse = $this->sendKeaCommand("config-write", (object)[]);
+        $writeResponse = $this->sendKeaCommand("config-write", []);
         $this->validateKeaResponse($writeResponse, 'write config');
         
         error_log("DHCPv6OptionsModel: Option removed from RPD class and config written to disk");
