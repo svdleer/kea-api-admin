@@ -57,7 +57,10 @@ class DHCPv6OptionsDefModel extends KeaModel
         // Remove hash parameter if present as it's not supported in config-set
         unset($config['hash']);
         
-        $response = $this->sendKeaCommand("config-set", $config);
+        // Wrap config in Dhcp6 key as required by config-set
+        $configWrapper = ['Dhcp6' => $config];
+        
+        $response = $this->sendKeaCommand("config-set", $configWrapper);
         $this->validateKeaResponse($response, 'set config');
     }
 
