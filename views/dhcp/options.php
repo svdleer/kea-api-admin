@@ -719,9 +719,11 @@ function openEditModal(option) {
 
 // Function to delete an option
 function deleteOption(code, space) {
-    // Find the option definition to get the name
-    const optionDef = optionsDef.find(def => def.code == code && def.space == space);
-    const optionName = optionDef ? optionDef.name : 'Unknown';
+    // Find the option from optionsData to get the name
+    const option = optionsData.find(opt => 
+        opt.definition && opt.definition.code == code && opt.definition.space == space
+    );
+    const optionName = option && option.definition ? option.definition.name : 'Unknown';
     
     Swal.fire({
         title: 'Delete DHCPv6 Option?',
