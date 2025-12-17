@@ -715,17 +715,17 @@ class AdminController
         }
 
         // Get database credentials from env
-        $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
-        $dbName = $_ENV['DB_NAME'] ?? 'kea_db';
-        $dbUser = $_ENV['DB_USER'] ?? 'kea_db_user';
-        $dbPass = $_ENV['DB_PASSWORD'] ?? '';
+        $dbHost = getenv('DB_HOST') ?: 'localhost';
+        $dbName = getenv('DB_NAME') ?: 'kea_db';
+        $dbUser = getenv('DB_USER') ?: 'kea_db_user';
+        $dbPass = getenv('DB_PASSWORD') ?: '';
 
         // Execute mysqldump
         $command = sprintf(
-            "mysqldump -h %s -u %s -p'%s' %s > %s 2>&1",
+            "mysqldump -h %s -u %s -p%s --skip-ssl %s > %s 2>&1",
             escapeshellarg($dbHost),
             escapeshellarg($dbUser),
-            $dbPass,
+            escapeshellarg($dbPass),
             escapeshellarg($dbName),
             escapeshellarg($filepath)
         );
@@ -765,16 +765,16 @@ class AdminController
         }
 
         // Backup only lease-related tables
-        $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
-        $dbName = $_ENV['DB_NAME'] ?? 'kea_db';
-        $dbUser = $_ENV['DB_USER'] ?? 'kea_db_user';
-        $dbPass = $_ENV['DB_PASSWORD'] ?? '';
+        $dbHost = getenv('DB_HOST') ?: 'localhost';
+        $dbName = getenv('DB_NAME') ?: 'kea_db';
+        $dbUser = getenv('DB_USER') ?: 'kea_db_user';
+        $dbPass = getenv('DB_PASSWORD') ?: '';
 
         $command = sprintf(
-            "mysqldump -h %s -u %s -p'%s' %s lease6 hosts > %s 2>&1",
+            "mysqldump -h %s -u %s -p%s --skip-ssl %s lease6 hosts > %s 2>&1",
             escapeshellarg($dbHost),
             escapeshellarg($dbUser),
-            $dbPass,
+            escapeshellarg($dbPass),
             escapeshellarg($dbName),
             escapeshellarg($filepath)
         );
@@ -895,11 +895,11 @@ class AdminController
         }
 
         $command = sprintf(
-            "mysqldump -h %s -P %d -u %s -p'%s' %s > %s 2>&1",
+            "mysqldump -h %s -P %d -u %s -p%s --skip-ssl %s > %s 2>&1",
             escapeshellarg($server['host']),
             $server['port'],
             escapeshellarg($server['username']),
-            $server['password'],
+            escapeshellarg($server['password']),
             escapeshellarg($server['database']),
             escapeshellarg($filepath)
         );
@@ -953,7 +953,7 @@ class AdminController
             $dbPass = getenv('DB_PASSWORD') ?: '';
 
             $command = sprintf(
-                "mysqldump -h %s -u %s -p%s %s > %s 2>&1",
+                "mysqldump -h %s -u %s -p%s --skip-ssl %s > %s 2>&1",
                 escapeshellarg($dbHost),
                 escapeshellarg($dbUser),
                 escapeshellarg($dbPass),
@@ -994,11 +994,11 @@ class AdminController
                 $radiusFilepath = $backupDir . '/' . $radiusFilename;
 
                 $command = sprintf(
-                    "mysqldump -h %s -P %d -u %s -p'%s' %s > %s 2>&1",
+                    "mysqldump -h %s -P %d -u %s -p%s --skip-ssl %s > %s 2>&1",
                     escapeshellarg($primary['host']),
                     $primary['port'],
                     escapeshellarg($primary['username']),
-                    $primary['password'],
+                    escapeshellarg($primary['password']),
                     escapeshellarg($primary['database']),
                     escapeshellarg($radiusFilepath)
                 );
@@ -1033,11 +1033,11 @@ class AdminController
                 $radiusFilepath = $backupDir . '/' . $radiusFilename;
 
                 $command = sprintf(
-                    "mysqldump -h %s -P %d -u %s -p'%s' %s > %s 2>&1",
+                    "mysqldump -h %s -P %d -u %s -p%s --skip-ssl %s > %s 2>&1",
                     escapeshellarg($secondary['host']),
                     $secondary['port'],
                     escapeshellarg($secondary['username']),
-                    $secondary['password'],
+                    escapeshellarg($secondary['password']),
                     escapeshellarg($secondary['database']),
                     escapeshellarg($radiusFilepath)
                 );
