@@ -136,6 +136,7 @@ class DHCPv6OptionsDefModel extends KeaModel
 
         try {
             $response = $this->sendKeaCommand("option-def6-get-all", $getOptionsDefsArguments);
+            error_log("DHCPv6Options: RAW response from option-def6-get-all: " . $response);
         } catch (\Exception $e) {
             // If command fails completely, return empty array
             error_log("DHCPv6Options: option-def6-get-all command failed - returning empty definitions");
@@ -144,9 +145,10 @@ class DHCPv6OptionsDefModel extends KeaModel
         
         try {
             $result = $this->validateKeaResponse($response, 'get options');
+            error_log("DHCPv6Options: Result code from validation: " . $result['result']);
         } catch (\Exception $e) {
             // If validation fails (e.g., UNSUPPORTED), return empty array
-            error_log("DHCPv6Options: option-def6-get-all not supported - returning empty definitions");
+            error_log("DHCPv6Options: option-def6-get-all validation failed: " . $e->getMessage());
             return '[]';
         }
         
