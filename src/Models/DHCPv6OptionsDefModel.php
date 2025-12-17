@@ -40,98 +40,113 @@ class DHCPv6OptionsDefModel extends KeaModel
         }
     }
 
-    public function createEditOptionDef(array $optionData): array
+    private function getCurrentConfig(): array
     {
-        // To properly update an option definition, we need to delete it first, then recreate it
-        // This is because option-def6-set doesn't reliably update existing definitions
+        $response = $this->sendKeaCommand("config-get");
+        $result = $this->validateKeaResponse($response, 'get config');
         
-        // Try to delete existing definition first (ignore errors if it doesn't exist)
-        $deleteArgs = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            'option-defs' => [
-                [
-                    'code' => intval($optionData['code']),
-                    'space' => $optionData['space']
-                ]
-            ]
-        ];
-        
-        try {
-            $this->sendKeaCommand("option-def6-del", $deleteArgs);
-        } catch (\Exception $e) {
-            // Ignore error - definition might not exist yet
-            error_log("Delete option def (expected for create): " . $e->getMessage());
+        if (!isset($result['arguments']['Dhcp6'])) {
+            throw new Exception("Invalid config format - missing Dhcp6 section");
         }
         
-        // Now create the new definition
-        $createOptionsDefArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            'option-defs' => [
-                [
-                    'code' => intval($optionData['code']),
-                    'name' => $optionData['name'],
-                    'space' => $optionData['space'],
-                    'type' => $optionData['type'],
-                    'array' => isset($optionData['array']) ? (bool)$optionData['array'] : false,
-                ]
-            ]
-        ];
+        return $result['arguments']['Dhcp6'];
+    }
 
-        $response = $this->sendKeaCommand("option-def6-set", $createOptionsDefArguments);
+    private function setConfig(array $config): void
+    {
+        // Remove hash parameter if present as it's not supported in config-set
+        unset($config['hash']);
         
-        $result = $this->validateKeaResponse($response, 'create option');
+        $response = $this->sendKeaCommand("config-set", $config);
+        $this->validateKeaResponse($response, 'set config');
+    }
+
+    public function createEditOptionDef(array $optionData): array
+    {
+        // Get current config
+        $config = $this->getCurrentConfig();
+        
+        // Initialize option-def array if it doesn't exist
+        if (!isset($config['option-def'])) {
+            $config['option-def'] = [];
+        }
+        
+        // Build the new option definition
+        $newOptionDef = [
+            'code' => intval($optionData['code']),
+            'name' => $optionData['name'],
+            'space' => $optionData['space'],
+            'type' => $optionData['type'],
+            'array' => isset($optionData['array']) ? (bool)$optionData['array'] : false,
+        ];
+        
+        // Remove existing option with same code and space
+        $config['option-def'] = array_filter($config['option-def'], function($opt) use ($optionData) {
+            return !($opt['code'] == intval($optionData['code']) && $opt['space'] == $optionData['space']);
+        });
+        
+        // Add the new option definition
+        $config['option-def'][] = $newOptionDef;
+        
+        // Re-index array
+        $config['option-def'] = array_values($config['option-def']);
+        
+        // Set the config
+        $this->setConfig($config);
+        
         return $optionData;
     }
 
     public function updateOptionDef(array $optionData): array
     {
-        $updateOptionsDefArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            'option-defs' => [
-                [
-                    'code' => intval($optionData['code']),
-                    'name' => $optionData['name'],
-                    'space' => $optionData['space'],
-                    'type' => $optionData['type'],
-                    'array' => isset($optionData['array']) ? (bool)$optionData['array'] : false,
-                ]
-            ]
-        ];
-
-        $response = $this->sendKeaCommand("option-def6-set", $updateOptionsDefArguments);
-        
-        $result = $this->validateKeaResponse($response, 'update option');
-        return $optionData;
+        // Same as create - we use config-get/config-set approach
+        return $this->createEditOptionDef($optionData);
     }
 
     public function deleteOptionDef(array $data): array
     {
-        $deleteOptionsDefArguments = [
-            "remote" => ["type" => "mysql"],
-            "server-tags" => ["all"],
-            'option-defs' => [
-                [
-                    'code' => $data['code'],
-                    'space' => $data['space']
-                ]
-            ]
-        ];
-        $response = $this->sendKeaCommand("option-def6-del", $deleteOptionsDefArguments);
+        // Get current config
+        $config = $this->getCurrentConfig();
         
-        $result = $this->validateKeaResponse($response, 'delete option');
-        return ['code' => $data['code']];  // Return the code from the input data
+        if (!isset($config['option-def'])) {
+            throw new Exception("No option definitions found in config");
+        }
+        
+        // Remove the option definition
+        $config['option-def'] = array_filter($config['option-def'], function($opt) use ($data) {
+            return !($opt['code'] == $data['code'] && $opt['space'] == $data['space']);
+        });
+        
+        // Re-index array
+        $config['option-def'] = array_values($config['option-def']);
+        
+        // Set the config
+        $this->setConfig($config);
+        
+        return ['code' => $data['code']];
     }
-
-    
 
     public function getOptionsDef()
     {
-        // Note: option-def6-get-all is not supported by this Kea installation
-        // Option definitions can be created/deleted but not listed via API
-        // Return empty array so the page loads without errors
-        return '[]';
+        try {
+            $config = $this->getCurrentConfig();
+            
+            if (!isset($config['option-def']) || empty($config['option-def'])) {
+                return '[]';
+            }
+            
+            // Return the option-def array as JSON
+            return json_encode([
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'option-defs' => $config['option-def']
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            error_log("DHCPv6Options: Failed to get option definitions: " . $e->getMessage());
+            return '[]';
+        }
     }
 }
