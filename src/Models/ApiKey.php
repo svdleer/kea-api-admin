@@ -13,17 +13,17 @@ class ApiKey {
         $this->db = $db;
     }
 
-    public function createApiKey(string $name, bool $readOnly = false): ?string {
+    public function createApiKey(string $name, bool $readOnly = false, ?int $userId = null): ?string {
         $apiKey = bin2hex(random_bytes(self::KEY_LENGTH));
         $hashedKey = password_hash($apiKey, PASSWORD_DEFAULT);
 
-        $sql = "INSERT INTO api_keys (name, api_key, read_only, created_at) 
-                VALUES (?, ?, ?, NOW())";
+        $sql = "INSERT INTO api_keys (name, api_key, read_only, user_id, created_at) 
+                VALUES (?, ?, ?, ?, NOW())";
 
         try {
-            error_log("ApiKey Model: Creating API key - name: $name, read_only: " . ($readOnly ? '1' : '0'));
+            error_log("ApiKey Model: Creating API key - name: $name, read_only: " . ($readOnly ? '1' : '0') . ", user_id: $userId");
             $stmt = $this->db->prepare($sql);
-            $success = $stmt->execute([$name, $hashedKey, $readOnly ? 1 : 0]);
+            $success = $stmt->execute([$name, $hashedKey, $readOnly ? 1 : 0, $userId]);
             error_log("ApiKey Model: Execute success: " . ($success ? 'true' : 'false'));
 
             return $success ? $apiKey : null;

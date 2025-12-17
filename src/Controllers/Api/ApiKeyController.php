@@ -40,9 +40,14 @@ class ApiKeyController {
             $readOnly = isset($data['read_only']) ? (bool)$data['read_only'] : false;
             error_log("ApiKeyController: Creating API key - name: {$data['name']}, read_only: " . ($readOnly ? 'true' : 'false'));
             
+            // Get current user ID from session
+            $userId = $_SESSION['user_id'] ?? null;
+            error_log("ApiKeyController: User ID from session: " . ($userId ?? 'null'));
+            
             $apiKey = $this->apiKeyModel->createApiKey(
                 $data['name'],
-                $readOnly
+                $readOnly,
+                $userId
             );
     
             error_log("ApiKeyController: API key created: " . json_encode($apiKey));
