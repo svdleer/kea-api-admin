@@ -478,6 +478,30 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <p class="text-xs text-gray-500 mt-1">For multiple addresses, separate with commas (e.g., 2001:db8::1, 2001:db8::2)</p>
                 <p id="ccap_core_address_error" class="text-red-500 text-sm hidden">Invalid IPv6 address</p>
             </div>
+            
+            <!-- Lease Timers Section -->
+            <div class="mt-4">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Lease Timers (seconds)</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group">
+                        <label for="edit_valid_lifetime" class="block text-xs font-medium text-gray-700">Valid Lifetime</label>
+                        <input type="number" id="edit_valid_lifetime" name="valid_lifetime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_preferred_lifetime" class="block text-xs font-medium text-gray-700">Preferred Lifetime</label>
+                        <input type="number" id="edit_preferred_lifetime" name="preferred_lifetime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_renew_timer" class="block text-xs font-medium text-gray-700">Renew Timer (T1)</label>
+                        <input type="number" id="edit_renew_timer" name="renew_timer" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_rebind_timer" class="block text-xs font-medium text-gray-700">Rebind Timer (T2)</label>
+                        <input type="number" id="edit_rebind_timer" name="rebind_timer" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    </div>
+                </div>
+            </div>
+            
             <input type="hidden" id="edit_subnet_id" name="subnet_id">
             <input type="hidden" id="edit_switch_id" name="switch_id">
             <input type="hidden" id="edit_interface" name="interface">
