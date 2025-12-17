@@ -685,7 +685,45 @@ async function backupKeaLeases() {
 }
 
 async function exportKeaLeases() {
-    window.location.href = '/api/admin/export/kea-leases-csv';
+    try {
+        const response = await fetch('/api/admin/export/kea-leases-csv');
+        
+        if (!response.ok) {
+            const data = await response.json();
+            Swal.fire({
+                title: 'Export Failed',
+                text: data.message || 'No leases found to export',
+                icon: 'info'
+            });
+            return;
+        }
+        
+        // Get lease count from header
+        const leaseCount = response.headers.get('X-Lease-Count') || '0';
+        
+        // Download the CSV file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'kea-leases-' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        Swal.fire({
+            title: 'Export Complete!',
+            text: `${leaseCount} lease(s) exported to CSV`,
+            icon: 'success'
+        });
+    } catch (error) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to export leases: ' + error.message,
+            icon: 'error'
+        });
+    }
 }
 
 async function exportRadiusClients() {

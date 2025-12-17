@@ -815,12 +815,6 @@ class AdminController
     {
         $filename = 'kea-leases-' . date('Y-m-d-His') . '.csv';
         
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        $output = fopen('php://output', 'w');
-        fputcsv($output, ['Address', 'DUID', 'Valid Lifetime', 'Expire', 'Subnet ID', 'Hostname']);
-
         $query = "SELECT 
             INET6_NTOA(address) as address,
             HEX(duid) as duid,
@@ -832,8 +826,26 @@ class AdminController
             ORDER BY expire DESC";
 
         $stmt = $this->db->query($query);
+        $leases = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Check if there are any leases
+        if (empty($leases)) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No leases found to export'
+            ], 404);
+            return;
+        }
+        
+        // Send CSV file
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Lease-Count: ' . count($leases)); // Custom header for frontend
 
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Address', 'DUID', 'Valid Lifetime', 'Expire', 'Subnet ID', 'Hostname']);
+
+        foreach ($leases as $row) {
             fputcsv($output, $row);
         }
 
