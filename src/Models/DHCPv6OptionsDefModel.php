@@ -52,6 +52,51 @@ class DHCPv6OptionsDefModel extends KeaModel
         return $result['arguments']['Dhcp6'];
     }
 
+    private function backupKeaConfig(string $operation): void
+    {
+        try {
+            error_log("DHCPv6OptionsDefModel: Creating config backup before operation: {$operation}");
+            
+            // Get current config
+            $response = $this->sendKeaCommand("config-get");
+            $result = $this->validateKeaResponse($response, 'get config');
+            
+            // Get database connection
+            $db = \App\Database\Database::getInstance();
+            
+            // Store backup
+            $stmt = $db->prepare("
+                INSERT INTO kea_config_backups (server_id, config_json, created_by, operation)
+                VALUES (1, :config_json, :created_by, :operation)
+            ");
+            
+            $stmt->execute([
+                ':config_json' => json_encode($result['arguments']),
+                ':created_by' => $_SESSION['user_name'] ?? 'system',
+                ':operation' => $operation
+            ]);
+            
+            // Clean up old backups - keep only last 12
+            $db->exec("
+                DELETE FROM kea_config_backups
+                WHERE server_id = 1
+                AND id NOT IN (
+                    SELECT id FROM (
+                        SELECT id FROM kea_config_backups
+                        WHERE server_id = 1
+                        ORDER BY created_at DESC
+                        LIMIT 12
+                    ) tmp
+                )
+            ");
+            
+            error_log("DHCPv6OptionsDefModel: Config backup created successfully");
+        } catch (\Exception $e) {
+            error_log("DHCPv6OptionsDefModel: Failed to create backup: " . $e->getMessage());
+            // Don't throw - backup failure shouldn't block the operation
+        }
+    }
+
     private function setConfig(array $config): void
     {
         // Remove hash parameter if present as it's not supported in config-set
@@ -66,6 +111,9 @@ class DHCPv6OptionsDefModel extends KeaModel
 
     public function createEditOptionDef(array $optionData): array
     {
+        // Backup config before making changes
+        $this->backupKeaConfig('option-def-create');
+        
         // Get current config
         $config = $this->getCurrentConfig();
         
@@ -108,6 +156,9 @@ class DHCPv6OptionsDefModel extends KeaModel
 
     public function deleteOptionDef(array $data): array
     {
+        // Backup config before making changes
+        $this->backupKeaConfig('option-def-delete');
+        
         // Get current config
         $config = $this->getCurrentConfig();
         
