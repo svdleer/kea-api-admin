@@ -757,45 +757,50 @@ class AdminController
      */
     public function backupKeaLeases()
     {
-        $filename = 'kea-leases-' . date('Y-m-d-His') . '.sql';
-        $filepath = BASE_PATH . '/backups/' . $filename;
-
-        if (!file_exists(BASE_PATH . '/backups')) {
-            mkdir(BASE_PATH . '/backups', 0755, true);
-        }
-
-        // Backup only lease-related tables
-        $dbHost = getenv('DB_HOST') ?: 'localhost';
-        $dbName = getenv('DB_NAME') ?: 'kea_db';
-        $dbUser = getenv('DB_USER') ?: 'kea_db_user';
-        $dbPass = getenv('DB_PASSWORD') ?: '';
-
-        $command = sprintf(
-            "mysqldump -h %s -u %s -p%s --skip-ssl %s lease6 hosts > %s 2>&1",
-            escapeshellarg($dbHost),
-            escapeshellarg($dbUser),
-            escapeshellarg($dbPass),
-            escapeshellarg($dbName),
-            escapeshellarg($filepath)
-        );
-
-        exec($command, $output, $returnCode);
-
-        if ($returnCode === 0 && file_exists($filepath)) {
+        try {
+            $filename = 'kea-leases-' . date('Y-m-d-His') . '.json';
+            
+            // Get Kea configuration
+            $keaConfig = require BASE_PATH . '/config/kea.php';
+            $keaUrl = $keaConfig['control_agent_url'] ?? 'http://localhost:8000';
+            
+            // Retrieve leases from Kea via API
+            $command = [
+                'command' => 'lease6-get-all'
+            ];
+            
+            $ch = curl_init($keaUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200 || !$response) {
+                throw new \Exception('Failed to retrieve leases from Kea API');
+            }
+            
+            $data = json_decode($response, true);
+            
+            if (!isset($data[0]['result']) || $data[0]['result'] !== 0) {
+                throw new \Exception('Kea API returned error: ' . ($data[0]['text'] ?? 'Unknown error'));
+            }
+            
             // Send file for download
-            header('Content-Type: application/octet-stream');
+            header('Content-Type: application/json');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . filesize($filepath));
             header('Cache-Control: no-cache, must-revalidate');
             header('Pragma: public');
             
-            readfile($filepath);
-            
-            // Clean up the backup file after download
-            unlink($filepath);
-            
+            echo json_encode($data[0]['arguments']['leases'] ?? [], JSON_PRETTY_PRINT);
             exit;
-        } else {
+            
+        } catch (\Exception $e) {
+            error_log('Lease backup error: ' . $e->getMessage());
             $this->jsonResponse([
                 'success' => false,
                 'message' => 'Backup failed: ' . implode("\n", $output)
