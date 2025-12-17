@@ -320,7 +320,18 @@ ob_start();
 
     <!-- Recent Backups -->
     <div class="mt-8 bg-white shadow-md rounded-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Backups</h2>
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Kea Configuration Backups</h2>
+        <p class="text-sm text-gray-600 mb-4">Automatic backups created before option-def changes. Last 12 backups are kept.</p>
+        <div id="keaConfigBackups">
+            <div class="text-center text-gray-500 py-4">
+                Loading Kea config backups...
+            </div>
+        </div>
+    </div>
+
+    <!-- File Backups -->
+    <div class="mt-8 bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">File Backups</h2>
         <div id="recentBackups">
             <div class="text-center text-gray-500 py-4">
                 Loading backup history...
@@ -333,6 +344,7 @@ ob_start();
 <script>
 // Load recent backups on page load
 $(document).ready(function() {
+    loadKeaConfigBackups();
     loadRecentBackups();
 });
 
@@ -895,6 +907,98 @@ async function loadRecentBackups() {
         $('#recentBackups').html('<div class="text-center text-red-500 py-4">Error loading backups</div>');
     }
 }
+
+async function loadKeaConfigBackups() {
+    try {
+        const response = await fetch('/api/admin/kea-config-backups/list');
+        const data = await response.json();
+
+        if (data.success && data.backups && data.backups.length > 0) {
+            displayKeaConfigBackups(data.backups);
+        } else {
+            $('#keaConfigBackups').html('<div class="text-center text-gray-500 py-4">No Kea config backups found</div>');
+        }
+    } catch (error) {
+        console.error('Error loading Kea config backups:', error);
+        $('#keaConfigBackups').html('<div class="text-center text-red-500 py-4">Error loading Kea config backups</div>');
+    }
+}
+
+function displayKeaConfigBackups(backups) {
+    let html = '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">';
+    html += '<thead class="bg-gray-50">';
+    html += '<tr>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Server</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operation</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created By</th>';
+    html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>';
+    html += '<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>';
+    html += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
+
+    backups.forEach(backup => {
+        html += '<tr>';
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${backup.id}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.server_name || 'Unknown'}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.operation}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_by}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_at}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
+        html += `<button onclick="restoreKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-green-600 hover:text-green-900">Restore</button>`;
+        html += `</td></tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    $('#keaConfigBackups').html(html);
+}
+
+async function restoreKeaConfigBackup(backupId, operation) {
+    const result = await Swal.fire({
+        title: 'Restore Kea Configuration?',
+        html: `
+            <p class="text-red-600 font-bold mb-2">⚠️ WARNING ⚠️</p>
+            <p class="mb-2">This will RESTORE the Kea configuration from backup!</p>
+            <p class="text-sm text-gray-600">Backup ID: <strong>${backupId}</strong></p>
+            <p class="text-sm text-gray-600">Operation: <strong>${operation}</strong></p>
+            <p class="text-sm text-gray-600 mt-2">Current configuration will be backed up before restore.</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, Restore!',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Restoring...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch(`/api/admin/kea-config-backups/restore/${backupId}`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                Swal.fire('Restored!', 'Kea configuration has been restored successfully.', 'success');
+                loadKeaConfigBackups();
+            } else {
+                Swal.fire('Error!', data.message || 'Failed to restore configuration', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error!', 'Failed to restore configuration: ' + error.message, 'error');
+        }
+    }
+}
+
 
 function displayBackups(backups) {
     let html = '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">';

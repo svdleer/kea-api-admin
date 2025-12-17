@@ -2271,6 +2271,126 @@ class AdminController
     }
 
     /**
+     * List Kea config backups from database
+     * GET /api/admin/kea-config-backups/list
+     */
+    public function listKeaConfigBackups()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT b.*, s.name as server_name 
+                FROM kea_config_backups b
+                LEFT JOIN kea_servers s ON b.server_id = s.id
+                ORDER BY b.created_at DESC
+                LIMIT 20
+            ");
+            $stmt->execute();
+            $backups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $this->jsonResponse([
+                'success' => true,
+                'backups' => $backups
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to load backups: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore Kea config from backup
+     * POST /api/admin/kea-config-backups/restore/{id}
+     */
+    public function restoreKeaConfigBackup($backupId)
+    {
+        try {
+            // Get backup from database
+            $stmt = $this->db->prepare("SELECT * FROM kea_config_backups WHERE id = ?");
+            $stmt->execute([$backupId]);
+            $backup = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$backup) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Backup not found'
+                ], 404);
+                return;
+            }
+
+            // Get server info
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE id = ?");
+            $stmt->execute([$backup['server_id']]);
+            $server = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$server) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Server not found'
+                ], 404);
+                return;
+            }
+
+            $config = json_decode($backup['config_json'], true);
+            
+            // Send config-set command to Kea
+            $ch = curl_init($server['api_url']);
+            $data = [
+                "command" => "config-set",
+                "service" => ["dhcp6"],
+                "arguments" => $config
+            ];
+            
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            if (!$response) {
+                throw new \Exception('Failed to connect to Kea server');
+            }
+
+            $decoded = json_decode($response, true);
+            if (!isset($decoded[0]['result']) || $decoded[0]['result'] !== 0) {
+                throw new \Exception($decoded[0]['text'] ?? 'Config-set failed');
+            }
+
+            // Write to disk
+            $ch = curl_init($server['api_url']);
+            $data = [
+                "command" => "config-write",
+                "service" => ["dhcp6"],
+                "arguments" => (object)[]
+            ];
+            
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Configuration restored successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to restore: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper: Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)

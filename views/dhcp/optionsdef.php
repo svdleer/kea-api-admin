@@ -761,7 +761,8 @@ async function deleteOptionDef(code, space, name) {
                     <p><span class="font-semibold">Code:</span> ${code}</p>
                     <p><span class="font-semibold">Space:</span> ${space}</p>
                 </div>
-                <p class="text-red-600">This will delete both the DHCPv6 Option and its Definition. This action cannot be undone!</p>
+                <p class="text-red-600 mb-4">This will delete both the DHCPv6 Option and its Definition. This action cannot be undone!</p>
+                <input type="text" id="delete-optiondef-confirmation" class="swal2-input" placeholder="Type: I AM SURE!">
             </div>
         `,
         icon: 'warning',
@@ -776,6 +777,14 @@ async function deleteOptionDef(code, space, name) {
             htmlContainer: 'text-left',
             confirmButton: 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline',
             cancelButton: 'bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline'
+        },
+        preConfirm: () => {
+            const confirmation = document.getElementById('delete-optiondef-confirmation').value;
+            if (confirmation !== 'I AM SURE!') {
+                Swal.showValidationMessage('Please type "I AM SURE!" to confirm deletion');
+                return false;
+            }
+            return true;
         }
     }).then(async (result) => {
         if (result.isConfirmed) {
