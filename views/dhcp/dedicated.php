@@ -234,8 +234,11 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_relay">
                             Relay Address
                         </label>
-                        <input type="text" id="create_dedicated_relay" name="relay_address" required readonly
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        <input type="text" id="create_dedicated_relay" name="relay_address" required
+                            placeholder="2001:db8::1"
+                            onchange="validateIPv6Address(this)"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <span id="create_dedicated_relayError" class="text-red-500 text-xs hidden"></span>
                     </div>
 
                     <div class="mb-4">
@@ -1508,6 +1511,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const subnetInput = document.getElementById('create_dedicated_subnet');
             const ccapInput = document.getElementById('create_dedicated_ccap');
+            const relayInput = document.getElementById('create_dedicated_relay');
             const mask = document.getElementById('create_dedicated_mask').value;
             
             // Validate subnet prefix
@@ -1525,6 +1529,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     title: 'Validation Error',
                     text: 'Please enter a valid CCAP Core IPv6 address',
+                    icon: 'error'
+                });
+                return;
+            }
+            
+            // Validate relay address
+            if (!validateIPv6Address(relayInput)) {
+                Swal.fire({
+                    title: 'Validation Error',
+                    text: 'Please enter a valid Relay IPv6 address',
                     icon: 'error'
                 });
                 return;
