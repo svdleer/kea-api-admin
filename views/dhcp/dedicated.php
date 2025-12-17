@@ -194,7 +194,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
         <div class="mt-3">
             <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">Create Dedicated DHCPv6 Subnet</h3>
             <form id="createDedicatedSubnetForm" class="mt-2">
-                <!-- Name and Description -->
+                <!-- Name -->
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_name">
                         Subnet Name *
@@ -202,15 +202,6 @@ require BASE_PATH . '/views/dhcp-menu.php';
                     <input type="text" id="create_dedicated_name" name="name" required 
                         placeholder="e.g., Management Network, Guest WiFi"
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_description">
-                        Description
-                    </label>
-                    <textarea id="create_dedicated_description" name="description" rows="2"
-                        placeholder="Optional description..."
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
@@ -1533,7 +1524,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const relayInput = document.getElementById('create_dedicated_relay');
             const mask = document.getElementById('create_dedicated_mask').value;
             const nameInput = document.getElementById('create_dedicated_name');
-            const descriptionInput = document.getElementById('create_dedicated_description');
             
             // Validate name
             if (!nameInput.value || nameInput.value.trim() === '') {
@@ -1591,7 +1581,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formData = {
                 name: nameInput.value.trim(),
-                description: descriptionInput.value.trim() || `Dedicated subnet - ${fullSubnet}`,
                 subnet: fullSubnet,
                 pool_start: document.getElementById('create_dedicated_pool_start').value,
                 pool_end: document.getElementById('create_dedicated_pool_end').value,

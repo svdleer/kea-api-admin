@@ -791,16 +791,14 @@ class DHCP
                             subnet,
                             pool_start,
                             pool_end,
-                            ccap_core,
-                            description
+                            ccap_core
                         ) VALUES (
                             :name,
                             :kea_subnet_id,
                             :subnet,
                             :pool_start,
                             :pool_end,
-                            :ccap_core,
-                            :description
+                            :ccap_core
                         )";
                 
                 $stmt = $this->db->prepare($sql);
@@ -810,8 +808,7 @@ class DHCP
                     ':subnet' => $data['subnet'],
                     ':pool_start' => $data['pool_start'],
                     ':pool_end' => $data['pool_end'],
-                    ':ccap_core' => $data['ccap_core_address'] ?? null,
-                    ':description' => $data['description'] ?? "Dedicated subnet - {$data['subnet']}"
+                    ':ccap_core' => $data['ccap_core_address'] ?? null
                 ]);
                 
                 error_log("DHCP Model: Dedicated subnet stored in database with name: " . ($data['name'] ?? 'Unnamed Subnet'));
