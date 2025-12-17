@@ -151,8 +151,10 @@ class DHCPv6OptionsModel extends KeaModel
         $rpdClass['option-data'] = array_values($rpdClass['option-data']);
         
         // Update the class using class-update
-        // Pass the class object directly as arguments
-        $updateResponse = $this->sendKeaCommand("class-update", $rpdClass);
+        // class-update expects {"client-classes": [class-object]}
+        $updateResponse = $this->sendKeaCommand("class-update", [
+            "client-classes" => [$rpdClass]
+        ]);
         
         error_log("DHCPv6OptionsModel: class-update response: " . $updateResponse);
         $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
@@ -215,8 +217,10 @@ class DHCPv6OptionsModel extends KeaModel
         }
         
         // Update the class using class-update
-        // Pass the class object directly as arguments  
-        $updateResponse = $this->sendKeaCommand("class-update", $rpdClass);
+        // class-update expects {"client-classes": [class-object]}
+        $updateResponse = $this->sendKeaCommand("class-update", [
+            "client-classes" => [$rpdClass]
+        ]);
         
         $updateResult = $this->validateKeaResponse($updateResponse, 'update class');
         
