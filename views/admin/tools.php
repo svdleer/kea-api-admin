@@ -37,15 +37,8 @@ ob_start();
                 </div>
                 <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Configuration</h2>
             </div>
-            <p class="text-gray-600 text-sm mb-4">Export current configuration or import from kea-dhcp6.conf</p>
+            <p class="text-gray-600 text-sm mb-4">Import configuration from kea-dhcp6.conf</p>
             <div class="space-y-2">
-                <button onclick="exportKeaConfig()" 
-                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
-                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Export Config
-                </button>
                 <button onclick="importKeaConfig()" 
                         class="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,15 +322,6 @@ ob_start();
         </div>
     </div>
 
-    <!-- File Backups -->
-    <div class="mt-8 bg-white shadow-md rounded-lg p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">File Backups</h2>
-        <div id="recentBackups">
-            <div class="text-center text-gray-500 py-4">
-                Loading backup history...
-            </div>
-        </div>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -345,7 +329,6 @@ ob_start();
 // Load recent backups on page load
 $(document).ready(function() {
     loadKeaConfigBackups();
-    loadRecentBackups();
 });
 
 async function exportKeaConfig() {
@@ -944,6 +927,7 @@ function displayKeaConfigBackups(backups) {
         html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_by}</td>`;
         html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_at}</td>`;
         html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
+        html += `<button onclick="viewKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-blue-600 hover:text-blue-900 mr-3">View</button>`;
         html += `<button onclick="restoreKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-green-600 hover:text-green-900">Restore</button>`;
         html += `</td></tr>`;
     });
@@ -996,6 +980,42 @@ async function restoreKeaConfigBackup(backupId, operation) {
         } catch (error) {
             Swal.fire('Error!', 'Failed to restore configuration: ' + error.message, 'error');
         }
+    }
+}
+
+async function viewKeaConfigBackup(backupId, operation) {
+    try {
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch(`/api/admin/kea-config-backups/view/${backupId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const configJson = JSON.stringify(data.config, null, 2);
+            Swal.fire({
+                title: `Backup #${backupId} - ${operation}`,
+                html: `
+                    <div class="text-left">
+                        <p class="text-sm text-gray-600 mb-2"><strong>Created:</strong> ${data.created_at}</p>
+                        <p class="text-sm text-gray-600 mb-4"><strong>By:</strong> ${data.created_by}</p>
+                        <pre class="bg-gray-100 p-4 rounded text-xs overflow-auto max-h-96 text-left">${configJson}</pre>
+                    </div>
+                `,
+                width: '80%',
+                confirmButtonText: 'Close'
+            });
+        } else {
+            Swal.fire('Error!', data.message || 'Failed to load backup', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error!', 'Failed to load backup: ' + error.message, 'error');
     }
 }
 

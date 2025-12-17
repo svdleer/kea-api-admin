@@ -2300,6 +2300,40 @@ class AdminController
     }
 
     /**
+     * View Kea config backup
+     * GET /api/admin/kea-config-backups/view/{id}
+     */
+    public function viewKeaConfigBackup($backupId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM kea_config_backups WHERE id = ?");
+            $stmt->execute([$backupId]);
+            $backup = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$backup) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Backup not found'
+                ], 404);
+                return;
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'config' => json_decode($backup['config_json'], true),
+                'created_at' => $backup['created_at'],
+                'created_by' => $backup['created_by'],
+                'operation' => $backup['operation']
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to load backup: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Restore Kea config from backup
      * POST /api/admin/kea-config-backups/restore/{id}
      */

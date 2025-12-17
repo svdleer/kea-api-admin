@@ -468,6 +468,8 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->get('/api/admin/kea-config-backups/list', [$adminController, 'listKeaConfigBackups'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
+    $router->get('/api/admin/kea-config-backups/view/{id}', [$adminController, 'viewKeaConfigBackup'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->post('/api/admin/kea-config-backups/restore/{id}', [$adminController, 'restoreKeaConfigBackup'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/restore/kea-database', [$adminController, 'restoreKeaDatabase'])
