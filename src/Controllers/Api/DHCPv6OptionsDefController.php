@@ -117,14 +117,15 @@ class DHCPv6OptionsDefController extends KeaController
     {   
         try {
             $data = json_decode(file_get_contents('php://input'), true);
-            error_log("Delete request data: " . json_encode($data));
+            error_log("Delete request - code parameter: " . var_export($code, true));
+            error_log("Delete request - body data: " . json_encode($data));
             
-            if (!$code) {
-                throw new Exception('Option code is required');
+            if (empty($code) || $code === '0') {
+                throw new Exception('Option code is required and cannot be empty');
             }
     
-            if (!isset($data['space'])) {
-                throw new Exception('Option space is required');
+            if (!isset($data['space']) || empty($data['space'])) {
+                throw new Exception('Option space is required and cannot be empty');
             }
     
             // Create the array structure that the model expects
@@ -133,6 +134,7 @@ class DHCPv6OptionsDefController extends KeaController
                 'space' => $data['space']
             ];
     
+            error_log("Calling deleteOptionDef with: " . json_encode($deleteData));
             $result = $this->optionsDefModel->deleteOptionDef($deleteData);
             
             header('Content-Type: application/json');
@@ -141,6 +143,7 @@ class DHCPv6OptionsDefController extends KeaController
                 'data' => $result
             ]);
         } catch (Exception $e) {
+            error_log("Delete error: " . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
