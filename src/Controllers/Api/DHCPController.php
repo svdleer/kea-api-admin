@@ -27,15 +27,25 @@ class DHCPController
         // Convert JavaScript regex to PHP format
         $ipv6Regex = '/^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/';
     
+        // Check if this is a dedicated subnet
+        $isDedicated = isset($data['dedicated']) && $data['dedicated'] === true;
+        
         // Check if required fields exist
         $requiredFields = [
-            'bvi_interface_id',
             'subnet',
             'pool_start',
             'pool_end',
             'ccap_core_address',
             'relay_address'
         ];
+        
+        // BVI interface ID is only required for non-dedicated subnets
+        if (!$isDedicated) {
+            $requiredFields[] = 'bvi_interface_id';
+        } else {
+            // Name is required for dedicated subnets
+            $requiredFields[] = 'name';
+        }
 
         foreach ($requiredFields as $field) {
             if (!isset($data[$field]) || rtrim($data[$field]) === '')  {
@@ -43,8 +53,8 @@ class DHCPController
             }
         }
     
-        // Validate BVI interface ID is numeric
-        if (isset($data['bvi_interface_id']) && !is_numeric($data['bvi_interface_id'])) {
+        // Validate BVI interface ID is numeric (only for non-dedicated)
+        if (!$isDedicated && isset($data['bvi_interface_id']) && !is_numeric($data['bvi_interface_id'])) {
             $errors[] = "BVI interface ID must be numeric";
         }
     

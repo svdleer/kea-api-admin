@@ -688,6 +688,9 @@ class DHCP
             
             $subnetId = $this->getNextAvailableSubnetId();
             
+            // Check if this is a dedicated subnet
+            $isDedicated = isset($data['dedicated']) && $data['dedicated'] === true;
+            
             // Create subnet without options first
             $arguments = [
                 "subnet6" => [
@@ -780,52 +783,87 @@ class DHCP
             }
     
             // After successful KEA subnet creation, store in database
-            // First, get the BVI interface details to ensure we have the correct data
-            $bviSql = "SELECT id, switch_id, interface_number, ipv6_address 
-                       FROM cin_switch_bvi_interfaces 
-                       WHERE id = :bvi_interface_id";
-            $bviStmt = $this->db->prepare($bviSql);
-            $bviStmt->execute([':bvi_interface_id' => $data['bvi_interface_id']]);
-            $bviData = $bviStmt->fetch(\PDO::FETCH_ASSOC);
-            
-            if (!$bviData) {
-                throw new Exception("BVI interface not found with ID: " . $data['bvi_interface_id']);
+            if ($isDedicated) {
+                // Store in dedicated_subnets table
+                $sql = "INSERT INTO dedicated_subnets (
+                            name,
+                            kea_subnet_id,
+                            subnet,
+                            pool_start,
+                            pool_end,
+                            ccap_core,
+                            description
+                        ) VALUES (
+                            :name,
+                            :kea_subnet_id,
+                            :subnet,
+                            :pool_start,
+                            :pool_end,
+                            :ccap_core,
+                            :description
+                        )";
+                
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':name' => $data['name'] ?? 'Unnamed Subnet',
+                    ':kea_subnet_id' => $subnetId,
+                    ':subnet' => $data['subnet'],
+                    ':pool_start' => $data['pool_start'],
+                    ':pool_end' => $data['pool_end'],
+                    ':ccap_core' => $data['ccap_core_address'] ?? null,
+                    ':description' => $data['description'] ?? "Dedicated subnet - {$data['subnet']}"
+                ]);
+                
+                error_log("DHCP Model: Dedicated subnet stored in database with name: " . ($data['name'] ?? 'Unnamed Subnet'));
+            } else {
+                // Store in cin_bvi_dhcp_core table (existing BVI-based subnet logic)
+                // First, get the BVI interface details to ensure we have the correct data
+                $bviSql = "SELECT id, switch_id, interface_number, ipv6_address 
+                           FROM cin_switch_bvi_interfaces 
+                           WHERE id = :bvi_interface_id";
+                $bviStmt = $this->db->prepare($bviSql);
+                $bviStmt->execute([':bvi_interface_id' => $data['bvi_interface_id']]);
+                $bviData = $bviStmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if (!$bviData) {
+                    throw new Exception("BVI interface not found with ID: " . $data['bvi_interface_id']);
+                }
+                
+                $sql = "REPLACE INTO cin_bvi_dhcp_core (
+                            id,
+                            bvi_interface_id,
+                            switch_id, 
+                            kea_subnet_id, 
+                            interface_number, 
+                            ipv6_address, 
+                            start_address, 
+                            end_address, 
+                            ccap_core
+                        ) VALUES (
+                            :id,
+                            :bvi_interface_id,
+                            :switch_id,
+                            :kea_subnet_id,
+                            :interface_number,
+                            :ipv6_address,
+                            :start_address,
+                            :end_address,
+                            :ccap_core
+                        )";
+        
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':id' => $bviData['id'], // Use the BVI interface ID as the primary key
+                    ':bvi_interface_id' => $bviData['id'],
+                    ':switch_id' => $bviData['switch_id'],
+                    ':kea_subnet_id' => $subnetId,
+                    ':interface_number' => $bviData['interface_number'],
+                    ':ipv6_address' => $bviData['ipv6_address'],
+                    ':start_address' => $data['pool_start'],
+                    ':end_address' => $data['pool_end'],
+                    ':ccap_core' => $data['ccap_core_address']
+                ]);
             }
-            
-            $sql = "REPLACE INTO cin_bvi_dhcp_core (
-                        id,
-                        bvi_interface_id,
-                        switch_id, 
-                        kea_subnet_id, 
-                        interface_number, 
-                        ipv6_address, 
-                        start_address, 
-                        end_address, 
-                        ccap_core
-                    ) VALUES (
-                        :id,
-                        :bvi_interface_id,
-                        :switch_id,
-                        :kea_subnet_id,
-                        :interface_number,
-                        :ipv6_address,
-                        :start_address,
-                        :end_address,
-                        :ccap_core
-                    )";
-    
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                ':id' => $bviData['id'], // Use the BVI interface ID as the primary key
-                ':bvi_interface_id' => $bviData['id'],
-                ':switch_id' => $bviData['switch_id'],
-                ':kea_subnet_id' => $subnetId,
-                ':interface_number' => $bviData['interface_number'],
-                ':ipv6_address' => $bviData['ipv6_address'],
-                ':start_address' => $data['pool_start'],
-                ':end_address' => $data['pool_end'],
-                ':ccap_core' => $data['ccap_core_address']
-            ]);
     
             error_log("DHCP Model: Remote subnet set successfully");
             
