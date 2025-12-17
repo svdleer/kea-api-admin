@@ -460,9 +460,9 @@ require BASE_PATH . '/views/dhcp-menu.php';
 <div class="rounded-md shadow-sm -space-y-px">
 <!-- Edit Modal -->
 <div id="editSubnetModal" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 hidden">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
         <span class="close cursor-pointer text-gray-500 hover:text-gray-700" onclick="closeModal('editSubnetModal')">&times;</span>
-        <h2 class="text-xl font-semibold mb-4">Edit CCAP Core Address</h2>
+        <h2 class="text-xl font-semibold mb-4">Edit Subnet</h2>
         <form id="editForm" class="space-y-4">
             <div class="form-group">
                 <label for="dhcpPrefix" class="block text-sm font-medium text-gray-700">DHCP Prefix:</label>
