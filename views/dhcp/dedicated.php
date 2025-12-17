@@ -1427,13 +1427,6 @@ function showEditSubnetModal(subnetData, relay) {
 });
 </script>
 
-</script>
-
-<?php
-$content = ob_get_clean();
-require BASE_PATH . '/views/layout.php';
-?>
-
 <script>
 function showCreateDedicatedSubnetModal() {
     document.getElementById('createDedicatedSubnetModal').classList.remove('hidden');
