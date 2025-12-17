@@ -864,15 +864,19 @@ class DHCP
                         ],
                         "relay" => [
                             "ip-addresses" => [$data['relay_address']]
-                        ]
+                        ],
+                        "valid-lifetime" => isset($data['valid_lifetime']) ? intval($data['valid_lifetime']) : 7200,
+                        "preferred-lifetime" => isset($data['preferred_lifetime']) ? intval($data['preferred_lifetime']) : 3600,
+                        "renew-timer" => isset($data['renew_timer']) ? intval($data['renew_timer']) : 1000,
+                        "rebind-timer" => isset($data['rebind_timer']) ? intval($data['rebind_timer']) : 2000
                     ]
                 ]
             ];
     
-            $response = $this->sendKeaCommand('subnet6-add', $arguments);
+            $response = $this->sendKeaCommand('subnet6-update', $arguments);
     
             if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
-                throw new Exception("Failed to set remote subnet: " . json_encode($response));
+                throw new Exception("Failed to update remote subnet: " . json_encode($response));
             }
 
             // Check if we're removing CCAP core option (was set before, now empty)
