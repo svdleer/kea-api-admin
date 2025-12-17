@@ -195,41 +195,47 @@ require BASE_PATH . '/views/dhcp-menu.php';
             <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">Create Dedicated DHCPv6 Subnet</h3>
             <form id="createDedicatedSubnetForm" class="mt-2">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="mb-4 col-span-2">
+                    <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_subnet">
-                            Subnet Prefix (e.g., 2001:db8::/64)
+                            Subnet Prefix
                         </label>
                         <input type="text" id="create_dedicated_subnet" name="subnet" required 
-                            placeholder="2001:db8::/64"
-                            onchange="autofillDedicatedPool(this)"
+                            placeholder="2001:db8::"
+                            onchange="autofillDedicatedPool(this); validateIPv6Address(this)"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <span id="create_dedicated_subnetError" class="text-red-500 text-xs hidden"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_mask">
+                            Prefix Length
+                        </label>
+                        <input type="text" id="create_dedicated_mask" name="mask" value="64" readonly
+                               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_pool_start">
-                            Pool Start Address
+                            Pool Start
                         </label>
-                        <input type="text" id="create_dedicated_pool_start" name="pool_start" required
-                            placeholder="2001:db8::2"
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <input type="text" id="create_dedicated_pool_start" name="pool_start" readonly disabled
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_pool_end">
-                            Pool End Address
+                            Pool End
                         </label>
-                        <input type="text" id="create_dedicated_pool_end" name="pool_end" required
-                            placeholder="2001:db8::fffe"
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <input type="text" id="create_dedicated_pool_end" name="pool_end" readonly disabled
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_relay">
                             Relay Address
                         </label>
-                        <input type="text" id="create_dedicated_relay" name="relay_address" required
-                            placeholder="2001:db8::1"
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <input type="text" id="create_dedicated_relay" name="relay_address" required readonly
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
                     </div>
 
                     <div class="mb-4">
@@ -1432,11 +1438,6 @@ function showEditSubnetModal(subnetData, relay) {
 function autofillDedicatedPool(input) {
     const subnetValue = input.value.trim();
     
-    // Check if it's a valid IPv6 subnet format (e.g., 2001:db8::/64)
-    if (!subnetValue.includes('/')) {
-        return;
-    }
-    
     // Extract the prefix part before ::
     const prefix = subnetValue.split('::')[0];
     if (!prefix) {
@@ -1447,6 +1448,46 @@ function autofillDedicatedPool(input) {
     document.getElementById('create_dedicated_pool_start').value = prefix + '::2';
     document.getElementById('create_dedicated_pool_end').value = prefix + '::fffe';
     document.getElementById('create_dedicated_relay').value = prefix + '::1';
+}
+
+function validateIPv6Address(input) {
+    const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+    
+    const errorSpan = document.getElementById(input.id + 'Error');
+    const isValid = ipv6Regex.test(input.value);
+    
+    if (!isValid && input.value) {
+        input.classList.add('border-red-500');
+        if (errorSpan) {
+            errorSpan.textContent = 'Invalid IPv6 address';
+            errorSpan.classList.remove('hidden');
+        }
+        return false;
+    } else {
+        input.classList.remove('border-red-500');
+        if (errorSpan) {
+            errorSpan.classList.add('hidden');
+        }
+        return true;
+    }
+}
+
+async function checkDuplicateSubnet(subnetPrefix) {
+    try {
+        const response = await fetch('/api/dhcp/subnets/check-duplicate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ subnet: subnetPrefix })
+        });
+        
+        const data = await response.json();
+        return data.exists || false;
+    } catch (error) {
+        console.error('Error checking duplicate:', error);
+        return false;
+    }
 }
 
 function showCreateDedicatedSubnetModal() {
@@ -1465,12 +1506,50 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            const subnetInput = document.getElementById('create_dedicated_subnet');
+            const ccapInput = document.getElementById('create_dedicated_ccap');
+            const mask = document.getElementById('create_dedicated_mask').value;
+            
+            // Validate subnet prefix
+            if (!validateIPv6Address(subnetInput)) {
+                Swal.fire({
+                    title: 'Validation Error',
+                    text: 'Please enter a valid IPv6 subnet prefix',
+                    icon: 'error'
+                });
+                return;
+            }
+            
+            // Validate CCAP core address
+            if (!validateIPv6Address(ccapInput)) {
+                Swal.fire({
+                    title: 'Validation Error',
+                    text: 'Please enter a valid CCAP Core IPv6 address',
+                    icon: 'error'
+                });
+                return;
+            }
+            
+            // Build full subnet with mask
+            const fullSubnet = subnetInput.value + '/' + mask;
+            
+            // Check for duplicates
+            const isDuplicate = await checkDuplicateSubnet(fullSubnet);
+            if (isDuplicate) {
+                Swal.fire({
+                    title: 'Duplicate Subnet',
+                    text: `Subnet ${fullSubnet} already exists in the system`,
+                    icon: 'error'
+                });
+                return;
+            }
+            
             const formData = {
-                subnet: document.getElementById('create_dedicated_subnet').value,
+                subnet: fullSubnet,
                 pool_start: document.getElementById('create_dedicated_pool_start').value,
                 pool_end: document.getElementById('create_dedicated_pool_end').value,
                 relay_address: document.getElementById('create_dedicated_relay').value,
-                ccap_core_address: document.getElementById('create_dedicated_ccap').value,
+                ccap_core_address: ccapInput.value,
                 valid_lifetime: parseInt(document.getElementById('create_dedicated_valid').value),
                 preferred_lifetime: parseInt(document.getElementById('create_dedicated_preferred').value),
                 renew_timer: parseInt(document.getElementById('create_dedicated_renew').value),
