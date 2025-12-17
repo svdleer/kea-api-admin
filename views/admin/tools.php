@@ -628,35 +628,16 @@ async function restoreKeaDatabase() {
 }
 
 async function backupKeaLeases() {
-    try {
-        Swal.fire({
-            title: 'Creating Backup...',
-            text: 'Please wait',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Download the backup file
-        const link = document.createElement('a');
-        link.href = '/api/admin/backup/kea-leases';
-        link.download = 'kea-leases-backup.sql';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Show success message
-        setTimeout(() => {
-            Swal.fire({
-                title: 'Backup Downloaded!',
-                text: 'Kea leases database backup has been downloaded',
-                icon: 'success'
-            });
-        }, 500);
-    } catch (error) {
-        Swal.fire('Error', 'Failed to create backup', 'error');
-    }
+    Swal.fire({
+        title: 'Creating Backup...',
+        text: 'Download will start shortly',
+        icon: 'info',
+        timer: 2000,
+        showConfirmButton: false
+    });
+    
+    // Trigger download
+    window.location.href = '/api/admin/backup/kea-leases';
 }
 
 async function exportKeaLeases() {
@@ -709,38 +690,18 @@ async function backupRadiusDatabase(type) {
         showCancelButton: true,
         confirmButtonColor: '#EAB308',
         confirmButtonText: 'Create Backup'
-    }).then(async (result) => {
+    }).then((result) => {
         if (result.isConfirmed) {
-            try {
-                Swal.fire({
-                    title: 'Creating Backup...',
-                    text: 'Please wait',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Download the backup file
-                const link = document.createElement('a');
-                link.href = `/api/admin/backup/radius-database/${type}`;
-                link.download = `radius-${type}-backup.sql`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                // Show success message
-                setTimeout(() => {
-                    Swal.fire({
-                        title: 'Backup Downloaded!',
-                        text: `${type.charAt(0).toUpperCase() + type.slice(1)} RADIUS database backup has been downloaded`,
-                        icon: 'success',
-                        confirmButtonColor: '#EAB308'
-                    });
-                }, 500);
-            } catch (error) {
-                Swal.fire('Error', 'Failed to create backup', 'error');
-            }
+            Swal.fire({
+                title: 'Creating Backup...',
+                text: 'Download will start shortly',
+                icon: 'info',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            
+            // Trigger download
+            window.location.href = `/api/admin/backup/radius-database/${type}`;
         }
     });
 }
