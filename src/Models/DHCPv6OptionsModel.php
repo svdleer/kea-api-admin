@@ -45,6 +45,11 @@ class DHCPv6OptionsModel extends KeaModel
         try {
             error_log("DHCPv6OptionsModel: Creating config backup before operation: {$operation}");
             
+            // Ensure session is started
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
             // Get current config
             $response = $this->sendKeaCommand("config-get");
             $result = $this->validateKeaResponse($response, 'get config');
@@ -98,6 +103,7 @@ class DHCPv6OptionsModel extends KeaModel
 
     public function createEditOption($data)
     {
+        try {
         // 1. Backup current config to database
         $this->backupKeaConfig('dhcp-option-create');
         // 1. Backup current config to database
@@ -162,6 +168,11 @@ class DHCPv6OptionsModel extends KeaModel
         error_log("DHCPv6OptionsModel: Option added to RPD class and config written to disk");
         
         return $updateResult;
+        
+        } catch (\Exception $e) {
+            error_log("DHCPv6OptionsModel: Error in createEditOption: " . $e->getMessage());
+            throw $e;
+        }
     }
 
 
@@ -173,6 +184,7 @@ class DHCPv6OptionsModel extends KeaModel
 
     public function deleteOption(array $data): array
     {
+        try {
         // 1. Backup current config to database
         $this->backupKeaConfig('dhcp-option-delete');
         
@@ -215,6 +227,11 @@ class DHCPv6OptionsModel extends KeaModel
         error_log("DHCPv6OptionsModel: Option removed from RPD class and config written to disk");
         
         return ['code' => $data['code']];
+        
+        } catch (\Exception $e) {
+            error_log("DHCPv6OptionsModel: Error in deleteOption: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function getOptions()
