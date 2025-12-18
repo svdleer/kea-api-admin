@@ -685,32 +685,54 @@ class DHCPController
             
             $db = \App\Database\Database::getInstance();
             
-            // Get current subnet details from dedicated_subnets table
-            $stmt = $db->prepare("SELECT * FROM dedicated_subnets WHERE kea_subnet_id = ?");
-            $stmt->execute([$subnetId]);
-            $dedicatedSubnet = $stmt->fetch(\PDO::FETCH_ASSOC);
+            // Get current subnet details from Kea (this is the source of truth)
+            $allSubnets = $this->subnetModel->getAllSubnetsfromKEA();
+            $keaSubnet = null;
+            foreach ($allSubnets as $s) {
+                if ($s['id'] == $subnetId) {
+                    $keaSubnet = $s;
+                    break;
+                }
+            }
             
-            if (!$dedicatedSubnet) {
+            if (!$keaSubnet) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Dedicated subnet not found']);
+                echo json_encode(['success' => false, 'error' => 'Subnet not found in Kea']);
                 return;
             }
             
-            // Update database
-            $stmt = $db->prepare("UPDATE dedicated_subnets SET name = ?, ccap_core = ? WHERE kea_subnet_id = ?");
+            // Get pool info
+            $poolStart = null;
+            $poolEnd = null;
+            if (isset($keaSubnet['pools'][0]['pool'])) {
+                $poolParts = explode('-', $keaSubnet['pools'][0]['pool']);
+                $poolStart = trim($poolParts[0] ?? '');
+                $poolEnd = trim($poolParts[1] ?? '');
+            }
+            
+            // Get relay
+            $relay = $keaSubnet['relay']['ip-addresses'][0] ?? '::1';
+            
+            // Insert or update database record
+            $stmt = $db->prepare("INSERT INTO dedicated_subnets (name, kea_subnet_id, subnet, pool_start, pool_end, ccap_core) 
+                                  VALUES (?, ?, ?, ?, ?, ?)
+                                  ON DUPLICATE KEY UPDATE name = VALUES(name), ccap_core = VALUES(ccap_core)");
             $stmt->execute([
                 $data['name'], 
-                $data['ccap_core_address'] ?? null, 
-                $subnetId
+                $subnetId,
+                $keaSubnet['subnet'],
+                $poolStart,
+                $poolEnd,
+                $data['ccap_core_address'] ?? null
             ]);
             
             // Build update data for existing updateSubnet method
             $updateData = [
                 'subnet_id' => $subnetId,
-                'subnet' => $dedicatedSubnet['subnet'],
-                'pool_start' => $dedicatedSubnet['pool_start'],
-                'pool_end' => $dedicatedSubnet['pool_end'],
-                'relay_address' => $data['relay_address'] ?? '::1', // Will be read from Kea
+                'subnet' => $keaSubnet['subnet'],
+                'pool_start' => $poolStart,
+                'pool_end' => $poolEnd,
+                'relay_address' => $relay,
                 'ccap_core_address' => $data['ccap_core_address'] ?? null,
                 'valid_lifetime' => intval($data['valid_lifetime'] ?? 7200),
                 'preferred_lifetime' => intval($data['preferred_lifetime'] ?? 3600),
