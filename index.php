@@ -91,6 +91,12 @@ try {
         exit();
     });
 
+    // API Documentation UI
+    $router->get('/api', function() {
+        header('Location: /api-keys#api-docs');
+        exit;
+    });
+
     // Documentation route
     $router->get('/api/docs/spec', function() {
         header('Content-Type: application/json');
