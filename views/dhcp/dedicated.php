@@ -262,7 +262,8 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         </label>
                         <input type="text" id="create_dedicated_subnet" name="subnet" required 
                             placeholder="2001:db8::"
-                            oninput="validateIPv6Address(this)" onchange="autofillDedicatedPool(this); validateIPv6Address(this)"
+                            oninput="validateIPv6Address(this); checkSubnetDuplicateLive(this)"
+                            onchange="autofillDedicatedPool(this)"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         <span id="create_dedicated_subnetError" class="text-red-500 text-xs hidden"></span>
                     </div>
@@ -1560,6 +1561,37 @@ async function checkDuplicateSubnet(subnetPrefix) {
         console.error('Error checking duplicate:', error);
         return false;
     }
+}
+
+let duplicateCheckTimeout;
+function checkSubnetDuplicateLive(input) {
+    clearTimeout(duplicateCheckTimeout);
+    
+    const maskValue = document.getElementById('create_dedicated_mask').value;
+    const subnetValue = input.value.trim();
+    const errorSpan = document.getElementById('create_dedicated_subnetError');
+    
+    if (!subnetValue) {
+        return;
+    }
+    
+    duplicateCheckTimeout = setTimeout(async () => {
+        const fullSubnet = subnetValue + '/' + maskValue;
+        const isDuplicate = await checkDuplicateSubnet(fullSubnet);
+        
+        if (isDuplicate) {
+            input.classList.add('border-red-500');
+            if (errorSpan) {
+                errorSpan.textContent = 'This subnet already exists';
+                errorSpan.classList.remove('hidden');
+            }
+        } else if (!input.classList.contains('border-red-500')) {
+            // Only clear if there's no other error
+            if (errorSpan && errorSpan.textContent.includes('already exists')) {
+                errorSpan.classList.add('hidden');
+            }
+        }
+    }, 500);
 }
 
 function showCreateDedicatedSubnetModal() {
