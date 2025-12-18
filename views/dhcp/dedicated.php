@@ -37,6 +37,21 @@ try {
     $stmt->execute();
     $bviSubnetIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
     
+    // Get all Kea subnet IDs for cleanup
+    $keaSubnetIds = array_column($allKeaSubnets, 'id');
+    
+    // Clean up orphaned entries in dedicated_subnets table (subnets that no longer exist in Kea)
+    $stmt = $db->prepare("SELECT kea_subnet_id FROM dedicated_subnets");
+    $stmt->execute();
+    $dedicatedTableIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
+    $orphanedIds = array_diff($dedicatedTableIds, $keaSubnetIds);
+    if (!empty($orphanedIds)) {
+        $placeholders = implode(',', array_fill(0, count($orphanedIds), '?'));
+        $stmt = $db->prepare("DELETE FROM dedicated_subnets WHERE kea_subnet_id IN ($placeholders)");
+        $stmt->execute(array_values($orphanedIds));
+        error_log("Cleaned up " . count($orphanedIds) . " orphaned dedicated subnet entries: " . json_encode($orphanedIds));
+    }
+    
     // Get dedicated subnet names from database
     $dedicatedSubnetNames = [];
     try {
@@ -1697,7 +1712,7 @@ function editDedicatedSubnet(subnet) {
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2">CCAP Core Address</label>
                             <input type="text" id="edit_dedicated_ccap" value="${subnet.ccap_core || ''}"
-                                onchange="validateIPv6Address(this)"
+                                oninput="validateIPv6Address(this)" onchange="validateIPv6Address(this)"
                                 placeholder="Optional"
                                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                             <span id="edit_dedicated_ccapError" class="text-red-500 text-xs hidden"></span>
