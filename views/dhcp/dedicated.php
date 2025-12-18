@@ -262,7 +262,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         </label>
                         <input type="text" id="create_dedicated_subnet" name="subnet" required 
                             placeholder="2001:db8::"
-                            onchange="autofillDedicatedPool(this); validateIPv6Address(this)"
+                            oninput="validateIPv6Address(this)" onchange="autofillDedicatedPool(this); validateIPv6Address(this)"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         <span id="create_dedicated_subnetError" class="text-red-500 text-xs hidden"></span>
                     </div>
@@ -279,16 +279,22 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_pool_start">
                             Pool Start
                         </label>
-                        <input type="text" id="create_dedicated_pool_start" name="pool_start" readonly disabled
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        <input type="text" id="create_dedicated_pool_start" name="pool_start" required
+                            placeholder="Auto-filled from subnet"
+                            oninput="validateIPv6Address(this)" onchange="validateIPv6Address(this)"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <span id="create_dedicated_pool_startError" class="text-red-500 text-xs hidden"></span>
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="create_dedicated_pool_end">
                             Pool End
                         </label>
-                        <input type="text" id="create_dedicated_pool_end" name="pool_end" readonly disabled
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        <input type="text" id="create_dedicated_pool_end" name="pool_end" required
+                            placeholder="Auto-filled from subnet"
+                            oninput="validateIPv6Address(this)" onchange="validateIPv6Address(this)"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <span id="create_dedicated_pool_endError" class="text-red-500 text-xs hidden"></span>
                     </div>
 
                     <div class="mb-4">
@@ -297,7 +303,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                         </label>
                         <input type="text" id="create_dedicated_relay" name="relay_address" required
                             placeholder="2001:db8::1"
-                            onchange="validateIPv6Address(this)"
+                            oninput="validateIPv6Address(this)" onchange="validateIPv6Address(this)"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         <span id="create_dedicated_relayError" class="text-red-500 text-xs hidden"></span>
                     </div>
