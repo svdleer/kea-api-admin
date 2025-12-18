@@ -713,18 +713,34 @@ class DHCPController
             // Get relay
             $relay = $keaSubnet['relay']['ip-addresses'][0] ?? '::1';
             
-            // Insert or update database record
-            $stmt = $db->prepare("INSERT INTO dedicated_subnets (name, kea_subnet_id, subnet, pool_start, pool_end, ccap_core) 
-                                  VALUES (?, ?, ?, ?, ?, ?)
-                                  ON DUPLICATE KEY UPDATE name = VALUES(name), ccap_core = VALUES(ccap_core)");
-            $stmt->execute([
-                $data['name'], 
-                $subnetId,
-                $keaSubnet['subnet'],
-                $poolStart,
-                $poolEnd,
-                $data['ccap_core_address'] ?? null
-            ]);
+            // Check if record exists in database
+            $stmt = $db->prepare("SELECT id FROM dedicated_subnets WHERE kea_subnet_id = ?");
+            $stmt->execute([$subnetId]);
+            $exists = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($exists) {
+                // Update existing record
+                $stmt = $db->prepare("UPDATE dedicated_subnets SET name = ?, ccap_core = ?, subnet = ?, pool_start = ?, pool_end = ? WHERE kea_subnet_id = ?");
+                $stmt->execute([
+                    $data['name'], 
+                    $data['ccap_core_address'] ?? null,
+                    $keaSubnet['subnet'],
+                    $poolStart,
+                    $poolEnd,
+                    $subnetId
+                ]);
+            } else {
+                // Insert new record
+                $stmt = $db->prepare("INSERT INTO dedicated_subnets (name, kea_subnet_id, subnet, pool_start, pool_end, ccap_core) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $data['name'], 
+                    $subnetId,
+                    $keaSubnet['subnet'],
+                    $poolStart,
+                    $poolEnd,
+                    $data['ccap_core_address'] ?? null
+                ]);
+            }
             
             // Build update data for existing updateSubnet method
             $updateData = [
