@@ -714,9 +714,18 @@ class DHCPController
             $relay = $keaSubnet['relay']['ip-addresses'][0] ?? '::1';
             
             // Check if record exists in database
-            $stmt = $db->prepare("SELECT id FROM dedicated_subnets WHERE kea_subnet_id = ?");
+            $stmt = $db->prepare("SELECT id, name FROM dedicated_subnets WHERE kea_subnet_id = ?");
             $stmt->execute([$subnetId]);
             $exists = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            // Check if the new name is already used by a different subnet
+            $stmt = $db->prepare("SELECT kea_subnet_id FROM dedicated_subnets WHERE name = ? AND kea_subnet_id != ?");
+            $stmt->execute([$data['name'], $subnetId]);
+            if ($stmt->fetch()) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'A subnet with this name already exists']);
+                return;
+            }
             
             if ($exists) {
                 // Update existing record
