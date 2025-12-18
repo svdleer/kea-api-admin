@@ -41,15 +41,19 @@ try {
     $keaSubnetIds = array_column($allKeaSubnets, 'id');
     
     // Clean up orphaned entries in dedicated_subnets table (subnets that no longer exist in Kea)
-    $stmt = $db->prepare("SELECT kea_subnet_id FROM dedicated_subnets");
-    $stmt->execute();
-    $dedicatedTableIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
-    $orphanedIds = array_diff($dedicatedTableIds, $keaSubnetIds);
-    if (!empty($orphanedIds)) {
-        $placeholders = implode(',', array_fill(0, count($orphanedIds), '?'));
-        $stmt = $db->prepare("DELETE FROM dedicated_subnets WHERE kea_subnet_id IN ($placeholders)");
-        $stmt->execute(array_values($orphanedIds));
-        error_log("Cleaned up " . count($orphanedIds) . " orphaned dedicated subnet entries: " . json_encode($orphanedIds));
+    try {
+        $stmt = $db->prepare("SELECT kea_subnet_id FROM dedicated_subnets");
+        $stmt->execute();
+        $dedicatedTableIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
+        $orphanedIds = array_diff($dedicatedTableIds, $keaSubnetIds);
+        if (!empty($orphanedIds)) {
+            $placeholders = implode(',', array_fill(0, count($orphanedIds), '?'));
+            $stmt = $db->prepare("DELETE FROM dedicated_subnets WHERE kea_subnet_id IN ($placeholders)");
+            $stmt->execute(array_values($orphanedIds));
+            error_log("Cleaned up " . count($orphanedIds) . " orphaned dedicated subnet entries: " . json_encode($orphanedIds));
+        }
+    } catch (\PDOException $e) {
+        error_log("Could not cleanup orphaned dedicated_subnets: " . $e->getMessage());
     }
     
     // Get dedicated subnet names from database
