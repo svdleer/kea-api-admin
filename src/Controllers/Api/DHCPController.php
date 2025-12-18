@@ -685,6 +685,17 @@ class DHCPController
             
             $db = \App\Database\Database::getInstance();
             
+            // Get current subnet details from dedicated_subnets table
+            $stmt = $db->prepare("SELECT * FROM dedicated_subnets WHERE kea_subnet_id = ?");
+            $stmt->execute([$subnetId]);
+            $dedicatedSubnet = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$dedicatedSubnet) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Dedicated subnet not found']);
+                return;
+            }
+            
             // Update database
             $stmt = $db->prepare("UPDATE dedicated_subnets SET name = ?, ccap_core = ? WHERE kea_subnet_id = ?");
             $stmt->execute([
@@ -693,60 +704,23 @@ class DHCPController
                 $subnetId
             ]);
             
-            if ($stmt->rowCount() === 0) {
-                http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Dedicated subnet not found']);
-                return;
-            }
-            
-            // Update Kea configuration for timers and CCAP core
-            $dhcpModel = new \App\Models\DHCP($db);
-            
-            // Get current subnet from Kea
-            $allSubnets = $dhcpModel->getAllSubnetsfromKEA();
-            $currentSubnet = null;
-            foreach ($allSubnets as $s) {
-                if ($s['id'] == $subnetId) {
-                    $currentSubnet = $s;
-                    break;
-                }
-            }
-            
-            if (!$currentSubnet) {
-                throw new \Exception('Subnet not found in Kea');
-            }
-            
-            // Update subnet with new timers and CCAP core
-            $updateArgs = [
-                "subnet6" => [[
-                    "id" => $subnetId,
-                    "subnet" => $currentSubnet['subnet'],
-                    "valid-lifetime" => intval($data['valid_lifetime']),
-                    "preferred-lifetime" => intval($data['preferred_lifetime']),
-                    "renew-timer" => intval($data['renew_timer']),
-                    "rebind-timer" => intval($data['rebind_timer'])
-                ]]
+            // Build update data for existing updateSubnet method
+            $updateData = [
+                'subnet_id' => $subnetId,
+                'subnet' => $dedicatedSubnet['subnet'],
+                'pool_start' => $dedicatedSubnet['pool_start'],
+                'pool_end' => $dedicatedSubnet['pool_end'],
+                'relay_address' => $data['relay_address'] ?? '::1', // Will be read from Kea
+                'ccap_core_address' => $data['ccap_core_address'] ?? null,
+                'valid_lifetime' => intval($data['valid_lifetime'] ?? 7200),
+                'preferred_lifetime' => intval($data['preferred_lifetime'] ?? 3600),
+                'renew_timer' => intval($data['renew_timer'] ?? 1000),
+                'rebind_timer' => intval($data['rebind_timer'] ?? 2000),
+                'bvi_interface_id' => 0 // Dummy value for dedicated subnets
             ];
             
-            // Add CCAP core option if provided
-            if (!empty($data['ccap_core_address'])) {
-                $updateArgs["subnet6"][0]["option-data"] = [[
-                    'code' => 61,
-                    'space' => 'vendor-4491',
-                    'csv-format' => true,
-                    'data' => $data['ccap_core_address'],
-                    'always-send' => true
-                ]];
-            }
-            
-            $response = $dhcpModel->sendKeaCommand('subnet6-update', $updateArgs);
-            
-            if (!isset($response[0]['result']) || $response[0]['result'] !== 0) {
-                throw new \Exception("Failed to update Kea configuration: " . json_encode($response));
-            }
-            
-            // Save Kea config
-            $dhcpModel->saveKeaConfig();
+            // Use the existing updateSubnet method
+            $this->subnetModel->updateSubnet($updateData);
             
             header('Content-Type: application/json');
             echo json_encode([
