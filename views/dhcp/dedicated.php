@@ -78,6 +78,11 @@ try {
                 }
             }
         }
+        // Add timers
+        $subnet['valid_lifetime'] = $subnet['valid-lifetime'] ?? 7200;
+        $subnet['preferred_lifetime'] = $subnet['preferred-lifetime'] ?? 3600;
+        $subnet['renew_timer'] = $subnet['renew-timer'] ?? 1000;
+        $subnet['rebind_timer'] = $subnet['rebind-timer'] ?? 2000;
         // Add name from database
         $subnet['name'] = $dedicatedSubnetNames[$subnet['id']] ?? 'Unnamed';
     }
@@ -1659,67 +1664,150 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function editDedicatedSubnet(subnet) {
-    Swal.fire({
-        title: 'Edit Subnet Name',
-        html: `
-            <div class="text-left">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Subnet Name</label>
-                <input type="text" id="edit_subnet_name" value="${subnet.name || ''}" 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                       placeholder="e.g., Management Network, Guest WiFi">
-                <p class="mt-2 text-sm text-gray-500">Subnet: ${subnet.subnet}</p>
+    // Show modal with full form
+    const modalHtml = `
+        <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="editDedicatedModal">
+            <div class="relative top-10 mx-auto p-5 border w-[700px] shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Edit DHCPv6 Subnet</h3>
+                    <form id="editDedicatedForm">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Subnet Name</label>
+                            <input type="text" id="edit_dedicated_name" value="${subnet.name || ''}" required
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">DHCP Prefix</label>
+                            <input type="text" value="${subnet.subnet || ''}" readonly
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Subnet Pool</label>
+                            <input type="text" value="${subnet.pool?.start || ''} - ${subnet.pool?.end || ''}" readonly
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">CCAP Core Address</label>
+                            <input type="text" id="edit_dedicated_ccap" value="${subnet.ccap_core || ''}"
+                                onchange="validateIPv6Address(this)"
+                                placeholder="Optional"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <span id="edit_dedicated_ccapError" class="text-red-500 text-xs hidden"></span>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-md font-semibold text-gray-700 mb-3">Lease Timers (seconds)</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Valid Lifetime</label>
+                                    <input type="number" id="edit_dedicated_valid" value="${subnet.valid_lifetime || 7200}"
+                                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Preferred Lifetime</label>
+                                    <input type="number" id="edit_dedicated_preferred" value="${subnet.preferred_lifetime || 3600}"
+                                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Renew Timer (T1)</label>
+                                    <input type="number" id="edit_dedicated_renew" value="${subnet.renew_timer || 1000}"
+                                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Rebind Timer (T2)</label>
+                                    <input type="number" id="edit_dedicated_rebind" value="${subnet.rebind_timer || 2000}"
+                                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-end mt-6">
+                            <button type="button" onclick="closeEditDedicatedModal()" 
+                                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Save',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-            const name = document.getElementById('edit_subnet_name').value;
-            if (!name || name.trim() === '') {
-                Swal.showValidationMessage('Name is required');
-                return false;
-            }
-            return { name: name.trim() };
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    document.getElementById('editDedicatedForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const ccapInput = document.getElementById('edit_dedicated_ccap');
+        
+        // Validate CCAP core if provided
+        if (ccapInput.value && ccapInput.value.trim() !== '' && !validateIPv6Address(ccapInput)) {
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please enter a valid CCAP Core IPv6 address',
+                icon: 'error'
+            });
+            return;
         }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/api/dhcp/dedicated-subnets/${subnet.id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: result.value.name
-                    })
+        
+        const updateData = {
+            name: document.getElementById('edit_dedicated_name').value.trim(),
+            ccap_core_address: ccapInput.value.trim() || null,
+            valid_lifetime: parseInt(document.getElementById('edit_dedicated_valid').value),
+            preferred_lifetime: parseInt(document.getElementById('edit_dedicated_preferred').value),
+            renew_timer: parseInt(document.getElementById('edit_dedicated_renew').value),
+            rebind_timer: parseInt(document.getElementById('edit_dedicated_rebind').value)
+        };
+        
+        try {
+            const response = await fetch(`/api/dhcp/dedicated-subnets/${subnet.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                closeEditDedicatedModal();
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Subnet updated successfully',
+                    icon: 'success'
+                }).then(() => {
+                    window.location.reload();
                 });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Subnet name updated successfully',
-                        icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Error',
-                        text: data.error || 'Failed to update subnet name',
-                        icon: 'error'
-                    });
-                }
-            } catch (error) {
+            } else {
                 Swal.fire({
                     title: 'Error',
-                    text: 'Failed to update subnet: ' + error.message,
+                    text: data.error || 'Failed to update subnet',
                     icon: 'error'
                 });
             }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to update subnet: ' + error.message,
+                icon: 'error'
+            });
         }
     });
+}
+
+function closeEditDedicatedModal() {
+    const modal = document.getElementById('editDedicatedModal');
+    if (modal) {
+        modal.remove();
+    }
 }
 
 async function deleteDedicatedSubnet(id, subnetCidr) {

@@ -250,15 +250,26 @@ require BASE_PATH . '/views/dhcp-menu.php';
     </div>
 
     <?php
-    // Find orphaned subnets (subnets that don't have a matching BVI)
+    // Get dedicated subnet IDs from database
+    $stmt = $db->prepare("SELECT kea_subnet_id FROM dedicated_subnets");
+    $stmt->execute();
+    $dedicatedSubnetIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
+    
+    // Find orphaned subnets (subnets that don't have a matching BVI and are NOT dedicated)
     $assignedBviIds = array_map(function($switch) {
         return $switch['bvi_interface_id'] ?? null;
     }, $switches);
     $assignedBviIds = array_filter($assignedBviIds);
     
     error_log("Assigned BVI IDs: " . json_encode($assignedBviIds));
+    error_log("Dedicated subnet IDs: " . json_encode($dedicatedSubnetIds));
     
-    $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds) {
+    $orphanedSubnets = array_filter($subnets, function($subnet) use ($assignedBviIds, $dedicatedSubnetIds) {
+        // Skip dedicated subnets - they are not orphaned
+        if (in_array($subnet['id'], $dedicatedSubnetIds)) {
+            return false;
+        }
+        
         // A subnet is orphaned if:
         // 1. It has a bvi_interface_id that doesn't match any current BVI
         // 2. OR it has a null bvi_interface_id (subnet exists in Kea but not in our database)
