@@ -1301,17 +1301,48 @@ class DHCP
 
     public function checkDuplicateSubnet($subnet, $excludeId = null)
     {
-        $query = "SELECT subnet_id FROM dhcp6_subnet WHERE subnet_prefix = :subnet";
-        $params = ['subnet' => $subnet];
-    
-        if ($excludeId) {
-            $query .= " AND subnet_id != :exclude_id";
-            $params['exclude_id'] = $excludeId;
-        }
-    
-        $stmt = $this->db->prepare($query);
-        $stmt->execute($params);
+        // Check 1: Check in our cin_bvi_dhcp_core table
+        $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE kea_subnet_id IS NOT NULL");
+        $stmt->execute();
+        $bviSubnetIds = array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'kea_subnet_id');
         
+        // Check 2: Check in dedicated_subnets table
+        try {
+            $stmt = $this->db->prepare("SELECT kea_subnet_id FROM dedicated_subnets");
+            $stmt->execute();
+            $dedicatedSubnetIds = array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'kea_subnet_id');
+        } catch (\PDOException $e) {
+            error_log("Could not check dedicated_subnets table: " . $e->getMessage());
+            $dedicatedSubnetIds = [];
+        }
+        
+        // Merge all tracked subnet IDs
+        $trackedSubnetIds = array_merge($bviSubnetIds, $dedicatedSubnetIds);
+        
+        // Check 3: Get all subnets from Kea and check if subnet matches
+        try {
+            $allKeaSubnets = $this->getAllSubnetsfromKEA();
+            foreach ($allKeaSubnets as $keaSubnet) {
+                // Skip if this is the subnet we're excluding
+                if ($excludeId && $keaSubnet['id'] == $excludeId) {
+                    continue;
+                }
+                
+                // Check if subnet prefix matches
+                if (isset($keaSubnet['subnet']) && $keaSubnet['subnet'] === $subnet) {
+                    // Found a duplicate
+                    $stmt = $this->db->prepare("SELECT 1");
+                    $stmt->execute();
+                    return $stmt;
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("Error checking Kea subnets: " . $e->getMessage());
+        }
+        
+        // No duplicates found
+        $stmt = $this->db->prepare("SELECT 1 WHERE 1=0");
+        $stmt->execute();
         return $stmt;  
     }
     
