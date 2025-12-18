@@ -38,11 +38,16 @@ try {
     $bviSubnetIds = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'kea_subnet_id');
     
     // Get dedicated subnet names from database
-    $stmt = $db->prepare("SELECT kea_subnet_id, name FROM dedicated_subnets");
-    $stmt->execute();
     $dedicatedSubnetNames = [];
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $dedicatedSubnetNames[$row['kea_subnet_id']] = $row['name'];
+    try {
+        $stmt = $db->prepare("SELECT kea_subnet_id, name FROM dedicated_subnets");
+        $stmt->execute();
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $dedicatedSubnetNames[$row['kea_subnet_id']] = $row['name'];
+        }
+    } catch (\PDOException $e) {
+        // Table might not exist yet
+        error_log("Could not load dedicated_subnets table: " . $e->getMessage());
     }
     
     error_log("BVI-associated subnet IDs: " . json_encode($bviSubnetIds));
