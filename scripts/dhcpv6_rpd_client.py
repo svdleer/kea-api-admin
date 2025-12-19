@@ -301,11 +301,11 @@ class DHCPv6RPDClient:
             sendp(l2_packet, iface=self.interface, verbose=0)
             print(f"Packet sent, sniffing for up to {timeout} seconds...")
             
-            # Sniff for DHCPv6 response with verbose output
-            print(f"Listening on {self.interface} for UDP dst port 546...")
+            # Sniff for DHCPv6 response - look for source port 547 (server response)
+            print(f"Listening on {self.interface} for UDP src port 547...")
             response = sniff(
                 iface=self.interface,
-                filter="udp and dst port 546",
+                filter="udp and src port 547",
                 timeout=timeout + 5,  # Extra time
                 count=1,
                 prn=lambda x: print(f"Captured packet: {x.summary()}")
