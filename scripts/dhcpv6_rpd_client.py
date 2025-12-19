@@ -61,9 +61,13 @@ class DHCPv6RPDClient:
             T2=2000
         )
         
+        # Option 15: User Class - for Kea's client-class matching
+        # Must contain "RPD" - format is length-prefixed strings
+        user_class_data = struct.pack('!H', 3) + b'RPD'  # 2-byte length (3) + "RPD"
+        dhcp6 /= DHCP6OptUserClass(userclassdata=user_class_data)
+        
         # Option 17: Vendor-Specific Information, Suboption 15 with "RPD"
         # CableLabs enterprise number: 4491
-        # Suboption format: [option-code (2 bytes)][length (2 bytes)][data]
         vendor_data = struct.pack('!HH', 15, 3) + b'RPD'
         dhcp6 /= DHCP6OptVendorSpecificInfo(
             enterprisenum=4491,
