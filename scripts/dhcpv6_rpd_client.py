@@ -289,34 +289,15 @@ class DHCPv6RPDClient:
         
         print("\nSending packet and waiting for response...")
         
-        # For relay mode, use L3 but sniff for response
+        # For relay mode, use sr1 with increased timeout
         if relay_address:
-            # Start sniffing in async mode, THEN send
-            from scapy.sendrecv import AsyncSniffer
-            
-            # Start sniffer first
-            sniffer = AsyncSniffer(
+            # Use sr1 which handles send + receive properly
+            response = sr1(
+                packet,
                 iface=self.interface,
-                filter="udp dst port 546",
-                count=1,
-                timeout=timeout
+                timeout=timeout,
+                verbose=1  # Enable verbose to see what's happening
             )
-            sniffer.start()
-            
-            # Give sniffer time to start
-            time.sleep(0.5)
-            
-            # Now send the packet
-            send(packet, verbose=0)
-            print("Packet sent, waiting for response...")
-            
-            # Wait for sniffer to finish
-            packets = sniffer.stop()
-            
-            if packets:
-                response = packets[0]
-            else:
-                response = None
         else:
             # For multicast, we need to use L2 (Ethernet) layer
             # Build L2 packet with Ethernet header for multicast
