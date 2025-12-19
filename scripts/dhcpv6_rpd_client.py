@@ -61,10 +61,10 @@ class DHCPv6RPDClient:
             T2=2000
         )
         
-        # Option 15: User Class - for Kea's client-class matching
-        # Must contain "RPD" - format is length-prefixed strings
-        user_class_data = struct.pack('!H', 3) + b'RPD'  # 2-byte length (3) + "RPD"
-        dhcp6 /= DHCP6OptUserClass(userclassdata=user_class_data)
+        # Option 15: User Class - for Kea's client-class matching  
+        # Scapy's DHCP6OptUserClass expects a list of user class data
+        # Each item is automatically length-prefixed by Scapy
+        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'RPD'])
         
         # Option 17: Vendor-Specific Information, Suboption 2 with "RPD"
         # Kea checks: substring(option[17].option[2].hex,0,3) == 'RPD'
