@@ -7,6 +7,7 @@ Simulates a Remote PHY Device (RPD) requesting DHCPv6 configuration from Kea ser
 from scapy.all import *
 from scapy.layers.dhcp6 import *
 from scapy.layers.inet6 import IPv6, UDP
+from scapy.layers.l2 import Ether
 import time
 import sys
 
@@ -225,13 +226,36 @@ class DHCPv6RPDClient:
         
         print("\nSending packet and waiting for response...")
         
-        # Send packet and wait for response
-        response = sr1(
-            packet,
-            iface=self.interface,
-            timeout=timeout,
-            verbose=0
-        )
+        # For multicast, we need to use L2 (Ethernet) layer
+        if not relay_address or relay_address == DHCPV6_MULTICAST:
+            # Build L2 packet with Ethernet header for multicast
+            # Multicast MAC for ff02::1:2 is 33:33:00:01:00:02
+            eth = Ether(dst="33:33:00:01:00:02", src=self.client_mac)
+            l2_packet = eth / packet
+            
+            # Send at L2 and sniff for response
+            sendp(l2_packet, iface=self.interface, verbose=0)
+            
+            # Sniff for DHCPv6 response
+            response = sniff(
+                iface=self.interface,
+                filter="udp port 546",
+                timeout=timeout,
+                count=1
+            )
+            
+            if response:
+                response = response[0]
+            else:
+                response = None
+        else:
+            # For unicast to relay, use L3
+            response = sr1(
+                packet,
+                iface=self.interface,
+                timeout=timeout,
+                verbose=0
+            )
         
         if response:
             self.parse_response(response)
