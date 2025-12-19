@@ -199,10 +199,12 @@ class DHCPv6RPDClient:
             # Extract the encapsulated message from option 9
             if DHCP6OptRelayMsg in relay_reply:
                 relay_msg = relay_reply[DHCP6OptRelayMsg]
-                # Parse the inner message
-                inner_packet = DHCP6_Advertise(relay_msg.message)
-                if inner_packet:
-                    dhcp6 = inner_packet
+                # The message field is already a parsed DHCP6 layer
+                if DHCP6_Advertise in relay_msg:
+                    dhcp6 = relay_msg[DHCP6_Advertise]
+                    msg_type = "ADVERTISE (in RELAY-REPLY)"
+                else:
+                    dhcp6 = relay_msg.message
                     msg_type = "ADVERTISE (in RELAY-REPLY)"
         elif DHCP6_Advertise in packet:
             msg_type = "ADVERTISE"
