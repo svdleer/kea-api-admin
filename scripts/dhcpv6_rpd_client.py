@@ -198,14 +198,21 @@ class DHCPv6RPDClient:
             
             # Extract the encapsulated message from option 9
             if DHCP6OptRelayMsg in relay_reply:
-                relay_msg = relay_reply[DHCP6OptRelayMsg]
-                # The message field is already a parsed DHCP6 layer
-                if DHCP6_Advertise in relay_msg:
-                    dhcp6 = relay_msg[DHCP6_Advertise]
-                    msg_type = "ADVERTISE (in RELAY-REPLY)"
-                else:
-                    dhcp6 = relay_msg.message
-                    msg_type = "ADVERTISE (in RELAY-REPLY)"
+                # Navigate through the layers to find the ADVERTISE
+                # The structure is: RelayReply -> OptRelayMsg -> ADVERTISE
+                current = relay_reply[DHCP6OptRelayMsg]
+                
+                # Look for DHCP6_Advertise in the layers
+                while current:
+                    if DHCP6_Advertise in current:
+                        dhcp6 = current[DHCP6_Advertise]
+                        msg_type = "ADVERTISE (in RELAY-REPLY)"
+                        break
+                    # Try to get the next payload
+                    if hasattr(current, 'payload') and current.payload:
+                        current = current.payload
+                    else:
+                        break
         elif DHCP6_Advertise in packet:
             msg_type = "ADVERTISE"
             dhcp6 = packet[DHCP6_Advertise]
