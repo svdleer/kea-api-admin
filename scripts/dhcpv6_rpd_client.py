@@ -267,13 +267,23 @@ class DHCPv6RPDClient:
         
         print("\nSending packet and waiting for response...")
         
-        # For relay mode, use L3 unicast
+        # For relay mode, use L3 but sniff for response
         if relay_address:
-            response = sr1(
-                packet,
+            # Send the packet
+            send(packet, verbose=0)
+            
+            # Sniff for DHCPv6 response on UDP port 546
+            response = sniff(
+                iface=self.interface,
+                filter="udp port 546",
                 timeout=timeout,
-                verbose=0
+                count=1
             )
+            
+            if response:
+                response = response[0]
+            else:
+                response = None
         else:
             # For multicast, we need to use L2 (Ethernet) layer
             # Build L2 packet with Ethernet header for multicast
