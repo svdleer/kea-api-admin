@@ -61,10 +61,14 @@ class DHCPv6RPDClient:
             T2=2000
         )
         
-        # Option 15: User Class - properly formatted with length prefix
-        # Format: [length (2 bytes)][data]
-        user_class_data = struct.pack('!H', 3) + b'RPD'  # 2-byte length + 'RPD'
-        dhcp6 /= DHCP6OptUserClass(userclassdata=user_class_data)
+        # Option 17: Vendor-Specific Information with RPD in suboption 15
+        # CableLabs enterprise number: 4491
+        # Suboption 15 should contain "RPD"
+        vendor_data = struct.pack('!HH', 15, 3) + b'RPD'  # Suboption 15, length 3, data "RPD"
+        dhcp6 /= DHCP6OptVendorSpecificInfo(
+            enterprisenum=4491,  # CableLabs
+            vso=vendor_data
+        )
         
         # Option 6: Option Request (ORO) - Request specific options
         # 23 = DNS Recursive Name Server
