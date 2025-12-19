@@ -39,38 +39,30 @@ class DHCPv6RPDClient:
     def create_solicit(self, relay_address=None):
         """Create DHCPv6 Solicit message with RPD client class"""
         
-        # Build DHCPv6 Solicit packet
+        # Build DHCPv6 Solicit packet with options using layer chaining
         dhcp6 = DHCP6_Solicit(trid=self.transaction_id)
         
-        # Add options
-        options = []
-        
         # Option 1: Client Identifier (DUID)
-        options.append(DHCP6OptClientId(duid=self.duid))
+        dhcp6 /= DHCP6OptClientId(duid=self.duid)
+        
+        # Option 8: Elapsed Time
+        dhcp6 /= DHCP6OptElapsedTime(elapsedtime=0)
+        
+        # Option 3: Identity Association for Non-temporary Address (IA_NA)
+        dhcp6 /= DHCP6OptIA_NA(
+            iaid=0x12345678,
+            T1=1000,
+            T2=2000
+        )
+        
+        # Option 15: User Class - Set to "RPD" to match Kea client-class
+        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'RPD'])
         
         # Option 6: Option Request (ORO) - Request specific options
         # 23 = DNS Recursive Name Server
         # 24 = Domain Search List
         # 17 = Vendor-specific Information
-        options.append(DHCP6OptOptReq(reqopts=[23, 24, 17]))
-        
-        # Option 8: Elapsed Time
-        options.append(DHCP6OptElapsedTime(elapsedtime=0))
-        
-        # Option 15: User Class - Set to "RPD" to match Kea client-class
-        options.append(DHCP6OptUserClass(userclassdata=[b'RPD']))
-        
-        # Option 3: Identity Association for Non-temporary Address (IA_NA)
-        ia_na = DHCP6OptIA_NA(
-            iaid=0x12345678,
-            T1=1000,
-            T2=2000,
-            ianaopts=[]
-        )
-        options.append(ia_na)
-        
-        # Build the complete packet
-        dhcp6.options = options
+        dhcp6 /= DHCP6OptOptReq(reqopts=[23, 24, 17])
         
         if relay_address:
             # If relay address is specified, send unicast to relay
