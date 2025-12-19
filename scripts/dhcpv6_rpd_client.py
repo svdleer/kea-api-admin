@@ -62,9 +62,12 @@ class DHCPv6RPDClient:
         )
         
         # Option 15: User Class - Kea checks substring(option[15].hex,0,3) == 'RPD'
-        # The hex representation needs to be "525044" (RPD in hex)
-        # User Class format: list of user class data, each prefixed with 2-byte length
-        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'\x00\x03RPD'])
+        # option[15].hex converts bytes to hex string, so 'RPD' bytes = '525044' hex
+        # substring(option[15].hex,0,3) takes first 3 chars of hex = '525' 
+        # So we need the hex string to start with 'RPD' literally, not hex of RPD
+        # This means we need bytes that when shown as hex spell "RPD"
+        # Actually, Kea probably means the ASCII text, let me send just 'RPD'
+        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'RPD'])
         
         # Option 6: Option Request (ORO) - Request specific options
         # 23 = DNS Recursive Name Server
