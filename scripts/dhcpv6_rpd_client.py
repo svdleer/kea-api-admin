@@ -125,14 +125,31 @@ class DHCPv6RPDClient:
         print("DHCPv6 RESPONSE RECEIVED")
         print("="*80)
         
+        # Show full packet first
+        print("\n[RAW PACKET STRUCTURE]:")
+        packet.show()
+        
+        # Try to find DHCPv6 layer
+        dhcp6 = None
+        msg_type = "UNKNOWN"
+        
         if DHCP6_Advertise in packet:
             msg_type = "ADVERTISE"
             dhcp6 = packet[DHCP6_Advertise]
         elif DHCP6_Reply in packet:
             msg_type = "REPLY"
             dhcp6 = packet[DHCP6_Reply]
+        elif DHCP6_RelayReply in packet:
+            msg_type = "RELAY-REPLY"
+            dhcp6 = packet[DHCP6_RelayReply]
+        elif DHCP6_Confirm in packet:
+            msg_type = "CONFIRM"
+            dhcp6 = packet[DHCP6_Confirm]
         else:
-            print("Unknown DHCPv6 message type")
+            print(f"\n[WARNING] Unknown DHCPv6 message type")
+            print("\n[FULL PACKET HEX DUMP]:")
+            hexdump(packet)
+            print("="*80)
             return
         
         print(f"\n[MESSAGE TYPE]: {msg_type}")
