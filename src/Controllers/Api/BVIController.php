@@ -99,6 +99,67 @@ class BVIController
             $result = $this->bviModel->updateBviInterface($switchId, $bviId, $data);
             
             if ($result) {
+                // If IPv6 address changed, update the relay address in the associated Kea subnet
+                if (isset($data['ipv6_address'])) {
+                    try {
+                        // Get the associated DHCP subnet
+                        $stmt = $this->db->prepare("SELECT kea_subnet_id, subnet FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
+                        $stmt->execute([$bviId]);
+                        $dhcpSubnet = $stmt->fetch(\PDO::FETCH_ASSOC);
+                        
+                        if ($dhcpSubnet && $dhcpSubnet['kea_subnet_id']) {
+                            error_log("Updating relay address for subnet {$dhcpSubnet['kea_subnet_id']} to {$data['ipv6_address']}");
+                            
+                            // Get full subnet details from Kea
+                            $allSubnets = $this->dhcpModel->getAllSubnetsfromKEA();
+                            $currentSubnet = null;
+                            foreach ($allSubnets as $s) {
+                                if ($s['id'] == $dhcpSubnet['kea_subnet_id']) {
+                                    $currentSubnet = $s;
+                                    break;
+                                }
+                            }
+                            
+                            if ($currentSubnet) {
+                                // Extract pool info
+                                $poolParts = explode('-', $currentSubnet['pools'][0]['pool'] ?? '');
+                                $poolStart = trim($poolParts[0] ?? '');
+                                $poolEnd = trim($poolParts[1] ?? '');
+                                
+                                // Get CCAP core from database
+                                $ccapCore = null;
+                                $stmt = $this->db->prepare("SELECT ccap_core FROM cin_bvi_dhcp_core WHERE kea_subnet_id = ?");
+                                $stmt->execute([$dhcpSubnet['kea_subnet_id']]);
+                                $ccapRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+                                if ($ccapRow) {
+                                    $ccapCore = $ccapRow['ccap_core'];
+                                }
+                                
+                                // Update subnet with new relay address
+                                $updateData = [
+                                    'subnet_id' => $dhcpSubnet['kea_subnet_id'],
+                                    'subnet' => $dhcpSubnet['subnet'],
+                                    'pool_start' => $poolStart,
+                                    'pool_end' => $poolEnd,
+                                    'relay_address' => $data['ipv6_address'],
+                                    'ccap_core_address' => $ccapCore,
+                                    'valid_lifetime' => $currentSubnet['valid-lifetime'] ?? 7200,
+                                    'preferred_lifetime' => $currentSubnet['preferred-lifetime'] ?? 3600,
+                                    'renew_timer' => $currentSubnet['renew-timer'] ?? 1000,
+                                    'rebind_timer' => $currentSubnet['rebind-timer'] ?? 2000,
+                                    'bvi_interface_id' => $bviId
+                                ];
+                                
+                                $this->dhcpModel->updateSubnet($updateData);
+                                error_log("Successfully updated relay address in Kea subnet");
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        error_log("Warning: Could not update relay address in Kea: " . $e->getMessage());
+                        // Don't fail the BVI update if Kea update fails
+                    }
+                }
+                
                 echo json_encode(['success' => true, 'message' => 'BVI interface updated successfully']);
             } else {
                 echo json_encode(['success' => false, 'error' => 'BVI interface not found']);
