@@ -230,19 +230,40 @@ class DHCPv6RPDClient:
         print(f"\n[MESSAGE TYPE]: {msg_type}")
         print(f"[TRANSACTION ID]: 0x{dhcp6.trid:06x}")
         
-        # Parse options
+        # Parse options - iterate through layers instead of .options
         print("\n[OPTIONS]:")
-        for opt in dhcp6.options:
-            print(f"\n  Option: {opt.__class__.__name__}")
+        current_layer = dhcp6.payload if hasattr(dhcp6, 'payload') else None
+        while current_layer:
+            print(f"\n  Layer: {current_layer.__class__.__name__}")
             
-            if isinstance(opt, DHCP6OptServerId):
-                print(f"    Server DUID: {opt.duid.hex()}")
+            if isinstance(current_layer, DHCP6OptServerId):
+                print(f"    Server DUID: {current_layer.duid}")
                 
-            elif isinstance(opt, DHCP6OptClientId):
-                print(f"    Client DUID: {opt.duid.hex()}")
+            elif isinstance(current_layer, DHCP6OptClientId):
+                print(f"    Client DUID: {current_layer.duid}")
                 
-            elif isinstance(opt, DHCP6OptIA_NA):
-                print(f"    IAID: 0x{opt.iaid:08x}")
+            elif isinstance(current_layer, DHCP6OptIA_NA):
+                print(f"    IAID: 0x{current_layer.iaid:08x}")
+                print(f"    T1: {current_layer.T1}s")
+                print(f"    T2: {current_layer.T2}s")
+                
+                # Look for IA Address
+                ia_sub = current_layer.payload if hasattr(current_layer, 'payload') else None
+                while ia_sub:
+                    if isinstance(ia_sub, DHCP6OptIAAddress):
+                        print(f"\n    ✓ ASSIGNED IPv6 ADDRESS: {ia_sub.addr}")
+                        print(f"      Preferred lifetime: {ia_sub.preflft}s")
+                        print(f"      Valid lifetime: {ia_sub.validlft}s")
+                    ia_sub = ia_sub.payload if hasattr(ia_sub, 'payload') else None
+            
+            elif isinstance(current_layer, DHCP6OptVendorSpecificInfo):
+                print(f"    Enterprise Number: {current_layer.enterprisenum}")
+                print(f"    Vendor-Specific Data: {current_layer.vso.hex() if current_layer.vso else 'None'}")
+                if current_layer.vso:
+                    self.parse_vendor_options(current_layer.vso)
+            
+            # Move to next layer
+            current_layer = current_layer.payload if hasattr(current_layer, 'payload') else None
                 print(f"    T1: {opt.T1}s")
                 print(f"    T2: {opt.T2}s")
                 
