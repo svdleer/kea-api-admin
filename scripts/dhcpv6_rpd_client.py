@@ -299,17 +299,20 @@ class DHCPv6RPDClient:
             
             # Send at L2
             sendp(l2_packet, iface=self.interface, verbose=0)
-            print("Packet sent, sniffing for response...")
+            print(f"Packet sent, sniffing for up to {timeout} seconds...")
             
-            # Sniff for DHCPv6 response
+            # Sniff for DHCPv6 response with verbose output
+            print(f"Listening on {self.interface} for UDP dst port 546...")
             response = sniff(
                 iface=self.interface,
-                filter="udp dst port 546",
-                timeout=timeout,
-                count=1
+                filter="udp and dst port 546",
+                timeout=timeout + 5,  # Extra time
+                count=1,
+                prn=lambda x: print(f"Captured packet: {x.summary()}")
             )
             
             if response:
+                print(f"Got {len(response)} packet(s)")
                 response = response[0]
             else:
                 response = None
