@@ -292,28 +292,37 @@ class DHCPv6RPDClient:
         # For relay mode, send at L2 and sniff
         if relay_address:
             # Build L2 packet with Ethernet header
-            # Get destination MAC for the relay address using neighbor discovery
-            # For now, use broadcast MAC
             eth = Ether(dst="ff:ff:ff:ff:ff:ff", src=self.client_mac)
             l2_packet = eth / packet
             
-            # Send at L2
-            sendp(l2_packet, iface=self.interface, verbose=0)
-            print(f"Packet sent, sniffing for up to {timeout} seconds...")
-            
-            # Sniff for DHCPv6 response - look for source port 547 (server response)
-            print(f"Listening on {self.interface} for UDP src port 547...")
-            response = sniff(
+            # START SNIFFER FIRST!
+            print(f"Starting sniffer on {self.interface}...")
+            from scapy.sendrecv import AsyncSniffer
+            sniffer = AsyncSniffer(
                 iface=self.interface,
                 filter="udp and src port 547",
-                timeout=timeout + 5,  # Extra time
                 count=1,
                 prn=lambda x: print(f"Captured packet: {x.summary()}")
             )
+            sniffer.start()
             
-            if response:
-                print(f"Got {len(response)} packet(s)")
-                response = response[0]
+            # Wait a moment for sniffer to be ready
+            time.sleep(0.5)
+            
+            # NOW send the packet
+            print("Sniffer ready, sending packet...")
+            sendp(l2_packet, iface=self.interface, verbose=0)
+            
+            # Wait for response with timeout
+            print(f"Waiting up to {timeout} seconds for response...")
+            time.sleep(timeout)
+            
+            # Stop sniffer and get results
+            packets = sniffer.stop()
+            
+            if packets:
+                print(f"Got {len(packets)} packet(s)")
+                response = packets[0]
             else:
                 response = None
         else:
