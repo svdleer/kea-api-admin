@@ -61,13 +61,14 @@ class DHCPv6RPDClient:
             T2=2000
         )
         
-        # Option 15: User Class - Kea checks substring(option[15].hex,0,3) == 'RPD'
-        # option[15].hex converts bytes to hex string, so 'RPD' bytes = '525044' hex
-        # substring(option[15].hex,0,3) takes first 3 chars of hex = '525' 
-        # So we need the hex string to start with 'RPD' literally, not hex of RPD
-        # This means we need bytes that when shown as hex spell "RPD"
-        # Actually, Kea probably means the ASCII text, let me send just 'RPD'
-        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'RPD'])
+        # Option 17: Vendor-Specific Information, Suboption 15 with "RPD"
+        # CableLabs enterprise number: 4491
+        # Suboption format: [option-code (2 bytes)][length (2 bytes)][data]
+        vendor_data = struct.pack('!HH', 15, 3) + b'RPD'
+        dhcp6 /= DHCP6OptVendorSpecificInfo(
+            enterprisenum=4491,
+            vso=vendor_data
+        )
         
         # Option 6: Option Request (ORO) - Request specific options
         # 23 = DNS Recursive Name Server
