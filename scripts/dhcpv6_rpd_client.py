@@ -93,10 +93,11 @@ class DHCPv6RPDClient:
             solicit_bytes = bytes(solicit_packet[DHCP6_Solicit])
             
             # Create RelayForward message
+            # Use the relay_address as the link-address so Kea can match to the correct subnet
             relay = DHCP6_RelayForward(
                 msgtype=12,  # RELAY-FORW
                 hopcount=0,
-                linkaddr="fe80::1",  # Link address (relay's link-local)
+                linkaddr=relay_address,  # Use the relay's actual address for subnet selection
                 peeraddr="fe80::250:56ff:fe89:56da"  # Client's link-local
             )
             # Add Interface-ID option (option 18)
