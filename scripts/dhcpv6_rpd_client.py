@@ -317,8 +317,11 @@ class DHCPv6RPDClient:
             print(f"Waiting up to {timeout} seconds for response...")
             time.sleep(timeout)
             
-            # Stop sniffer and get results
-            packets = sniffer.stop()
+            # Get results - don't call stop() if already stopped
+            if sniffer.running:
+                packets = sniffer.stop()
+            else:
+                packets = sniffer.results
             
             if packets:
                 print(f"Got {len(packets)} packet(s)")
