@@ -291,20 +291,30 @@ class DHCPv6RPDClient:
         
         # For relay mode, use L3 but sniff for response
         if relay_address:
-            # Send the packet
-            send(packet, verbose=0)
+            # Start sniffing in async mode, THEN send
+            from scapy.sendrecv import AsyncSniffer
             
-            # Sniff for DHCPv6 response - simplified filter for IPv6
-            # Some systems need 'ip6' instead of 'udp' for IPv6 packets
-            response = sniff(
+            # Start sniffer first
+            sniffer = AsyncSniffer(
                 iface=self.interface,
-                filter="ip6 and udp and dst port 546",
-                timeout=timeout,
-                count=1
+                filter="udp dst port 546",
+                count=1,
+                timeout=timeout
             )
+            sniffer.start()
             
-            if response:
-                response = response[0]
+            # Give sniffer time to start
+            time.sleep(0.5)
+            
+            # Now send the packet
+            send(packet, verbose=0)
+            print("Packet sent, waiting for response...")
+            
+            # Wait for sniffer to finish
+            packets = sniffer.stop()
+            
+            if packets:
+                response = packets[0]
             else:
                 response = None
         else:
