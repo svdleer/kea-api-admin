@@ -42,8 +42,13 @@ class DHCPv6RPDClient:
         # Build DHCPv6 Solicit packet with options using layer chaining
         dhcp6 = DHCP6_Solicit(trid=self.transaction_id)
         
-        # Option 1: Client Identifier (DUID)
-        dhcp6 /= DHCP6OptClientId(duid=self.duid)
+        # Option 1: Client Identifier (DUID) - create DUID_LLT
+        duid_llt = DUID_LLT(
+            hwtype=1,  # Ethernet
+            timeval=int(time.time() - 946684800),  # Seconds since Jan 1, 2000
+            lladdr=self.client_mac
+        )
+        dhcp6 /= DHCP6OptClientId(duid=duid_llt)
         
         # Option 8: Elapsed Time
         dhcp6 /= DHCP6OptElapsedTime(elapsedtime=0)
