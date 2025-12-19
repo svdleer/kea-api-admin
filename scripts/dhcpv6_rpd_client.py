@@ -162,24 +162,35 @@ class DHCPv6RPDClient:
         print("\n[RAW PACKET STRUCTURE]:")
         packet.show()
         
-        # Try to find DHCPv6 layer
+        # Try to find DHCPv6 layer - check for relay-reply wrapper first
         dhcp6 = None
         msg_type = "UNKNOWN"
         
-        if DHCP6_Advertise in packet:
+        if DHCP6_RelayReply in packet:
+            msg_type = "RELAY-REPLY"
+            relay_reply = packet[DHCP6_RelayReply]
+            print(f"\n[MESSAGE TYPE]: {msg_type}")
+            print(f"[HOP COUNT]: {relay_reply.hopcount}")
+            print(f"[LINK ADDRESS]: {relay_reply.linkaddr}")
+            print(f"[PEER ADDRESS]: {relay_reply.peeraddr}")
+            
+            # Extract the encapsulated message from option 9
+            if DHCP6OptRelayMsg in relay_reply:
+                relay_msg = relay_reply[DHCP6OptRelayMsg]
+                # Parse the inner message
+                inner_packet = DHCP6_Advertise(relay_msg.message)
+                if inner_packet:
+                    dhcp6 = inner_packet
+                    msg_type = "ADVERTISE (in RELAY-REPLY)"
+        elif DHCP6_Advertise in packet:
             msg_type = "ADVERTISE"
             dhcp6 = packet[DHCP6_Advertise]
         elif DHCP6_Reply in packet:
             msg_type = "REPLY"
             dhcp6 = packet[DHCP6_Reply]
-        elif DHCP6_RelayReply in packet:
-            msg_type = "RELAY-REPLY"
-            dhcp6 = packet[DHCP6_RelayReply]
-        elif DHCP6_Confirm in packet:
-            msg_type = "CONFIRM"
-            dhcp6 = packet[DHCP6_Confirm]
-        else:
-            print(f"\n[WARNING] Unknown DHCPv6 message type")
+        
+        if not dhcp6:
+            print(f"\n[WARNING] Could not extract DHCPv6 message")
             print("\n[FULL PACKET HEX DUMP]:")
             hexdump(packet)
             print("="*80)
