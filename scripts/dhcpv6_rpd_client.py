@@ -214,12 +214,9 @@ class DHCPv6RPDClient:
         print("="*80)
         print(f"Interface: {self.interface}")
         print(f"Client MAC: {self.client_mac}")
-        print(f"Client DUID: {self.duid.hex()}")
         print(f"Transaction ID: 0x{self.transaction_id:06x}")
         print(f"Destination: {relay_address or DHCPV6_MULTICAST}")
         print(f"Client Class: RPD")
-        print("\n[SOLICIT PACKET]:")
-        packet.show()
         
         print("\nSending packet and waiting for response...")
         
