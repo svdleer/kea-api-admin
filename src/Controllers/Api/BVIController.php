@@ -106,7 +106,7 @@ class BVIController
                     error_log("IPv6 address provided in update: {$data['ipv6_address']}");
                     try {
                         // Get the associated DHCP subnet
-                        $stmt = $this->db->prepare("SELECT kea_subnet_id, subnet FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
+                        $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
                         $stmt->execute([$bviId]);
                         $dhcpSubnet = $stmt->fetch(\PDO::FETCH_ASSOC);
                         
@@ -141,7 +141,7 @@ class BVIController
                                 // Update subnet with new relay address
                                 $updateData = [
                                     'subnet_id' => $dhcpSubnet['kea_subnet_id'],
-                                    'subnet' => $dhcpSubnet['subnet'],
+                                    'subnet' => $currentSubnet['subnet'],
                                     'pool_start' => $poolStart,
                                     'pool_end' => $poolEnd,
                                     'relay_address' => $data['ipv6_address'],
