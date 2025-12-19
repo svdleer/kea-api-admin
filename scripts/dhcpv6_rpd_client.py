@@ -61,14 +61,10 @@ class DHCPv6RPDClient:
             T2=2000
         )
         
-        # Option 17: Vendor-Specific Information with RPD in suboption 15
-        # CableLabs enterprise number: 4491
-        # Suboption 15 should contain "RPD"
-        vendor_data = struct.pack('!HH', 15, 3) + b'RPD'  # Suboption 15, length 3, data "RPD"
-        dhcp6 /= DHCP6OptVendorSpecificInfo(
-            enterprisenum=4491,  # CableLabs
-            vso=vendor_data
-        )
+        # Option 15: User Class - Kea checks substring(option[15].hex,0,3) == 'RPD'
+        # The hex representation needs to be "525044" (RPD in hex)
+        # User Class format: list of user class data, each prefixed with 2-byte length
+        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'\x00\x03RPD'])
         
         # Option 6: Option Request (ORO) - Request specific options
         # 23 = DNS Recursive Name Server
