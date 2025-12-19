@@ -10,6 +10,7 @@ from scapy.layers.inet6 import IPv6, UDP
 from scapy.layers.l2 import Ether
 import time
 import sys
+import struct
 
 # DHCPv6 Constants
 DHCPV6_SERVER_PORT = 547
@@ -60,8 +61,10 @@ class DHCPv6RPDClient:
             T2=2000
         )
         
-        # Option 15: User Class - Set to "RPD" to match Kea client-class
-        dhcp6 /= DHCP6OptUserClass(userclassdata=[b'RPD'])
+        # Option 15: User Class - properly formatted with length prefix
+        # Format: [length (2 bytes)][data]
+        user_class_data = struct.pack('!H', 3) + b'RPD'  # 2-byte length + 'RPD'
+        dhcp6 /= DHCP6OptUserClass(userclassdata=user_class_data)
         
         # Option 6: Option Request (ORO) - Request specific options
         # 23 = DNS Recursive Name Server
