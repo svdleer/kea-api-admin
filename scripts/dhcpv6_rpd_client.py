@@ -92,17 +92,18 @@ class DHCPv6RPDClient:
             # Serialize it to bytes to ensure all options are properly encoded
             solicit_bytes = bytes(solicit_packet[DHCP6_Solicit])
             
-            # Get the local IPv6 address for the interface
-            import netifaces
+            # Get the local IPv6 address for the interface using ip command
+            import subprocess
             local_ipv6 = None
             try:
-                addrs = netifaces.ifaddresses(self.interface)
-                if netifaces.AF_INET6 in addrs:
-                    for addr in addrs[netifaces.AF_INET6]:
-                        ip = addr['addr'].split('%')[0]  # Remove scope if present
-                        # Use non-link-local address
-                        if not ip.startswith('fe80'):
-                            local_ipv6 = ip
+                result = subprocess.run(['ip', '-6', 'addr', 'show', self.interface], 
+                                      capture_output=True, text=True, timeout=2)
+                for line in result.stdout.split('\n'):
+                    if 'inet6' in line and 'scope global' in line:
+                        # Extract the IPv6 address
+                        parts = line.strip().split()
+                        if len(parts) >= 2:
+                            local_ipv6 = parts[1].split('/')[0]
                             break
             except:
                 pass
@@ -110,6 +111,9 @@ class DHCPv6RPDClient:
             # Fallback to link-local if no global address found
             if not local_ipv6:
                 local_ipv6 = "fe80::250:56ff:fe89:56da"
+                print(f"[WARNING] Could not find global IPv6 address on {self.interface}, using link-local")
+            else:
+                print(f"[INFO] Using local IPv6 address: {local_ipv6}")
             
             # Create RelayForward message
             relay = DHCP6_RelayForward(
