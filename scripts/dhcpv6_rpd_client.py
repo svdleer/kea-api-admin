@@ -289,15 +289,30 @@ class DHCPv6RPDClient:
         
         print("\nSending packet and waiting for response...")
         
-        # For relay mode, use sr1 with increased timeout
+        # For relay mode, send at L2 and sniff
         if relay_address:
-            # Use sr1 which handles send + receive properly
-            response = sr1(
-                packet,
+            # Build L2 packet with Ethernet header
+            # Get destination MAC for the relay address using neighbor discovery
+            # For now, use broadcast MAC
+            eth = Ether(dst="ff:ff:ff:ff:ff:ff", src=self.client_mac)
+            l2_packet = eth / packet
+            
+            # Send at L2
+            sendp(l2_packet, iface=self.interface, verbose=0)
+            print("Packet sent, sniffing for response...")
+            
+            # Sniff for DHCPv6 response
+            response = sniff(
                 iface=self.interface,
+                filter="udp dst port 546",
                 timeout=timeout,
-                verbose=1  # Enable verbose to see what's happening
+                count=1
             )
+            
+            if response:
+                response = response[0]
+            else:
+                response = None
         else:
             # For multicast, we need to use L2 (Ethernet) layer
             # Build L2 packet with Ethernet header for multicast
