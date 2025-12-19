@@ -91,6 +91,8 @@ class BVIController
             header('Content-Type: application/json');
             $data = json_decode(file_get_contents('php://input'), true);
             
+            error_log("BVIController::update called for switch $switchId, BVI $bviId with data: " . json_encode($data));
+            
             if (!$data) {
                 echo json_encode(['success' => false, 'error' => 'Invalid JSON data']);
                 return;
@@ -101,6 +103,7 @@ class BVIController
             if ($result) {
                 // If IPv6 address changed, update the relay address in the associated Kea subnet
                 if (isset($data['ipv6_address'])) {
+                    error_log("IPv6 address provided in update: {$data['ipv6_address']}");
                     try {
                         // Get the associated DHCP subnet
                         $stmt = $this->db->prepare("SELECT kea_subnet_id, subnet FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
