@@ -246,8 +246,8 @@ class DHCP
     {
         error_log("DHCP Model: Persisting config to file with config-write");
         try {
-            // Let Kea save to its configured location - don't specify filename
-            $response = $this->sendKeaCommand('config-write');
+            // config-write requires an empty object, not array
+            $response = $this->sendKeaCommand('config-write', (object)[]);
             error_log("DHCP Model: Config-write response: " . json_encode($response));
             return true;
         } catch (Exception $e) {
