@@ -92,21 +92,39 @@ class DHCPv6RPDClient:
             # Serialize it to bytes to ensure all options are properly encoded
             solicit_bytes = bytes(solicit_packet[DHCP6_Solicit])
             
+            # Get the local IPv6 address for the interface
+            import netifaces
+            local_ipv6 = None
+            try:
+                addrs = netifaces.ifaddresses(self.interface)
+                if netifaces.AF_INET6 in addrs:
+                    for addr in addrs[netifaces.AF_INET6]:
+                        ip = addr['addr'].split('%')[0]  # Remove scope if present
+                        # Use non-link-local address
+                        if not ip.startswith('fe80'):
+                            local_ipv6 = ip
+                            break
+            except:
+                pass
+            
+            # Fallback to link-local if no global address found
+            if not local_ipv6:
+                local_ipv6 = "fe80::250:56ff:fe89:56da"
+            
             # Create RelayForward message
-            # Use the relay_address as the link-address so Kea can match to the correct subnet
             relay = DHCP6_RelayForward(
                 msgtype=12,  # RELAY-FORW
                 hopcount=0,
                 linkaddr=relay_address,  # Use the relay's actual address for subnet selection
-                peeraddr="fe80::250:56ff:fe89:56da"  # Client's link-local
+                peeraddr=local_ipv6  # Use actual IPv6, not link-local
             )
             # Add Interface-ID option (option 18)
-            relay /= DHCP6OptIfaceId(ifaceid=b'ens224')
+            relay /= DHCP6OptIfaceId(ifaceid=self.interface.encode())
             # Add the serialized client's message as option 9 (Relay Message)
             relay /= DHCP6OptRelayMsg(message=solicit_bytes)
             
-            # Build final packet with relay
-            ipv6 = IPv6(dst=relay_address, src="fe80::250:56ff:fe89:56da")
+            # Build final packet with relay - use actual source address
+            ipv6 = IPv6(dst=relay_address, src=local_ipv6)
             packet = ipv6 / UDP(sport=DHCPV6_CLIENT_PORT, dport=DHCPV6_SERVER_PORT) / relay
         else:
             # Direct multicast
