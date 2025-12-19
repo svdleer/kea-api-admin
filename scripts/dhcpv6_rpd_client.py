@@ -263,14 +263,6 @@ class DHCPv6RPDClient:
                 response = response[0]
             else:
                 response = None
-        else:
-            # For unicast to relay, use L3
-            response = sr1(
-                packet,
-                iface=self.interface,
-                timeout=timeout,
-                verbose=0
-            )
         
         if response:
             self.parse_response(response)
