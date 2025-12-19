@@ -294,11 +294,11 @@ class DHCPv6RPDClient:
             # Send the packet
             send(packet, verbose=0)
             
-            # Sniff for DHCPv6 response - look for UDP from server port 547
-            # Use a more permissive filter to catch relay-reply
+            # Sniff for DHCPv6 response - simplified filter for IPv6
+            # Some systems need 'ip6' instead of 'udp' for IPv6 packets
             response = sniff(
                 iface=self.interface,
-                filter=f"udp and src {relay_address} and dst port 546",
+                filter="ip6 and udp and dst port 546",
                 timeout=timeout,
                 count=1
             )
