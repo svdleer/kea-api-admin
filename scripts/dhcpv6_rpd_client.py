@@ -69,14 +69,27 @@ class DHCPv6RPDClient:
         # 17 = Vendor-specific Information
         dhcp6 /= DHCP6OptOptReq(reqopts=[23, 24, 17])
         
+        # If relay address specified, wrap in RelayForward
         if relay_address:
-            # If relay address is specified, send unicast to relay
-            ipv6 = IPv6(dst=relay_address)
+            # Create RelayForward message
+            relay = DHCP6_RelayForward(
+                msgtype=12,  # RELAY-FORW
+                hopcount=0,
+                linkaddr="fe80::1",  # Link address (relay's link-local)
+                peeraddr="fe80::250:56ff:fe89:56da"  # Client's link-local
+            )
+            # Add Interface-ID option (option 18) - identifies the interface
+            relay /= DHCP6OptIfaceId(ifaceid=b'ens224')
+            # Add the client's message as option 9 (Relay Message)
+            relay /= DHCP6OptRelayMsg(message=bytes(dhcp6))
+            
+            # Build packet with relay
+            ipv6 = IPv6(dst=relay_address, src="fe80::250:56ff:fe89:56da")
+            packet = ipv6 / UDP(sport=DHCPV6_CLIENT_PORT, dport=DHCPV6_SERVER_PORT) / relay
         else:
-            # Otherwise use multicast
+            # Direct multicast
             ipv6 = IPv6(dst=DHCPV6_MULTICAST)
-        
-        packet = ipv6 / UDP(sport=DHCPV6_CLIENT_PORT, dport=DHCPV6_SERVER_PORT) / dhcp6
+            packet = ipv6 / UDP(sport=DHCPV6_CLIENT_PORT, dport=DHCPV6_SERVER_PORT) / dhcp6
         
         return packet
     
@@ -216,12 +229,20 @@ class DHCPv6RPDClient:
         print(f"Client MAC: {self.client_mac}")
         print(f"Transaction ID: 0x{self.transaction_id:06x}")
         print(f"Destination: {relay_address or DHCPV6_MULTICAST}")
+        print(f"Mode: {'Relay Forward' if relay_address else 'Direct Multicast'}")
         print(f"Client Class: RPD")
         
         print("\nSending packet and waiting for response...")
         
-        # For multicast, we need to use L2 (Ethernet) layer
-        if not relay_address or relay_address == DHCPV6_MULTICAST:
+        # For relay mode, use L3 unicast
+        if relay_address:
+            response = sr1(
+                packet,
+                timeout=timeout,
+                verbose=0
+            )
+        else:
+            # For multicast, we need to use L2 (Ethernet) layer
             # Build L2 packet with Ethernet header for multicast
             # Multicast MAC for ff02::1:2 is 33:33:00:01:00:02
             eth = Ether(dst="33:33:00:01:00:02", src=self.client_mac)
