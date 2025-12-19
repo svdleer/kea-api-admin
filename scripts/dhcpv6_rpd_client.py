@@ -86,6 +86,12 @@ class DHCPv6RPDClient:
         
         # If relay address specified, wrap in RelayForward
         if relay_address:
+            # Build the complete SOLICIT packet first
+            solicit_packet = UDP(sport=DHCPV6_CLIENT_PORT, dport=DHCPV6_SERVER_PORT) / dhcp6
+            
+            # Serialize it to bytes to ensure all options are properly encoded
+            solicit_bytes = bytes(solicit_packet[DHCP6_Solicit])
+            
             # Create RelayForward message
             relay = DHCP6_RelayForward(
                 msgtype=12,  # RELAY-FORW
@@ -93,12 +99,12 @@ class DHCPv6RPDClient:
                 linkaddr="fe80::1",  # Link address (relay's link-local)
                 peeraddr="fe80::250:56ff:fe89:56da"  # Client's link-local
             )
-            # Add Interface-ID option (option 18) - identifies the interface
+            # Add Interface-ID option (option 18)
             relay /= DHCP6OptIfaceId(ifaceid=b'ens224')
-            # Add the client's message as option 9 (Relay Message)
-            relay /= DHCP6OptRelayMsg(message=bytes(dhcp6))
+            # Add the serialized client's message as option 9 (Relay Message)
+            relay /= DHCP6OptRelayMsg(message=solicit_bytes)
             
-            # Build packet with relay
+            # Build final packet with relay
             ipv6 = IPv6(dst=relay_address, src="fe80::250:56ff:fe89:56da")
             packet = ipv6 / UDP(sport=DHCPV6_CLIENT_PORT, dport=DHCPV6_SERVER_PORT) / relay
         else:
