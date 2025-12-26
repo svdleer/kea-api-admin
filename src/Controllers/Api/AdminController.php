@@ -488,32 +488,13 @@ class AdminController
                     // Convert "start-end" to "start - end" (with spaces)
                     $pool = str_replace('-', ' - ', $subnet['pool']);
                     
-                    // Build complete subnet config with pool, relay, and options
+                    // Build subnet config with ONLY the pool (delta update)
+                    // Don't include relay or options - they're already set from step 1
                     $completeSubnet = [
                         "id" => $subnet['id'],
                         "subnet" => $subnet['subnet'],
-                        "client-class" => "RPD",
-                        "pools" => [["pool" => $pool]],
-                        "valid-lifetime" => $subnet['valid_lifetime'],
-                        "preferred-lifetime" => $subnet['preferred_lifetime']
+                        "pools" => [["pool" => $pool]]
                     ];
-                    
-                    // Re-add relay (important! otherwise it gets removed)
-                    if ($subnet['relay']) {
-                        $completeSubnet['relay'] = ["ip-addresses" => [$subnet['relay']]];
-                    }
-                    
-                    // Re-add CCAP core option (important! otherwise it gets removed)
-                    if ($subnet['ccap_core']) {
-                        $completeSubnet['option-data'] = [[
-                            "name" => "ccap-core",
-                            "code" => 61,
-                            "space" => "vendor-4491",
-                            "csv-format" => true,
-                            "data" => $subnet['ccap_core'],
-                            "always-send" => true
-                        ]];
-                    }
                     
                     $poolData = [
                         "command" => 'subnet6-delta-add',
