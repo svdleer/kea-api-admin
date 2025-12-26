@@ -1525,8 +1525,18 @@ class AdminController
             
             error_log("Deleted CIN data from database");
             
-            // Now delete subnets from Kea
-            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            // Get first active Kea server from database
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+            $stmt->execute();
+            $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$keaServer) {
+                throw new \Exception("No active Kea servers configured");
+            }
+            
+            $keaApiUrl = $keaServer['api_url'];
+            error_log("Using Kea server: $keaApiUrl");
+            
             $deletedSubnets = 0;
             $subnetErrors = [];
             
@@ -2271,8 +2281,17 @@ class AdminController
     public function downloadKeaConfigConf()
     {
         try {
-            // Get Kea configuration via direct API call
-            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            // Get first active Kea server from database
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+            $stmt->execute();
+            $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$keaServer) {
+                throw new \Exception("No active Kea servers configured");
+            }
+            
+            $keaApiUrl = $keaServer['api_url'];
+            error_log("Downloading config from Kea server: $keaApiUrl");
             
             $command = [
                 'command' => 'config-get',
