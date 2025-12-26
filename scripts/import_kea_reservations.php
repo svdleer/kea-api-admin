@@ -142,12 +142,15 @@ foreach ($subnets as $subnet) {
             if ($hwAddress) echo " (MAC: {$hwAddress})";
             echo "\n";
             
-            // Prepare API request
+            // Prepare API request with MySQL backend
             $apiData = [
                 'command' => 'reservation-add',
                 'service' => ['dhcp6'],
                 'arguments' => [
-                    'reservation' => $reservationData
+                    'reservation' => $reservationData,
+                    'remote' => [
+                        'type' => 'mysql'
+                    ]
                 ]
             ];
             
