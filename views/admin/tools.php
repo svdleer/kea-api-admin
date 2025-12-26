@@ -111,6 +111,13 @@ ob_start();
                     </svg>
                     Import Leases from CSV
                 </button>
+                <button onclick="deleteAllLeases()" 
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete All Leases
+                </button>
             </div>
         </div>
 
@@ -1863,6 +1870,78 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Delete all leases
+async function deleteAllLeases() {
+    const result = await Swal.fire({
+        title: 'Delete All Leases?',
+        html: `<p class="text-left">This will permanently delete <strong>ALL</strong> active DHCP leases from Kea.</p>
+               <p class="text-left mt-2 text-red-600">⚠️ <strong>Warning:</strong> This action cannot be undone!</p>
+               <p class="text-left mt-2">Devices will get new IPs on next lease renewal.</p>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete all leases',
+        cancelButtonText: 'Cancel',
+        focusCancel: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        Swal.fire({
+            title: 'Deleting all leases...',
+            html: 'Please wait while we delete all leases from Kea',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const response = await fetch('/api/admin/leases/delete-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to delete leases');
+        }
+
+        let resultHtml = `<div class="text-left">`;
+        resultHtml += `<p class="mb-2">✅ Successfully deleted <strong>${data.deleted}</strong> lease(s)</p>`;
+        resultHtml += `<p class="text-sm text-gray-600">Processed ${data.subnets_processed} subnet(s)</p>`;
+        
+        if (data.errors && data.errors.length > 0) {
+            resultHtml += `<div class="mt-3 p-3 bg-yellow-50 rounded border border-yellow-200">`;
+            resultHtml += `<p class="text-sm font-semibold text-yellow-800 mb-1">⚠️ Some errors occurred:</p>`;
+            resultHtml += `<ul class="text-xs text-yellow-700 list-disc list-inside">`;
+            data.errors.slice(0, 5).forEach(err => {
+                resultHtml += `<li>${escapeHtml(err)}</li>`;
+            });
+            if (data.errors.length > 5) {
+                resultHtml += `<li>... and ${data.errors.length - 5} more</li>`;
+            }
+            resultHtml += `</ul></div>`;
+        }
+        resultHtml += `</div>`;
+
+        Swal.fire({
+            title: 'Leases Deleted',
+            html: resultHtml,
+            icon: data.errors && data.errors.length > 0 ? 'warning' : 'success',
+            confirmButtonText: 'OK'
+        });
+    } catch (error) {
+        Swal.fire({
+            title: 'Error',
+            text: error.message,
+            icon: 'error'
+        });
+    }
 }
 </script>
 
