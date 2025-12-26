@@ -1428,8 +1428,9 @@ class DHCP
             $response = $this->sendKeaCommand('subnet6-del', $arguments);
             error_log("DHCP Model: Kea response received: " . json_encode($response));
     
-            if (isset($response[0]['result']) && $response[0]['result'] === 0 && 
-                isset($response[0]['arguments']['count']) && $response[0]['arguments']['count'] > 0) {
+            // Kea returns result:0 for success
+            // Response contains arguments.subnets array with deleted subnet info
+            if (isset($response[0]['result']) && $response[0]['result'] === 0) {
                 error_log("DHCP Model: Successfully deleted orphaned subnet from Kea");
                 $this->saveKeaConfig();
                 return true;
