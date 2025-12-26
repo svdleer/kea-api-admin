@@ -111,6 +111,13 @@ ob_start();
                     </svg>
                     Import Leases from CSV
                 </button>
+                <button onclick="importLeasesJSONWizard()" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Import Leases from JSON
+                </button>
                 <button onclick="deleteAllLeases()" 
                         class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1531,6 +1538,100 @@ async function autoMapAndImportLeases(file) {
                 `,
                 icon: 'success',
                 confirmButtonColor: '#9333EA'
+            });
+        } else {
+            Swal.fire('Error', data.message || 'Failed to import leases', 'error');
+        }
+    } catch (error) {
+        Swal.close();
+        Swal.fire('Error', 'Failed to process file: ' + error.message, 'error');
+    }
+}
+
+async function importLeasesJSONWizard() {
+    const { value: file } = await Swal.fire({
+        title: 'Import Kea Leases from JSON',
+        html: `
+            <div class="text-left">
+                <p class="mb-4 text-sm text-gray-600">
+                    This will import leases from a JSON backup file (created with the Backup Leases button)
+                    into the Kea lease database as active leases.
+                </p>
+                <div class="mb-4 p-4 bg-indigo-50 rounded-md">
+                    <p class="text-sm font-semibold text-indigo-900 mb-2">📦 Direct Restore:</p>
+                    <p class="text-xs text-indigo-800">Lease data will be imported with original subnet IDs and timestamps.</p>
+                </div>
+                <input type="file" id="json-file" accept=".json" 
+                       class="block w-full text-sm text-gray-500
+                       file:mr-4 file:py-2 file:px-4
+                       file:rounded-md file:border-0
+                       file:text-sm file:font-semibold
+                       file:bg-indigo-50 file:text-indigo-700
+                       hover:file:bg-indigo-100">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Import Leases',
+        confirmButtonColor: '#4F46E5',
+        preConfirm: () => {
+            const fileInput = document.getElementById('json-file');
+            if (!fileInput.files[0]) {
+                Swal.showValidationMessage('Please select a JSON file');
+                return false;
+            }
+            return fileInput.files[0];
+        }
+    });
+
+    if (file) {
+        await importLeasesFromJSON(file);
+    }
+}
+
+async function importLeasesFromJSON(file) {
+    try {
+        Swal.fire({
+            title: 'Importing Leases...',
+            text: 'Processing JSON backup file',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const formData = new FormData();
+        formData.append('json_file', file);
+
+        const response = await fetch('/api/admin/import-leases-json', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        Swal.close();
+
+        if (data.success) {
+            Swal.fire({
+                title: 'Import Complete!',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2">✓ Processed ${data.total || 0} leases from JSON</p>
+                        <p class="mb-2">✓ Imported ${data.imported || 0} active leases</p>
+                        <p class="mb-2">⊘ Skipped ${data.skipped || 0} (duplicate or invalid)</p>
+                        ${data.errors && data.errors.length > 0 ? `
+                            <div class="mt-3 p-3 bg-yellow-50 rounded">
+                                <p class="text-sm font-semibold text-yellow-900 mb-1">Warnings:</p>
+                                <ul class="text-xs text-yellow-800 list-disc list-inside">
+                                    ${data.errors.slice(0, 5).map(e => `<li>${e}</li>`).join('')}
+                                    ${data.errors.length > 5 ? `<li>... and ${data.errors.length - 5} more</li>` : ''}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonColor: '#4F46E5'
             });
         } else {
             Swal.fire('Error', data.message || 'Failed to import leases', 'error');

@@ -1861,6 +1861,79 @@ class AdminController
     }
 
     /**
+     * Import leases from JSON backup file
+     * POST /api/admin/import-leases-json
+     */
+    public function importLeasesJSON()
+    {
+        try {
+            error_log("=== Starting JSON lease import ===");
+            
+            // Check if file was uploaded
+            if (!isset($_FILES['json_file']) || $_FILES['json_file']['error'] !== UPLOAD_ERR_OK) {
+                throw new \Exception('No file uploaded or upload error');
+            }
+
+            $file = $_FILES['json_file']['tmp_name'];
+            $fileName = $_FILES['json_file']['name'];
+            
+            error_log("Processing JSON file: " . $fileName);
+
+            // Read and parse JSON
+            $jsonContent = file_get_contents($file);
+            $leasesData = json_decode($jsonContent, true);
+            
+            if ($leasesData === null) {
+                throw new \Exception('Invalid JSON file');
+            }
+            
+            error_log("Parsed " . count($leasesData) . " leases from JSON");
+            
+            // Convert JSON lease format to import format
+            $leases = [];
+            foreach ($leasesData as $lease) {
+                $leases[] = [
+                    'address' => $lease['ip-address'] ?? '',
+                    'duid' => $lease['duid'] ?? '',
+                    'valid_lifetime' => $lease['valid-lft'] ?? 7200,
+                    'expire' => ($lease['cltt'] ?? time()) + ($lease['valid-lft'] ?? 7200),
+                    'subnet_id' => $lease['subnet-id'] ?? 0,
+                    'pref_lifetime' => $lease['preferred-lft'] ?? 3600,
+                    'lease_type' => $lease['type'] ?? 0,
+                    'iaid' => $lease['iaid'] ?? 0,
+                    'prefix_len' => $lease['prefix-len'] ?? 128,
+                    'fqdn_fwd' => $lease['fqdn-fwd'] ?? false,
+                    'fqdn_rev' => $lease['fqdn-rev'] ?? false,
+                    'hostname' => $lease['hostname'] ?? '',
+                    'hwaddr' => $lease['hwaddr'] ?? '',
+                    'state' => $lease['state'] ?? 0
+                ];
+            }
+
+            // Import leases
+            $result = $this->importLeasesToStatic($leases);
+            
+            $responseData = [
+                'success' => true,
+                'message' => 'Leases imported successfully from JSON',
+                'total' => count($leases),
+                'imported' => $result['imported'],
+                'skipped' => $result['skipped'],
+                'errors' => $result['errors']
+            ];
+            
+            $this->jsonResponse($responseData);
+
+        } catch (\Exception $e) {
+            error_log("Import JSON leases error: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to import leases from JSON: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Parse Kea CSV lease file
      */
     private function parseLeasesCSV($filePath)

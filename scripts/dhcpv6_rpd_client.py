@@ -258,42 +258,65 @@ class DHCPv6RPDClient:
             
             elif isinstance(current_layer, DHCP6OptVendorSpecificInfo):
                 print(f"    Enterprise Number: {current_layer.enterprisenum}")
-                print(f"    Vendor-Specific Data: {current_layer.vso.hex() if current_layer.vso else 'None'}")
-                if current_layer.vso:
-                    self.parse_vendor_options(current_layer.vso)
+                if current_layer.enterprisenum == CABLELABS_VENDOR_ID:
+                    print(f"    Vendor: CableLabs (4491)")
+                
+                vso_data = current_layer.vso
+                if isinstance(vso_data, list):
+                    # Parse list of vendor-specific option objects
+                    print(f"    Vendor-Specific Options ({len(vso_data)} options):")
+                    
+                    opt_names = {
+                        34: "CCAP-Cores",
+                        37: "CCAP-Core-Subnet", 
+                        38: "CCAP-Core-Mask",
+                        61: "CCAP-Core-Address"
+                    }
+                    
+                    for opt in vso_data:
+                        opt_code = opt.optcode
+                        opt_data = opt.optdata
+                        opt_name = opt_names.get(opt_code, f"OPTION_{opt_code}")
+                        
+                        print(f"\n      {opt_name} ({len(opt_data)} bytes):")
+                        
+                        # Parse based on length
+                        if len(opt_data) == 16:
+                            # Single IPv6 address
+                            try:
+                                ipv6_addr = socket.inet_ntop(socket.AF_INET6, opt_data)
+                                print(f"        {ipv6_addr}")
+                            except:
+                                print(f"        {opt_data.hex()}")
+                        elif len(opt_data) == 32:
+                            # Two IPv6 addresses
+                            try:
+                                ipv6_addr1 = socket.inet_ntop(socket.AF_INET6, opt_data[0:16])
+                                ipv6_addr2 = socket.inet_ntop(socket.AF_INET6, opt_data[16:32])
+                                print(f"        {ipv6_addr1}")
+                                print(f"        {ipv6_addr2}")
+                            except:
+                                print(f"        {opt_data.hex()}")
+                        elif len(opt_data) == 4:
+                            # Likely a 32-bit number
+                            value = struct.unpack('!I', opt_data)[0]
+                            print(f"        {value} (0x{opt_data.hex()})")
+                        else:
+                            print(f"        {opt_data.hex()}")
+                
+                elif vso_data:
+                    print(f"    Vendor-Specific Data ({len(vso_data)} bytes): {vso_data.hex()}")
+                    
+                    # Try to decode structured options
+                    vendor_opts = self.decode_vendor_options(vso_data)
+                    if vendor_opts:
+                        for opt_name, opt_value in vendor_opts.items():
+                            print(f"      {opt_name}: {opt_value}")
+                else:
+                    print(f"    Vendor-Specific Data: None")
             
             # Move to next layer
             current_layer = current_layer.payload if hasattr(current_layer, 'payload') else None
-                print(f"    T1: {opt.T1}s")
-                print(f"    T2: {opt.T2}s")
-                
-                # Parse IA_NA options
-                for ia_opt in opt.ianaopts:
-                    if isinstance(ia_opt, DHCP6OptIAAddress):
-                        print(f"    Assigned Address: {ia_opt.addr}")
-                        print(f"    Preferred Lifetime: {ia_opt.preflft}s")
-                        print(f"    Valid Lifetime: {ia_opt.validlft}s")
-                        
-            elif isinstance(opt, DHCP6OptVendorSpecificInfo):
-                print(f"    Vendor Enterprise Number: {opt.enterprisenum}")
-                
-                if opt.enterprisenum == CABLELABS_VENDOR_ID:
-                    print(f"    Vendor: CableLabs (4491)")
-                    vendor_opts = self.decode_vendor_options(opt.vso)
-                    
-                    for opt_name, opt_value in vendor_opts.items():
-                        print(f"      {opt_name}: {opt_value}")
-                else:
-                    print(f"    Vendor Data: {opt.vso.hex()}")
-                    
-            elif isinstance(opt, DHCP6OptDNSServers):
-                print(f"    DNS Servers: {', '.join(opt.dnsservers)}")
-                
-            elif isinstance(opt, DHCP6OptDNSDomains):
-                print(f"    DNS Domains: {', '.join(opt.dnsdomains)}")
-                
-            else:
-                print(f"    Raw data: {bytes(opt).hex()}")
         
         print("\n" + "="*80)
         
