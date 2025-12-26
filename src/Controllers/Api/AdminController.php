@@ -1789,38 +1789,31 @@ class AdminController
                 error_log("  Available: {$ks['subnet']} (id={$ks['id']})");
             }
             
-            // Match each lease's IP to the correct Kea subnet
-            // The CSV subnet_id is irrelevant - we only match by IP address
+            // Match EACH lease's IP to the correct Kea subnet
+            // The CSV subnet_id is completely ignored - we only match by IP address
             foreach ($leases as $lease) {
                 $ipAddress = $lease['address'];
                 $csvSubnetId = strval($lease['subnet_id']);
                 
-                // Skip if we already mapped this CSV subnet_id
-                if (isset($mapping[$csvSubnetId])) {
-                    continue;
-                }
-                
-                error_log("Testing IP: $ipAddress");
-                
                 // Find which Kea subnet this IP actually belongs to
+                $matched = false;
                 foreach ($keaSubnets as $keaSubnet) {
-                    $testResult = $this->ipBelongsToSubnet($ipAddress, $keaSubnet['subnet']);
-                    error_log("  vs {$keaSubnet['subnet']}: " . ($testResult ? 'MATCH' : 'no match'));
-                    
-                    if ($testResult) {
-                        // Found it! CSV subnet_id → correct Kea subnet_id
+                    if ($this->ipBelongsToSubnet($ipAddress, $keaSubnet['subnet'])) {
+                        // Found it! Map this CSV subnet_id → correct Kea subnet_id
+                        // Multiple CSV subnet_ids might map to the same Kea subnet_id
                         $mapping[$csvSubnetId] = $keaSubnet['id'];
-                        error_log("✓ Mapped CSV subnet $csvSubnetId to Kea subnet {$keaSubnet['id']}");
+                        error_log("✓ Mapped lease $ipAddress: CSV subnet $csvSubnetId → Kea subnet {$keaSubnet['id']} ({$keaSubnet['subnet']})");
+                        $matched = true;
                         break;
                     }
                 }
                 
-                if (!isset($mapping[$csvSubnetId])) {
-                    error_log("✗ No match found for IP $ipAddress");
+                if (!$matched) {
+                    error_log("✗ No Kea subnet found for IP $ipAddress (CSV subnet $csvSubnetId)");
                 }
             }
             
-            error_log("Auto-mapping complete. Total mappings: " . count($mapping));
+            error_log("Auto-mapping complete. Total CSV subnet IDs mapped: " . count(array_unique($mapping)));
             
         } catch (\Exception $e) {
             error_log("Error in auto-mapping: " . $e->getMessage());
