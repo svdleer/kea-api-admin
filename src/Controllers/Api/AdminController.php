@@ -492,7 +492,6 @@ class AdminController
                     $completeSubnet = [
                         "id" => $subnet['id'],
                         "subnet" => $subnet['subnet'],
-                        "shared-network-name" => null,
                         "client-class" => "RPD",
                         "pools" => [["pool" => $pool]],
                         "valid-lifetime" => $subnet['valid_lifetime'],
