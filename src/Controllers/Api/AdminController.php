@@ -875,44 +875,135 @@ class AdminController
      */
     public function exportKeaLeasesCSV()
     {
-        $filename = 'kea-leases-' . date('Y-m-d-His') . '.csv';
-        
-        $query = "SELECT 
-            INET6_NTOA(address) as address,
-            HEX(duid) as duid,
-            valid_lifetime,
-            expire,
-            subnet_id,
-            hostname
-            FROM lease6
-            ORDER BY expire DESC";
+        try {
+            $filename = 'kea-leases-' . date('Y-m-d-His') . '.csv';
+            
+            // Get first active Kea server from database
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+            $stmt->execute();
+            $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$keaServer) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No active Kea servers configured'
+                ], 500);
+                return;
+            }
+            
+            $keaApiUrl = $keaServer['api_url'];
+            
+            // Get all subnets first
+            $subnetData = [
+                'command' => 'subnet6-list',
+                'service' => ['dhcp6']
+            ];
+            
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($subnetData));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+            
+            $subnetResponse = json_decode($response, true);
+            
+            if (!$subnetResponse || !isset($subnetResponse[0]['arguments']['subnets'])) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Failed to get subnets from Kea'
+                ], 500);
+                return;
+            }
+            
+            $subnets = $subnetResponse[0]['arguments']['subnets'];
+            $allLeases = [];
+            
+            // Get leases from each subnet using lease6-get-page (via Kea API)
+            foreach ($subnets as $subnet) {
+                $subnetId = $subnet['id'];
+                $from = 0;
+                $limit = 1000;
+                
+                while (true) {
+                    $leaseData = [
+                        'command' => 'lease6-get-page',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'from' => $from,
+                            'limit' => $limit,
+                            'subnet-id' => $subnetId
+                        ]
+                    ];
+                    
+                    $ch = curl_init($keaApiUrl);
+                    curl_setopt($ch, CURLOPT_POST, 1);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($leaseData));
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    
+                    $leaseResponse = curl_exec($ch);
+                    curl_close($ch);
+                    
+                    $leaseResult = json_decode($leaseResponse, true);
+                    
+                    if ($leaseResult && isset($leaseResult[0]['result']) && $leaseResult[0]['result'] === 0) {
+                        $leases = $leaseResult[0]['arguments']['leases'] ?? [];
+                        $allLeases = array_merge($allLeases, $leases);
+                        
+                        // Check if we got fewer leases than limit (last page)
+                        if (count($leases) < $limit) {
+                            break;
+                        }
+                        $from += $limit;
+                    } else {
+                        // No more leases or error
+                        break;
+                    }
+                }
+            }
+            
+            // Check if there are any leases
+            if (empty($allLeases)) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'No leases found to export'
+                ], 404);
+                return;
+            }
+            
+            // Send CSV file
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('X-Lease-Count: ' . count($allLeases));
 
-        $stmt = $this->db->query($query);
-        $leases = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Check if there are any leases
-        if (empty($leases)) {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['Address', 'DUID', 'IAID', 'Valid Lifetime', 'Expire', 'Subnet ID', 'Hostname']);
+
+            foreach ($allLeases as $lease) {
+                fputcsv($output, [
+                    $lease['ip-address'] ?? '',
+                    $lease['duid'] ?? '',
+                    $lease['iaid'] ?? '',
+                    $lease['valid-lft'] ?? '',
+                    $lease['cltt'] + $lease['valid-lft'] ?? '', // Calculate expire time
+                    $lease['subnet-id'] ?? '',
+                    $lease['hostname'] ?? ''
+                ]);
+            }
+
+            fclose($output);
+            exit;
+            
+        } catch (\Exception $e) {
+            error_log('CSV export error: ' . $e->getMessage());
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'No leases found to export'
-            ], 404);
-            return;
+                'message' => 'Export failed: ' . $e->getMessage()
+            ], 500);
         }
-        
-        // Send CSV file
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('X-Lease-Count: ' . count($leases)); // Custom header for frontend
-
-        $output = fopen('php://output', 'w');
-        fputcsv($output, ['Address', 'DUID', 'Valid Lifetime', 'Expire', 'Subnet ID', 'Hostname']);
-
-        foreach ($leases as $row) {
-            fputcsv($output, $row);
-        }
-
-        fclose($output);
-        exit;
     }
 
     /**
