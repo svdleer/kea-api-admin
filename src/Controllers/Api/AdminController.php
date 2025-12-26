@@ -1911,7 +1911,21 @@ class AdminController
         $skipped = 0;
         $errors = [];
         
-        $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+        // Get first active Kea server from database (same as other operations)
+        $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+        $stmt->execute();
+        $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        if (!$keaServer) {
+            return [
+                'imported' => 0,
+                'skipped' => count($leases),
+                'errors' => ['No active Kea servers configured']
+            ];
+        }
+        
+        $keaApiUrl = $keaServer['api_url'];
+        error_log("Importing leases to Kea server: $keaApiUrl");
 
         foreach ($leases as $lease) {
             try {
