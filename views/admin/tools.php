@@ -626,7 +626,8 @@ async function listReservations() {
                         <tr>
                             <th class="px-2 py-2 text-left font-semibold">Subnet</th>
                             <th class="px-2 py-2 text-left font-semibold">IP Address</th>
-                            <th class="px-2 py-2 text-left font-semibold">DUID/MAC</th>
+                            <th class="px-2 py-2 text-left font-semibold">DUID</th>
+                            <th class="px-2 py-2 text-left font-semibold">MAC Address</th>
                             <th class="px-2 py-2 text-left font-semibold">Hostname</th>
                             <th class="px-2 py-2 text-left font-semibold">Options</th>
                         </tr>
@@ -635,7 +636,8 @@ async function listReservations() {
             
             allReservations.forEach(res => {
                 const ipAddresses = res['ip-addresses'] || [];
-                const duid = res['duid'] || res['hw-address'] || '-';
+                const duid = res['duid'] || '-';
+                const hwAddress = res['hw-address'] || '-';
                 const hostname = res['hostname'] || '-';
                 const optionData = res['option-data'] || [];
                 const optionCount = optionData.length;
@@ -644,6 +646,7 @@ async function listReservations() {
                     <td class="px-2 py-2 font-mono text-xs">${res.subnet_id}<br/><span class="text-gray-400">${res.subnet_prefix || ''}</span></td>
                     <td class="px-2 py-2 font-mono">${ipAddresses.join('<br/>')}</td>
                     <td class="px-2 py-2 font-mono text-xs">${duid.length > 30 ? duid.substring(0, 30) + '...' : duid}</td>
+                    <td class="px-2 py-2 font-mono text-xs text-green-700">${hwAddress}</td>
                     <td class="px-2 py-2">${hostname}</td>
                     <td class="px-2 py-2">${optionCount > 0 ? `<span class="text-green-600">${optionCount} option(s)</span>` : '<span class="text-gray-400">-</span>'}</td>
                 </tr>`;
