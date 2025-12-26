@@ -167,8 +167,8 @@ class DHCP
             case 'subnet6-add':
                 // Delete the subnet we just added
                 $rollbackCommand = 'subnet6-del';
-                if (isset($originalArguments['subnets'][0]['id'])) {
-                    $rollbackArguments = ['id' => $originalArguments['subnets'][0]['id']];
+                if (isset($originalArguments['subnet6'][0]['id'])) {
+                    $rollbackArguments = ['id' => $originalArguments['subnet6'][0]['id']];
                 }
                 break;
                 
@@ -693,9 +693,7 @@ class DHCP
             
             // Create subnet without options first
             $arguments = [
-                "remote" => ["type" => "mysql"],
-                "server-tags" => ["all"],
-                "subnets" => [
+                "subnet6" => [
                     [
                         "subnet" => $data['subnet'],
                         "id" => $subnetId,
@@ -736,9 +734,7 @@ class DHCP
                 }
                 
                 $optionArgs = [
-                    "remote" => ["type" => "mysql"],
-                    "server-tags" => ["all"],
-                    "subnets" => [[
+                    "subnet6" => [[
                         "id" => $subnetId,
                         "subnet" => $data['subnet'],
                         "option-data" => [[
@@ -942,9 +938,7 @@ class DHCP
                 }
                 
                 $optionArgs = [
-                    "remote" => ["type" => "mysql"],
-                    "server-tags" => ["all"],
-                    "subnets" => [[
+                    "subnet6" => [[
                         "id" => intval($data['subnet_id']),
                         "subnet" => $data['subnet'],
                         "option-data" => [[
