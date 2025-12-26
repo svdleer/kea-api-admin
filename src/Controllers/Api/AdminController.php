@@ -1630,7 +1630,7 @@ class AdminController
                 error_log("Manual subnet mapping: " . json_encode($subnetMapping));
             }
             
-            // Apply subnet mapping and filter unmapped leases
+            // Apply lease mapping and filter unmapped leases
             $mappedLeases = [];
             $unmappedCount = 0;
             $unmappedSubnets = [];
@@ -1638,25 +1638,26 @@ class AdminController
             // Always filter if auto-mapping was attempted
             if ($autoMap || !empty($subnetMapping)) {
                 foreach ($leases as $lease) {
+                    $ipAddress = $lease['address'];
                     $oldSubnetId = strval($lease['subnet_id']);
                     
-                    if (isset($subnetMapping[$oldSubnetId])) {
-                        // Map to new subnet ID
-                        $newSubnetId = intval($subnetMapping[$oldSubnetId]);
-                        error_log("Mapping subnet ID: $oldSubnetId → $newSubnetId for lease {$lease['address']}");
+                    if (isset($subnetMapping[$ipAddress])) {
+                        // Map to new subnet ID based on IP match
+                        $newSubnetId = intval($subnetMapping[$ipAddress]);
+                        error_log("Applying mapping for lease $ipAddress: {$lease['subnet_id']} → $newSubnetId");
                         $lease['subnet_id'] = $newSubnetId;
                         $mappedLeases[] = $lease;
                     } else {
                         // Skip unmapped leases - they don't belong to any configured subnet
                         $unmappedCount++;
                         $unmappedSubnets[$oldSubnetId] = ($unmappedSubnets[$oldSubnetId] ?? 0) + 1;
-                        error_log("SKIPPING unmapped lease {$lease['address']} (CSV subnet_id: $oldSubnetId has no matching Kea subnet)");
+                        error_log("SKIPPING unmapped lease $ipAddress (CSV subnet_id: $oldSubnetId - IP doesn't match any Kea subnet)");
                     }
                 }
                 
                 // Log summary of unmapped subnets
                 if ($unmappedCount > 0) {
-                    error_log("Skipped $unmappedCount unmapped leases from non-existent subnets: " . json_encode($unmappedSubnets));
+                    error_log("Skipped $unmappedCount unmapped leases (IPs don't match any Kea subnet): " . json_encode($unmappedSubnets));
                 }
                 
                 $leases = $mappedLeases;
@@ -1791,6 +1792,7 @@ class AdminController
             
             // Match EACH lease's IP to the correct Kea subnet
             // The CSV subnet_id is completely ignored - we only match by IP address
+            // Map by IP address (key) to Kea subnet_id (value)
             foreach ($leases as $lease) {
                 $ipAddress = $lease['address'];
                 $csvSubnetId = strval($lease['subnet_id']);
@@ -1799,10 +1801,9 @@ class AdminController
                 $matched = false;
                 foreach ($keaSubnets as $keaSubnet) {
                     if ($this->ipBelongsToSubnet($ipAddress, $keaSubnet['subnet'])) {
-                        // Found it! Map this CSV subnet_id → correct Kea subnet_id
-                        // Multiple CSV subnet_ids might map to the same Kea subnet_id
-                        $mapping[$csvSubnetId] = $keaSubnet['id'];
-                        error_log("✓ Mapped lease $ipAddress: CSV subnet $csvSubnetId → Kea subnet {$keaSubnet['id']} ({$keaSubnet['subnet']})");
+                        // Found it! Map this specific IP address → correct Kea subnet_id
+                        $mapping[$ipAddress] = $keaSubnet['id'];
+                        error_log("✓ Mapped lease $ipAddress (CSV subnet $csvSubnetId) → Kea subnet {$keaSubnet['id']} ({$keaSubnet['subnet']})");
                         $matched = true;
                         break;
                     }
@@ -1813,7 +1814,7 @@ class AdminController
                 }
             }
             
-            error_log("Auto-mapping complete. Total CSV subnet IDs mapped: " . count(array_unique($mapping)));
+            error_log("Auto-mapping complete. Total leases mapped: " . count($mapping));
             
         } catch (\Exception $e) {
             error_log("Error in auto-mapping: " . $e->getMessage());
