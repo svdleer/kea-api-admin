@@ -2581,18 +2581,29 @@ class AdminController
                 
                 $wipeResult = json_decode($wipeResponse, true);
                 
-                if ($wipeResult && isset($wipeResult[0]['result']) && $wipeResult[0]['result'] === 0) {
-                    $deleted = $wipeResult[0]['text'] ?? '0';
-                    // Extract number from text like "Deleted 5 lease(s)."
-                    if (preg_match('/(\d+)/', $deleted, $matches)) {
-                        $count = intval($matches[1]);
-                        $totalDeleted += $count;
-                        error_log("✓ Deleted $count lease(s) from subnet $subnetId");
+                if ($wipeResult && isset($wipeResult[0]['result'])) {
+                    if ($wipeResult[0]['result'] === 0) {
+                        // Success - extract deleted count
+                        $deleted = $wipeResult[0]['text'] ?? '0';
+                        // Extract number from text like "Deleted 5 lease(s) from subnet(s) 1"
+                        if (preg_match('/Deleted (\d+)/', $deleted, $matches)) {
+                            $count = intval($matches[1]);
+                            $totalDeleted += $count;
+                            if ($count > 0) {
+                                error_log("✓ Deleted $count lease(s) from subnet $subnetId");
+                            } else {
+                                error_log("ℹ Subnet $subnetId had no leases to delete");
+                            }
+                        }
+                    } else {
+                        // Actual error (result != 0)
+                        $errorMsg = $wipeResult[0]['text'] ?? 'Unknown error';
+                        $errors[] = "Subnet $subnetId: $errorMsg";
+                        error_log("✗ Failed to wipe subnet $subnetId: $errorMsg");
                     }
                 } else {
-                    $errorMsg = $wipeResult[0]['text'] ?? 'Unknown error';
-                    $errors[] = "Subnet $subnetId: $errorMsg";
-                    error_log("✗ Failed to wipe subnet $subnetId: $errorMsg");
+                    $errors[] = "Subnet $subnetId: Invalid response from Kea";
+                    error_log("✗ Invalid response for subnet $subnetId");
                 }
             }
             
