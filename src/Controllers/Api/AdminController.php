@@ -516,7 +516,7 @@ class AdminController
                     }
                     
                     $poolData = [
-                        "command" => 'subnet6-add',
+                        "command" => 'subnet6-delta-add',
                         "service" => ['dhcp6'],
                         "arguments" => [
                             "subnet6" => [$completeSubnet]
