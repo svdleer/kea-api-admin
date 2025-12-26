@@ -1758,8 +1758,18 @@ class AdminController
         $mapping = [];
         
         try {
-            // Get all subnets from Kea
-            $keaApiUrl = $_ENV['KEA_API_URL'] ?? 'http://localhost:8000';
+            // Get first active Kea server from database (same as other operations)
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+            $stmt->execute();
+            $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$keaServer) {
+                error_log("No active Kea servers configured for auto-mapping");
+                return $mapping;
+            }
+            
+            $keaApiUrl = $keaServer['api_url'];
+            error_log("Using Kea server: $keaApiUrl");
             
             $data = [
                 'command' => 'subnet6-list',
@@ -1773,12 +1783,20 @@ class AdminController
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
             
             $response = curl_exec($ch);
+            $curlError = curl_error($ch);
             curl_close($ch);
+            
+            if ($curlError) {
+                error_log("Curl error getting subnets: $curlError");
+                return $mapping;
+            }
+            
+            error_log("Kea subnet6-list response: " . substr($response, 0, 500));
             
             $keaResponse = json_decode($response, true);
             
             if (!$keaResponse || !isset($keaResponse[0]['arguments']['subnets'])) {
-                error_log("Failed to get subnets from Kea for auto-mapping");
+                error_log("Failed to get subnets from Kea for auto-mapping. Response: " . json_encode($keaResponse));
                 return $mapping;
             }
             
