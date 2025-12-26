@@ -828,8 +828,11 @@ class AdminController
                     
                     $leaseResult = json_decode($leaseResponse, true);
                     
+                    error_log("Lease query for subnet $subnetId: " . $leaseResponse);
+                    
                     if ($leaseResult && isset($leaseResult[0]['result']) && $leaseResult[0]['result'] === 0) {
                         $leases = $leaseResult[0]['arguments']['leases'] ?? [];
+                        error_log("Found " . count($leases) . " leases in subnet $subnetId");
                         $allLeases = array_merge($allLeases, $leases);
                         
                         // Check if we got fewer leases than limit (last page)
@@ -839,10 +842,14 @@ class AdminController
                         $from += $limit;
                     } else {
                         // No more leases or error
+                        $errorMsg = $leaseResult[0]['text'] ?? 'Unknown error';
+                        error_log("No leases or error for subnet $subnetId: $errorMsg");
                         break;
                     }
                 }
             }
+            
+            error_log("Total leases found: " . count($allLeases));
             
             // Send file for download
             header('Content-Type: application/json');
