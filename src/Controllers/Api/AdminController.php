@@ -385,7 +385,6 @@ class AdminController
                 $keaSubnet = [
                     "subnet" => $subnet['subnet'],
                     "id" => $subnet['id'],
-                    "shared-network-name" => null,
                     "client-class" => "RPD"
                     // NO POOLS YET - will be added separately
                 ];
