@@ -803,7 +803,7 @@ class AdminController
             // Get leases from each subnet using lease6-get-page (runtime leases)
             foreach ($subnets as $subnet) {
                 $subnetId = $subnet['id'];
-                $from = 0;
+                $from = "start";
                 $limit = 1000;
                 
                 while (true) {
@@ -835,11 +835,13 @@ class AdminController
                         error_log("Found " . count($leases) . " leases in subnet $subnetId");
                         $allLeases = array_merge($allLeases, $leases);
                         
-                        // Check if we got fewer leases than limit (last page)
-                        if (count($leases) < $limit) {
+                        // Check if there's a next page marker
+                        if (isset($leaseResult[0]['arguments']['next'])) {
+                            $from = $leaseResult[0]['arguments']['next'];
+                        } else {
+                            // No more pages
                             break;
                         }
-                        $from += $limit;
                     } else {
                         // No more leases or error
                         $errorMsg = $leaseResult[0]['text'] ?? 'Unknown error';
@@ -924,7 +926,7 @@ class AdminController
             // Get leases from each subnet using lease6-get-page (via Kea API)
             foreach ($subnets as $subnet) {
                 $subnetId = $subnet['id'];
-                $from = 0;
+                $from = "start";
                 $limit = 1000;
                 
                 while (true) {
@@ -953,11 +955,13 @@ class AdminController
                         $leases = $leaseResult[0]['arguments']['leases'] ?? [];
                         $allLeases = array_merge($allLeases, $leases);
                         
-                        // Check if we got fewer leases than limit (last page)
-                        if (count($leases) < $limit) {
+                        // Check if there's a next page marker
+                        if (isset($leaseResult[0]['arguments']['next'])) {
+                            $from = $leaseResult[0]['arguments']['next'];
+                        } else {
+                            // No more pages
                             break;
                         }
-                        $from += $limit;
                     } else {
                         // No more leases or error
                         break;
