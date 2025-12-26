@@ -573,32 +573,48 @@ async function listReservations() {
             }
         });
 
+        console.log('Fetching subnets...');
         // Get all subnets first
         const subnetsResponse = await fetch('/api/subnets');
         const subnetsData = await subnetsResponse.json();
+        
+        console.log('Subnets response:', subnetsData);
         
         if (!subnetsData.success || !subnetsData.subnets) {
             throw new Error('Failed to fetch subnets');
         }
 
+        console.log(`Found ${subnetsData.subnets.length} subnets`);
+
         // Fetch reservations for each subnet
         const allReservations = [];
         for (const subnet of subnetsData.subnets) {
+            console.log(`Fetching reservations for subnet ${subnet.id}...`);
             try {
                 const response = await fetch(`/api/dhcp/static/${subnet.id}`);
                 const result = await response.json();
                 
+                console.log(`Subnet ${subnet.id} response:`, result);
+                
                 if (result.success && result.data && result.data.hosts) {
+                    console.log(`Found ${result.data.hosts.length} reservations in subnet ${subnet.id}`);
                     result.data.hosts.forEach(host => {
                         host.subnet_id = subnet.id;
                         host.subnet_prefix = subnet.subnet;
                         allReservations.push(host);
                     });
+                } else if (result.data && result.data.result === 3) {
+                    // Result code 3 means no data (empty)
+                    console.log(`No reservations in subnet ${subnet.id}`);
+                } else {
+                    console.log(`Unexpected response for subnet ${subnet.id}:`, result);
                 }
             } catch (e) {
                 console.error(`Error fetching reservations for subnet ${subnet.id}:`, e);
             }
         }
+
+        console.log(`Total reservations found: ${allReservations.length}`);
 
         let html = `<div class="text-left">
             <p class="mb-3">Found <strong>${allReservations.length}</strong> reservation(s) across ${subnetsData.subnets.length} subnet(s)</p>`;
@@ -641,6 +657,9 @@ async function listReservations() {
                 </svg>
                 <p class="mt-2 text-gray-500">No reservations found</p>
                 <p class="text-xs text-gray-400 mt-1">Import reservations from a config file to see them here</p>
+                <button onclick="Swal.close(); importKeaReservations();" class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                    Import Reservations Now
+                </button>
             </div>`;
         }
         
@@ -654,6 +673,7 @@ async function listReservations() {
             width: '900px'
         });
     } catch (error) {
+        console.error('Error in listReservations:', error);
         Swal.fire('Error', 'Failed to fetch reservations: ' + error.message, 'error');
     }
 }
