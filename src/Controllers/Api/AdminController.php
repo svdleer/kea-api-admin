@@ -2495,6 +2495,108 @@ class AdminController
     }
 
     /**
+     * Delete all leases from Kea
+     * POST /api/admin/leases/delete-all
+     */
+    public function deleteAllLeases()
+    {
+        try {
+            // Get first active Kea server from database
+            $stmt = $this->db->prepare("SELECT api_url, name FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+            $stmt->execute();
+            $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if (!$keaServer) {
+                throw new \Exception("No active Kea servers configured");
+            }
+            
+            $keaApiUrl = $keaServer['api_url'];
+            error_log("Deleting all leases from Kea server: {$keaServer['name']} ($keaApiUrl)");
+            
+            // First, get all subnets
+            $data = [
+                'command' => 'subnet6-list',
+                'service' => ['dhcp6']
+            ];
+            
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+            
+            $keaResponse = json_decode($response, true);
+            
+            if (!$keaResponse || !isset($keaResponse[0]['arguments']['subnets'])) {
+                throw new \Exception("Failed to get subnets from Kea");
+            }
+            
+            $subnets = $keaResponse[0]['arguments']['subnets'];
+            error_log("Found " . count($subnets) . " subnets");
+            
+            $totalDeleted = 0;
+            $errors = [];
+            
+            // Wipe leases for each subnet using lease6-wipe
+            foreach ($subnets as $subnet) {
+                $subnetId = $subnet['id'];
+                error_log("Wiping leases for subnet ID: $subnetId ({$subnet['subnet']})");
+                
+                $wipeData = [
+                    'command' => 'lease6-wipe',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'subnet-id' => $subnetId
+                    ]
+                ];
+                
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($wipeData));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                
+                $wipeResponse = curl_exec($ch);
+                curl_close($ch);
+                
+                $wipeResult = json_decode($wipeResponse, true);
+                
+                if ($wipeResult && isset($wipeResult[0]['result']) && $wipeResult[0]['result'] === 0) {
+                    $deleted = $wipeResult[0]['text'] ?? '0';
+                    // Extract number from text like "Deleted 5 lease(s)."
+                    if (preg_match('/(\d+)/', $deleted, $matches)) {
+                        $count = intval($matches[1]);
+                        $totalDeleted += $count;
+                        error_log("✓ Deleted $count lease(s) from subnet $subnetId");
+                    }
+                } else {
+                    $errorMsg = $wipeResult[0]['text'] ?? 'Unknown error';
+                    $errors[] = "Subnet $subnetId: $errorMsg";
+                    error_log("✗ Failed to wipe subnet $subnetId: $errorMsg");
+                }
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'message' => "Deleted $totalDeleted lease(s) from " . count($subnets) . " subnet(s)",
+                'deleted' => $totalDeleted,
+                'subnets_processed' => count($subnets),
+                'errors' => $errors
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log("Delete all leases error: " . $e->getMessage());
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Failed to delete leases: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper: Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200)
