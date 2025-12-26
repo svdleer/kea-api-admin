@@ -2581,25 +2581,25 @@ class AdminController
                 
                 $wipeResult = json_decode($wipeResponse, true);
                 
-                if ($wipeResult && isset($wipeResult[0]['result'])) {
-                    if ($wipeResult[0]['result'] === 0) {
-                        // Success - extract deleted count
-                        $deleted = $wipeResult[0]['text'] ?? '0';
-                        // Extract number from text like "Deleted 5 lease(s) from subnet(s) 1"
-                        if (preg_match('/Deleted (\d+)/', $deleted, $matches)) {
-                            $count = intval($matches[1]);
-                            $totalDeleted += $count;
-                            if ($count > 0) {
-                                error_log("✓ Deleted $count lease(s) from subnet $subnetId");
-                            } else {
-                                error_log("ℹ Subnet $subnetId had no leases to delete");
-                            }
+                if ($wipeResult && isset($wipeResult[0]['result']) && isset($wipeResult[0]['text'])) {
+                    $resultCode = $wipeResult[0]['result'];
+                    $resultText = $wipeResult[0]['text'];
+                    
+                    // Extract deleted count from text like "Deleted 5 lease(s) from subnet(s) 1"
+                    if (preg_match('/Deleted (\d+)/', $resultText, $matches)) {
+                        $count = intval($matches[1]);
+                        $totalDeleted += $count;
+                        
+                        if ($count > 0) {
+                            error_log("✓ Deleted $count lease(s) from subnet $subnetId");
+                        } else {
+                            error_log("ℹ Subnet $subnetId had no leases to delete");
                         }
-                    } else {
-                        // Actual error (result != 0)
-                        $errorMsg = $wipeResult[0]['text'] ?? 'Unknown error';
-                        $errors[] = "Subnet $subnetId: $errorMsg";
-                        error_log("✗ Failed to wipe subnet $subnetId: $errorMsg");
+                        // Don't treat "Deleted 0" as an error even if result code is non-zero
+                    } else if ($resultCode !== 0) {
+                        // Actual error - couldn't parse "Deleted X" and result is non-zero
+                        $errors[] = "Subnet $subnetId: $resultText";
+                        error_log("✗ Failed to wipe subnet $subnetId: $resultText");
                     }
                 } else {
                     $errors[] = "Subnet $subnetId: Invalid response from Kea";
