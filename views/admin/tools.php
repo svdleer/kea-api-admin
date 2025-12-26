@@ -138,7 +138,7 @@ ob_start();
                 </div>
                 <h2 class="ml-4 text-xl font-semibold text-gray-900">Kea Reservations</h2>
             </div>
-            <p class="text-gray-600 text-sm mb-4">Import static DHCP reservations from kea-dhcp6.conf into Kea reservation database</p>
+            <p class="text-gray-600 text-sm mb-4">Import static DHCP reservations (with options) from kea-dhcp6.conf</p>
             <div class="space-y-2">
                 <button onclick="importKeaReservations()" 
                         class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
@@ -146,6 +146,13 @@ ob_start();
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>
                     Import Reservations from Config
+                </button>
+                <button onclick="listReservations()" 
+                        class="w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    List All Reservations
                 </button>
             </div>
         </div>
@@ -552,6 +559,102 @@ async function importKeaReservations() {
         } catch (error) {
             Swal.fire('Error', 'Failed to import reservations: ' + error.message, 'error');
         }
+    }
+}
+
+async function listReservations() {
+    try {
+        Swal.fire({
+            title: 'Loading Reservations...',
+            text: 'Fetching reservations from all subnets',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Get all subnets first
+        const subnetsResponse = await fetch('/api/subnets');
+        const subnetsData = await subnetsResponse.json();
+        
+        if (!subnetsData.success || !subnetsData.subnets) {
+            throw new Error('Failed to fetch subnets');
+        }
+
+        // Fetch reservations for each subnet
+        const allReservations = [];
+        for (const subnet of subnetsData.subnets) {
+            try {
+                const response = await fetch(`/api/dhcp/static/${subnet.id}`);
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.hosts) {
+                    result.data.hosts.forEach(host => {
+                        host.subnet_id = subnet.id;
+                        host.subnet_prefix = subnet.subnet;
+                        allReservations.push(host);
+                    });
+                }
+            } catch (e) {
+                console.error(`Error fetching reservations for subnet ${subnet.id}:`, e);
+            }
+        }
+
+        let html = `<div class="text-left">
+            <p class="mb-3">Found <strong>${allReservations.length}</strong> reservation(s) across ${subnetsData.subnets.length} subnet(s)</p>`;
+        
+        if (allReservations.length > 0) {
+            html += `<div class="max-h-96 overflow-y-auto text-xs">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-2 py-2 text-left font-semibold">Subnet</th>
+                            <th class="px-2 py-2 text-left font-semibold">IP Address</th>
+                            <th class="px-2 py-2 text-left font-semibold">DUID/MAC</th>
+                            <th class="px-2 py-2 text-left font-semibold">Hostname</th>
+                            <th class="px-2 py-2 text-left font-semibold">Options</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">`;
+            
+            allReservations.forEach(res => {
+                const ipAddresses = res['ip-addresses'] || [];
+                const duid = res['duid'] || res['hw-address'] || '-';
+                const hostname = res['hostname'] || '-';
+                const optionData = res['option-data'] || [];
+                const optionCount = optionData.length;
+                
+                html += `<tr class="hover:bg-gray-50">
+                    <td class="px-2 py-2 font-mono text-xs">${res.subnet_id}<br/><span class="text-gray-400">${res.subnet_prefix || ''}</span></td>
+                    <td class="px-2 py-2 font-mono">${ipAddresses.join('<br/>')}</td>
+                    <td class="px-2 py-2 font-mono text-xs">${duid.length > 30 ? duid.substring(0, 30) + '...' : duid}</td>
+                    <td class="px-2 py-2">${hostname}</td>
+                    <td class="px-2 py-2">${optionCount > 0 ? `<span class="text-green-600">${optionCount} option(s)</span>` : '<span class="text-gray-400">-</span>'}</td>
+                </tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+        } else {
+            html += `<div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="mt-2 text-gray-500">No reservations found</p>
+                <p class="text-xs text-gray-400 mt-1">Import reservations from a config file to see them here</p>
+            </div>`;
+        }
+        
+        html += `</div>`;
+        
+        Swal.fire({
+            title: 'Kea Reservations',
+            html: html,
+            icon: allReservations.length > 0 ? 'info' : 'warning',
+            confirmButtonColor: '#4F46E5',
+            width: '900px'
+        });
+    } catch (error) {
+        Swal.fire('Error', 'Failed to fetch reservations: ' + error.message, 'error');
     }
 }
 
