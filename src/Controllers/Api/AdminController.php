@@ -1946,7 +1946,24 @@ class AdminController
                     continue;
                 }
 
-                // Add as active lease via Kea API (lease6-add)
+                // Try to delete existing lease first (to handle reimports)
+                $deleteData = [
+                    'command' => 'lease6-del',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'ip-address' => $lease['address']
+                    ]
+                ];
+                
+                $ch = curl_init($keaApiUrl);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($deleteData));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_exec($ch); // Ignore result - it's OK if it doesn't exist
+                curl_close($ch);
+
+                // Now add as active lease via Kea API (lease6-add)
                 $data = [
                     'command' => 'lease6-add',
                     'service' => ['dhcp6'],
