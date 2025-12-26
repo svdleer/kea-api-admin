@@ -166,6 +166,7 @@ class DHCPv6LeaseModel extends KEAModel
         return [
             'ip-address' => $lease['ip-address'] ?? '',
             'duid' => $lease['duid'] ?? '',
+            'hwaddr' => $lease['hwaddr'] ?? '',
             'state' => $lease['state'] ?? '',
             'cltt' => $lease['cltt'] ?? null,
             'valid-lft' => $lease['valid-lft'] ?? 0,
