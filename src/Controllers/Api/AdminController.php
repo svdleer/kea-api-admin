@@ -765,33 +765,83 @@ class AdminController
         try {
             $filename = 'kea-leases-' . date('Y-m-d-His') . '.json';
             
-            // Use KEA Model to communicate with Kea API
-            require_once BASE_PATH . '/src/Models/KeaModel.php';
-            $keaModel = new \App\Models\KeaModel();
+            // Get first active Kea server from database
+            $stmt = $this->db->prepare("SELECT api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority LIMIT 1");
+            $stmt->execute();
+            $keaServer = $stmt->fetch(\PDO::FETCH_ASSOC);
             
-            // Retrieve all leases using lease6-get-all command
-            $response = $keaModel->sendKeaCommand('lease6-get-all', [
-                'subnets' => []  // Empty array means all subnets
-            ]);
-            
-            $data = json_decode($response, true);
-            
-            // Kea result codes: 0 = success, 3 = empty (no results)
-            $resultCode = $data[0]['result'] ?? null;
-            
-            if ($resultCode === 3 || (isset($data[0]['text']) && strpos($data[0]['text'], '0 IPv6 lease(s) found') !== false)) {
-                // No leases found - return empty array
-                header('Content-Type: application/json');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Cache-Control: no-cache, must-revalidate');
-                header('Pragma: public');
-                
-                echo json_encode([], JSON_PRETTY_PRINT);
-                exit;
+            if (!$keaServer) {
+                throw new \Exception("No active Kea servers configured");
             }
             
-            if ($resultCode !== 0) {
-                throw new \Exception('Kea API returned error: ' . ($data[0]['text'] ?? 'Unknown error'));
+            $keaApiUrl = $keaServer['api_url'];
+            
+            // Get all subnets first
+            $subnetData = [
+                'command' => 'subnet6-list',
+                'service' => ['dhcp6']
+            ];
+            
+            $ch = curl_init($keaApiUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($subnetData));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            
+            $response = curl_exec($ch);
+            curl_close($ch);
+            
+            $subnetResponse = json_decode($response, true);
+            
+            if (!$subnetResponse || !isset($subnetResponse[0]['arguments']['subnets'])) {
+                throw new \Exception("Failed to get subnets from Kea");
+            }
+            
+            $subnets = $subnetResponse[0]['arguments']['subnets'];
+            $allLeases = [];
+            
+            // Get leases from each subnet using lease6-get-page (runtime leases)
+            foreach ($subnets as $subnet) {
+                $subnetId = $subnet['id'];
+                $from = 0;
+                $limit = 1000;
+                
+                while (true) {
+                    $leaseData = [
+                        'command' => 'lease6-get-page',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'from' => $from,
+                            'limit' => $limit,
+                            'subnet-id' => $subnetId
+                        ]
+                    ];
+                    
+                    $ch = curl_init($keaApiUrl);
+                    curl_setopt($ch, CURLOPT_POST, 1);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($leaseData));
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    
+                    $leaseResponse = curl_exec($ch);
+                    curl_close($ch);
+                    
+                    $leaseResult = json_decode($leaseResponse, true);
+                    
+                    if ($leaseResult && isset($leaseResult[0]['result']) && $leaseResult[0]['result'] === 0) {
+                        $leases = $leaseResult[0]['arguments']['leases'] ?? [];
+                        $allLeases = array_merge($allLeases, $leases);
+                        
+                        // Check if we got fewer leases than limit (last page)
+                        if (count($leases) < $limit) {
+                            break;
+                        }
+                        $from += $limit;
+                    } else {
+                        // No more leases or error
+                        break;
+                    }
+                }
             }
             
             // Send file for download
@@ -800,7 +850,7 @@ class AdminController
             header('Cache-Control: no-cache, must-revalidate');
             header('Pragma: public');
             
-            echo json_encode($data[0]['arguments']['leases'] ?? [], JSON_PRETTY_PRINT);
+            echo json_encode($allLeases, JSON_PRETTY_PRINT);
             exit;
             
         } catch (\Exception $e) {
