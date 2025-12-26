@@ -421,9 +421,7 @@ class AdminController
                     "command" => 'subnet6-add',
                     "service" => ['dhcp6'],
                     "arguments" => [
-                        "remote" => ["type" => "mysql"],
-                        "server-tags" => ["all"],
-                        "subnets" => [$keaSubnet]
+                        "subnet6" => [$keaSubnet]
                     ]
                 ];
                 
@@ -523,9 +521,7 @@ class AdminController
                         "command" => 'subnet6-add',
                         "service" => ['dhcp6'],
                         "arguments" => [
-                            "remote" => ["type" => "mysql"],
-                            "server-tags" => ["all"],
-                            "subnets" => [$completeSubnet]
+                            "subnet6" => [$completeSubnet]
                         ]
                     ];
                     
@@ -1790,11 +1786,7 @@ class AdminController
             
             $data = [
                 'command' => 'subnet6-list',
-                'service' => ['dhcp6'],
-                'arguments' => [
-                    'remote' => ['type' => 'mysql'],
-                    'server-tags' => ['all']
-                ]
+                'service' => ['dhcp6']
             ];
             
             $ch = curl_init($keaApiUrl);
