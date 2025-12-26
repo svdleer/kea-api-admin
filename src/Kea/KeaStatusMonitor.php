@@ -117,9 +117,7 @@ class KeaStatusMonitor {
                 }
                 
                 // Try to get subnet information using subnet6-list
-                $subnetResponse = $this->sendCommand($server['url'], 'subnet6-list', [
-                    'server-tags' => ['all']
-                ]);
+                $subnetResponse = $this->sendCommand($server['url'], 'subnet6-list', []);
                 if ($subnetResponse) {
                     // Check response structure
                     if (isset($subnetResponse['arguments']['subnets'])) {

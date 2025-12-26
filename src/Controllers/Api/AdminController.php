@@ -1538,10 +1538,7 @@ class AdminController
                         'command' => 'subnet6-del',
                         'service' => ['dhcp6'],
                         'arguments' => [
-                            'subnets' => [
-                                ['id' => intval($subnetId)]
-                            ],
-                            'remote' => ['type' => 'mysql']
+                            'id' => intval($subnetId)
                         ]
                     ];
                     
