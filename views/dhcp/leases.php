@@ -1601,7 +1601,7 @@ async function viewStaticLeases(subnetId) {
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DUID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MAC Address</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostname</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -1612,8 +1612,8 @@ async function viewStaticLeases(subnetId) {
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         ${host['ip-addresses'] ? host['ip-addresses'].join(', ') : 'N/A'}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        ${host.duid || 'N/A'}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-green-700">
+                                        ${host['hw-address'] || 'N/A'}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         ${host.hostname || 'N/A'}
