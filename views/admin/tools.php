@@ -710,9 +710,7 @@ async function deleteAllReservations() {
             const confirmText = document.getElementById('confirmDelete').value;
             if (confirmText !== 'DELETE ALL') {
                 Swal.showValidationMessage('Please type "DELETE ALL" to confirm');
-                return false;
             }
-            return true;
         }
     });
 
