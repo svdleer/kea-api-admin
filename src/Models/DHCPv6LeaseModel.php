@@ -245,7 +245,6 @@ class DHCPv6LeaseModel extends KEAModel
     
         // Use reservation-add to create new reservations
         $commandParams = [
-            'operation-target' => 'alternate',
             'reservation' => [
                 'subnet-id' => $subnetId,
                 'hw-address' => $hwAddress,
@@ -334,7 +333,6 @@ class DHCPv6LeaseModel extends KEAModel
     
         // Use reservation-update command (creates or updates)
         $commandParams = [
-            'operation-target' => 'alternate',
             'reservation' => [
                 'subnet-id' => $subnetId,
                 'hw-address' => $hwAddress,
@@ -379,7 +377,6 @@ class DHCPv6LeaseModel extends KEAModel
     public function deleteReservation($ipAddress, $subnetId)
     {
         $commandParams = [
-            'operation-target' => 'alternate',
             'ip-address' => $ipAddress,
             'subnet-id' => $subnetId
         ];
