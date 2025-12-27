@@ -575,7 +575,7 @@ async function listReservations() {
 
         console.log('Fetching subnets...');
         // Get all subnets first
-        const subnetsResponse = await fetch('/api/subnets');
+        const subnetsResponse = await fetch('/api/dhcp/subnets');
         const subnetsData = await subnetsResponse.json();
         
         console.log('Subnets response:', subnetsData);
