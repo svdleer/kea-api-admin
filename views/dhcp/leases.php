@@ -1913,9 +1913,15 @@ async function editReservation(host) {
             }
             
             if (result.result === 0) {
-                Swal.fire('Updated!', 'Reservation has been updated.', 'success');
-                // Reload reservations for this subnet  
-                location.reload();
+                Swal.fire({
+                    title: 'Updated!',
+                    text: 'Reservation has been updated successfully.',
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                }).then(() => {
+                    // Reload page after user dismisses the success message
+                    location.reload();
+                });
             } else {
                 Swal.fire('Error!', result.message || 'Failed to update reservation', 'error');
             }
