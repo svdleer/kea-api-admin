@@ -1639,11 +1639,23 @@ async function viewStaticLeases(subnetId) {
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MAC Address</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostname</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CCAP Core</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            ${hosts.map(host => `
+                            ${hosts.map(host => {
+                                // Extract CCAP Core option (option 61 in vendor-4491 space)
+                                let ccapCore = 'N/A';
+                                if (host['option-data'] && Array.isArray(host['option-data'])) {
+                                    const ccapOption = host['option-data'].find(opt => 
+                                        opt.name === 'ccap-core' && opt.space === 'vendor-4491'
+                                    );
+                                    if (ccapOption) {
+                                        ccapCore = ccapOption.data || ccapOption.value || 'N/A';
+                                    }
+                                }
+                                return `
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         ${host['ip-addresses'] ? host['ip-addresses'].join(', ') : 'N/A'}
@@ -1653,6 +1665,9 @@ async function viewStaticLeases(subnetId) {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         ${host.hostname || 'N/A'}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ${ccapCore}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <button onclick="editReservation(${JSON.stringify(host).replace(/"/g, '&quot;')})" 
@@ -1665,7 +1680,7 @@ async function viewStaticLeases(subnetId) {
                                         </button>
                                     </td>
                                 </tr>
-                            `).join('')}
+                            `}).join('')}
                         </tbody>
                     </table>
                 </td>
