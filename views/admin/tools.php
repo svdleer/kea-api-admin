@@ -1439,6 +1439,8 @@ async function clearCinData() {
                 <p class="text-sm text-gray-600 mb-2">✓ Kea subnets will NOT be deleted</p>
                 <p class="text-sm text-gray-600 mb-2">✓ Only our database tables are cleared</p>
                 <p class="mt-3 font-semibold">This action cannot be undone!</p>
+                <p class="text-sm text-gray-500 mt-4">Type <strong>CLEAR ALL</strong> below to confirm:</p>
+                <input type="text" id="confirmClearCin" class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Type CLEAR ALL">
             </div>
         `,
         icon: 'warning',
@@ -1447,7 +1449,13 @@ async function clearCinData() {
         cancelButtonColor: '#6B7280',
         confirmButtonText: 'Yes, Clear All CIN Data!',
         cancelButtonText: 'Cancel',
-        width: '600px'
+        width: '600px',
+        preConfirm: () => {
+            const confirmText = document.getElementById('confirmClearCin').value;
+            if (confirmText !== 'CLEAR ALL') {
+                Swal.showValidationMessage('Please type "CLEAR ALL" to confirm');
+            }
+        }
     });
 
     if (result.isConfirmed) {
