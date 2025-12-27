@@ -381,6 +381,11 @@ class DHCPv6LeaseModel extends KEAModel
             'ip-address' => $ipAddress
         ];
 
+        error_log("DELETE RESERVATION - Sending to Kea: " . json_encode([
+            'command' => 'reservation-del',
+            'arguments' => $commandParams
+        ]));
+
         $response = $this->sendKeaCommand('reservation-del', $commandParams);
         
         $result = json_decode($response, true);
