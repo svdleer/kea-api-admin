@@ -237,7 +237,7 @@ class DHCPv6LeaseModel extends KEAModel
         }
     }
 
-    public function addStaticLease($ipAddress, $duid, $subnetId, $options)
+    public function addStaticLease($ipAddress, $hwAddress, $subnetId, $options)
     {
         if (!filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             throw new Exception('Invalid IPv6 address');
@@ -245,7 +245,7 @@ class DHCPv6LeaseModel extends KEAModel
     
         $commandParams = [
             'ip-address' => $ipAddress,
-            'duid' => $duid,
+            'hw-address' => $hwAddress,
             'subnet-id' => $subnetId,
             'options' => $options
         ];

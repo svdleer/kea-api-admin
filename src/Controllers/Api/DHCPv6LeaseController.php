@@ -125,10 +125,10 @@ class DHCPv6LeaseController
             $data = json_decode(file_get_contents('php://input'), true);
             
 
-            if (!isset($data['duid']) || !isset($data['ipAddress']) || !isset($data['subnetId'])) {
+            if (!isset($data['hwAddress']) || !isset($data['ipAddress']) || !isset($data['subnetId'])) {
                 $result = [
                     'result' => 1,
-                    'message' => 'Missing required fields: duid, ipAddress, and subnetId are required'
+                    'message' => 'Missing required fields: hwAddress, ipAddress, and subnetId are required'
                 ];
                 header('Content-Type: application/json');
                 echo json_encode($result);
@@ -140,12 +140,12 @@ class DHCPv6LeaseController
 
             error_log("About to call addStaticLease with parameters:");
             error_log("IP Address: " . $data['ipAddress']);
-            error_log("DUID: " . $data['duid']);
+            error_log("MAC Address: " . $data['hwAddress']);
             error_log("Subnet ID: " . $data['subnetId']);
             
             $keaResponse = $this->leaseModel->addStaticLease(
                 $data['ipAddress'],
-                $data['duid'], 
+                $data['hwAddress'], 
                 $data['subnetId'], 
                 $options
             );

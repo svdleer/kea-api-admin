@@ -130,8 +130,8 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
             </div>
             <div>
-                <label for="duid" class="block text-lg font-semibold mb-2">DUID</label>
-                <input type="text" id="duid" name="duid" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="DUID" required>
+                <label for="hwAddress" class="block text-lg font-semibold mb-2">MAC Address</label>
+                <input type="text" id="hwAddress" name="hwAddress" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="00:11:22:33:44:55" required>
                 <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
             </div>
             <div class="mb-4">
@@ -200,7 +200,7 @@ function toggleLeases(button, switchId, bviId) {
 async function addStaticLease() {
     const ipAddressPrefix = document.getElementById('ipAddressPrefix').value;
     const ipAddressSuffix = document.getElementById('ipAddressSuffix').value;
-    const duid = document.getElementById('duid').value;
+    const hwAddress = document.getElementById('hwAddress').value;
     
     // Collect all options
     const optionRows = document.querySelectorAll('.option-row');
@@ -227,13 +227,15 @@ async function addStaticLease() {
         return;
     }
 
-    if (!duid) {
-        Swal.fire('Error', 'Please fill in the DUID', 'error');
+    if (!hwAddress) {
+        Swal.fire('Error', 'Please fill in the MAC Address', 'error');
         return;
     }
 
-    if (!isValidDUID(duid)) {
-        Swal.fire('Error', 'Invalid DUID format', 'error');
+    // Validate MAC address format
+    const macPattern = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+    if (!macPattern.test(hwAddress)) {
+        Swal.fire('Error', 'Invalid MAC Address format. Use format: 00:11:22:33:44:55', 'error');
         return;
     }
 
@@ -270,7 +272,7 @@ async function addStaticLease() {
             },
             body: JSON.stringify({
                 ipAddress: fullIPv6,
-                duid: duid,
+                hwAddress: hwAddress,
                 subnetId: parseInt(currentSubnetId),
                 options: options
             })
