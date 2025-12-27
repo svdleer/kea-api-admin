@@ -1876,7 +1876,17 @@ async function editReservation(host) {
                 })
             });
 
-            const result = await updateResponse.json();
+            const responseText = await updateResponse.text();
+            console.log('Update response:', responseText);
+            
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse JSON:', responseText);
+                Swal.fire('Error!', 'Invalid response from server: ' + responseText.substring(0, 200), 'error');
+                return;
+            }
             
             if (result.result === 0) {
                 Swal.fire('Updated!', 'Reservation has been updated.', 'success');
@@ -1886,6 +1896,7 @@ async function editReservation(host) {
                 Swal.fire('Error!', result.message || 'Failed to update reservation', 'error');
             }
         } catch (error) {
+            console.error('Error:', error);
             Swal.fire('Error!', error.message || 'An error occurred', 'error');
         }
     }
