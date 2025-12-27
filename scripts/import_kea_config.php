@@ -153,6 +153,22 @@ class KeaConfigImporter {
         }
 
         $this->printSummary();
+        
+        // Save configuration to disk after successful import
+        $this->info("\n" . Colors::CYAN . "Saving configuration to disk..." . Colors::RESET);
+        try {
+            $saveResult = $this->dhcpModel->sendKeaCommand('config-write', ['filename' => '/etc/kea/kea-dhcp6.conf']);
+            if (isset($saveResult[0]['result']) && $saveResult[0]['result'] === 0) {
+                $this->success("✓ Configuration saved to /etc/kea/kea-dhcp6.conf");
+            } else {
+                $this->warning("⚠ Configuration save returned non-zero result");
+                error_log("Config-write result: " . json_encode($saveResult));
+            }
+        } catch (Exception $e) {
+            $this->warning("⚠ Could not save configuration to disk: " . $e->getMessage());
+            $this->info("Configuration is active in memory but not persisted to disk");
+        }
+        
         return true;
     }
 

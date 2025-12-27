@@ -286,6 +286,39 @@ echo "Added (new): " . ($addedCount / count($keaServers)) . "\n";
 echo "Updated (existing): " . ($updatedCount / count($keaServers)) . "\n";
 echo "Errors: " . ($errorCount / count($keaServers)) . "\n";
 
+// Save configuration to disk after successful import
+echo "\nSaving configuration to disk...\n";
+foreach ($keaServers as $server) {
+    $apiUrl = rtrim($server['api_url'], '/');
+    $configWriteData = [
+        'command' => 'config-write',
+        'service' => ['dhcp6'],
+        'arguments' => [
+            'filename' => '/etc/kea/kea-dhcp6.conf'
+        ]
+    ];
+    
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($configWriteData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    
+    $response = curl_exec($ch);
+    $result = json_decode($response, true);
+    
+    if (curl_errno($ch)) {
+        echo "⚠️  Could not save config on {$server['name']}: " . curl_error($ch) . "\n";
+    } elseif (isset($result[0]['result']) && $result[0]['result'] === 0) {
+        echo "✓ Configuration saved on {$server['name']}\n";
+    } else {
+        $errorMsg = $result[0]['text'] ?? 'Unknown error';
+        echo "⚠️  Config save warning on {$server['name']}: {$errorMsg}\n";
+    }
+    
+    curl_close($ch);
+}
+
 if ($errorCount > 0) {
     echo "\n⚠️  Some reservations failed to import. Check the errors above.\n";
     exit(1);
