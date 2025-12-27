@@ -256,11 +256,8 @@ async function addStaticLease() {
             
     const fullIPv6 = normalizedPrefix + ipAddressSuffix;
     
-    // Get the subnet ID from the select element
-    const subnetSelect = document.getElementById('subnetSelect');
-    const subnetId = subnetSelect ? subnetSelect.value : null;
-    
-    if (!subnetId) {
+    // Use the stored subnet ID from when the form was opened
+    if (!currentSubnetId) {
         Swal.fire('Error', 'Please select a subnet', 'error');
         return;
     }
@@ -274,7 +271,7 @@ async function addStaticLease() {
             body: JSON.stringify({
                 ipAddress: fullIPv6,
                 duid: duid,
-                subnetId: parseInt(subnetId),
+                subnetId: parseInt(currentSubnetId),
                 options: options
             })
         });
@@ -800,11 +797,27 @@ function validateOptionSelect(select) {
 
 
 
-function toggleStaticLeaseForm() {
+let currentSubnetId = null;
+let currentSubnetPrefix = null;
+
+function toggleStaticLeaseForm(subnetId, subnetPrefix) {
     const form = document.getElementById('addStaticLeaseForm');
     
     if (form.classList.contains('hidden')) {
+        // Store subnet context
+        currentSubnetId = subnetId;
+        currentSubnetPrefix = subnetPrefix;
+        
         form.classList.remove('hidden');
+        
+        // Set the subnet prefix in the form
+        const prefixInput = document.getElementById('ipAddressPrefix');
+        if (prefixInput && subnetPrefix) {
+            // Extract prefix without the /64
+            const prefix = subnetPrefix.split('/')[0];
+            prefixInput.value = prefix;
+        }
+        
         populateSubnetOptions();
         populateDhcpOptions();
         
@@ -1154,7 +1167,7 @@ async function loadSwitches() {
                             </svg>
                             View Reservations
                         </button>
-                        <button onclick="toggleStaticLeaseForm()" 
+                        <button onclick="toggleStaticLeaseForm('${subnets[0].id}', '${subnets[0].subnet}')" 
                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
