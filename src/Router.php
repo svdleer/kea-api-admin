@@ -71,6 +71,9 @@ class Router
                         new \App\Models\DHCP(\App\Database\Database::getInstance()),
                         new \App\Auth\Authentication(\App\Database\Database::getInstance())
                     ),
+                    \App\Controllers\Api\DHCPv6LeaseController::class => new $controllerClass(
+                        new \App\Models\DHCPv6LeaseModel(\App\Database\Database::getInstance())
+                    ),
                     default => new $controllerClass(\App\Database\Database::getInstance())
                 };
                 
