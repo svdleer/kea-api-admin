@@ -580,15 +580,18 @@ async function listReservations() {
         
         console.log('Subnets response:', subnetsData);
         
-        if (!subnetsData.success || !subnetsData.subnets) {
-            throw new Error('Failed to fetch subnets');
+        // API returns array directly, not wrapped in {success, subnets}
+        const subnets = Array.isArray(subnetsData) ? subnetsData : [];
+        
+        if (subnets.length === 0) {
+            throw new Error('No subnets found');
         }
 
-        console.log(`Found ${subnetsData.subnets.length} subnets`);
+        console.log(`Found ${subnets.length} subnets`);
 
         // Fetch reservations for each subnet
         const allReservations = [];
-        for (const subnet of subnetsData.subnets) {
+        for (const subnet of subnets) {
             console.log(`Fetching reservations for subnet ${subnet.id}...`);
             try {
                 const response = await fetch(`/api/dhcp/static/${subnet.id}`);
@@ -617,7 +620,7 @@ async function listReservations() {
         console.log(`Total reservations found: ${allReservations.length}`);
 
         let html = `<div class="text-left">
-            <p class="mb-3">Found <strong>${allReservations.length}</strong> reservation(s) across ${subnetsData.subnets.length} subnet(s)</p>`;
+            <p class="mb-3">Found <strong>${allReservations.length}</strong> reservation(s) across ${subnets.length} subnet(s)</p>`;
         
         if (allReservations.length > 0) {
             html += `<div class="max-h-96 overflow-y-auto text-xs">
