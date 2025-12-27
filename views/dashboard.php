@@ -378,6 +378,28 @@ function renderConfigSync(data) {
             });
             html += '</ul>';
         }
+        
+        // Show detailed differences
+        if (data.detailed_differences && Object.keys(data.detailed_differences).length > 0) {
+            html += '<div class="mt-3 p-3 bg-red-50 rounded border border-red-200">';
+            html += '<p class="font-semibold text-xs text-red-900 mb-2">Detailed Differences:</p>';
+            Object.keys(data.detailed_differences).forEach(serverName => {
+                const diffs = data.detailed_differences[serverName];
+                if (diffs.length > 0) {
+                    html += '<div class="mt-2 text-xs">';
+                    html += '<p class="font-medium text-red-800 mb-1">' + serverName + ':</p>';
+                    html += '<ul class="list-disc list-inside ml-2 space-y-1">';
+                    diffs.slice(0, 10).forEach(diff => {
+                        html += '<li class="text-red-700">' + diff + '</li>';
+                    });
+                    if (diffs.length > 10) {
+                        html += '<li class="text-gray-600">... and ' + (diffs.length - 10) + ' more difference(s)</li>';
+                    }
+                    html += '</ul></div>';
+                }
+            });
+            html += '</div>';
+        }
     }
     
     if (data.checked_servers && data.checked_servers.length > 0) {

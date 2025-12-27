@@ -510,6 +510,7 @@ class DHCP
             $baseServerName = key($configs);
             $inSync = true;
             $differences = [];
+            $detailedDiffs = [];
             
             foreach ($configs as $serverName => $config) {
                 if ($serverName === $baseServerName) continue;
@@ -517,6 +518,12 @@ class DHCP
                 if (json_encode($config) !== json_encode($baseConfig)) {
                     $inSync = false;
                     $differences[] = "{$serverName} differs from {$baseServerName}";
+                    
+                    // Find specific differences
+                    $diffs = $this->findConfigDifferences($baseConfig, $config, $baseServerName, $serverName);
+                    if (!empty($diffs)) {
+                        $detailedDiffs[$serverName] = $diffs;
+                    }
                 }
             }
             
@@ -526,6 +533,7 @@ class DHCP
                 'checked_servers' => array_keys($configs),
                 'message' => $inSync ? 'All servers in sync' : 'Configuration mismatch detected',
                 'differences' => $differences,
+                'detailed_differences' => $detailedDiffs,
                 'errors' => $errors
             ];
             
@@ -538,6 +546,46 @@ class DHCP
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Find specific differences between two configurations
+     */
+    private function findConfigDifferences($config1, $config2, $server1Name, $server2Name, $path = '') {
+        $differences = [];
+        
+        // Check if configs are arrays
+        if (is_array($config1) && is_array($config2)) {
+            // Get all keys from both configs
+            $allKeys = array_unique(array_merge(array_keys($config1), array_keys($config2)));
+            
+            foreach ($allKeys as $key) {
+                $newPath = $path ? "$path.$key" : $key;
+                
+                if (!isset($config1[$key]) && isset($config2[$key])) {
+                    $differences[] = "$newPath: Missing in $server1Name, present in $server2Name";
+                } elseif (isset($config1[$key]) && !isset($config2[$key])) {
+                    $differences[] = "$newPath: Present in $server1Name, missing in $server2Name";
+                } elseif (isset($config1[$key]) && isset($config2[$key])) {
+                    if (is_array($config1[$key]) || is_array($config2[$key])) {
+                        // Recursive check for nested arrays
+                        $nestedDiffs = $this->findConfigDifferences($config1[$key], $config2[$key], $server1Name, $server2Name, $newPath);
+                        $differences = array_merge($differences, $nestedDiffs);
+                    } elseif ($config1[$key] !== $config2[$key]) {
+                        $val1 = is_bool($config1[$key]) ? ($config1[$key] ? 'true' : 'false') : (string)$config1[$key];
+                        $val2 = is_bool($config2[$key]) ? ($config2[$key] ? 'true' : 'false') : (string)$config2[$key];
+                        $differences[] = "$newPath: '$val1' ($server1Name) vs '$val2' ($server2Name)";
+                    }
+                }
+            }
+        } elseif ($config1 !== $config2) {
+            $val1 = is_bool($config1) ? ($config1 ? 'true' : 'false') : (string)$config1;
+            $val2 = is_bool($config2) ? ($config2 ? 'true' : 'false') : (string)$config2;
+            $differences[] = "$path: '$val1' ($server1Name) vs '$val2' ($server2Name)";
+        }
+        
+        // Limit to first 50 differences to avoid overwhelming output
+        return array_slice($differences, 0, 50);
     }
 
     /**
