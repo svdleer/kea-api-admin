@@ -3,15 +3,16 @@
 namespace App\Controllers\Api;
 
 use App\Models\DHCPv6LeaseModel;
+use App\Database\Database;
 use Exception;
 
 class DHCPv6LeaseController
 {
     private DHCPv6LeaseModel $leaseModel;
 
-    public function __construct(DHCPv6LeaseModel $leaseModel)
+    public function __construct(Database $db)
     {
-        $this->leaseModel = $leaseModel;
+        $this->leaseModel = new DHCPv6LeaseModel($db);
     }
 
 
