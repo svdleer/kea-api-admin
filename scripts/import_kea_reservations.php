@@ -70,9 +70,9 @@ echo "Found " . count($keaServers) . " active Kea server(s)\n";
 // Extract subnets with reservations
 $subnets = $config['Dhcp6']['subnet6'] ?? [];
 $totalReservations = 0;
-$successCount = 0;
+$addedCount = 0;
+$updatedCount = 0;
 $errorCount = 0;
-$skippedCount = 0;
 
 foreach ($subnets as $subnet) {
     $subnetId = $subnet['id'];
@@ -218,8 +218,13 @@ foreach ($subnets as $subnet) {
                 }
                 curl_close($ch);
                 if ($httpCode === 200 && isset($result[0]['result']) && $result[0]['result'] === 0) {
-                    echo $exists ? "🔄 Updated\n" : "✅ Added\n";
-                    $successCount++;
+                    if ($exists) {
+                        echo "🔄 Updated\n";
+                        $updatedCount++;
+                    } else {
+                        echo "✅ Added\n";
+                        $addedCount++;
+                    }
                 } else {
                     $errorMsg = $result[0]['text'] ?? 'Unknown error';
                     // Fallback: if add failed with duplicate error, try update
@@ -259,7 +264,7 @@ foreach ($subnets as $subnet) {
                         curl_close($ch);
                         if ($httpCodeUpdate === 200 && isset($resultUpdate[0]['result']) && $resultUpdate[0]['result'] === 0) {
                             echo "🔄 Updated (fallback)\n";
-                            $successCount++;
+                            $updatedCount++;
                         } else {
                             $errorMsgUpdate = $resultUpdate[0]['text'] ?? 'Unknown error';
                             echo "❌ Update failed after duplicate: {$errorMsgUpdate}\n";
@@ -277,8 +282,8 @@ foreach ($subnets as $subnet) {
 
 echo "\n\n=== Summary ===\n";
 echo "Total reservations found: {$totalReservations}\n";
-echo "Successfully added: " . ($successCount / count($keaServers)) . "\n";
-echo "Already existed: " . ($skippedCount / count($keaServers)) . "\n";
+echo "Added (new): " . ($addedCount / count($keaServers)) . "\n";
+echo "Updated (existing): " . ($updatedCount / count($keaServers)) . "\n";
 echo "Errors: " . ($errorCount / count($keaServers)) . "\n";
 
 if ($errorCount > 0) {
