@@ -376,6 +376,7 @@ class DHCPv6LeaseModel extends KEAModel
 
     public function deleteReservation($ipAddress, $subnetId)
     {
+        // Try deleting by IP address first
         $commandParams = [
             'ip-address' => $ipAddress,
             'subnet-id' => $subnetId
@@ -384,7 +385,7 @@ class DHCPv6LeaseModel extends KEAModel
         $response = $this->sendKeaCommand('reservation-del', $commandParams);
         
         $result = json_decode($response, true);
-        error_log("Delete reservation response: " . json_encode($result));
+        error_log("Delete reservation by IP response: " . json_encode($result));
 
         if (!isset($result[0]['result'])) {
             throw new Exception('Invalid response from KEA API');
@@ -396,6 +397,37 @@ class DHCPv6LeaseModel extends KEAModel
                 'message' => $result[0]['text'] ?? 'Reservation deleted successfully'
             ];
         } else {
+            // If delete by IP fails, try to get the reservation to find its MAC and delete by identifier
+            try {
+                $hosts = $this->getStaticLeases($subnetId);
+                if (isset($hosts['hosts']) && is_array($hosts['hosts'])) {
+                    foreach ($hosts['hosts'] as $host) {
+                        if (isset($host['ip-addresses'][0]) && $host['ip-addresses'][0] === $ipAddress) {
+                            // Found the host, try deleting by identifier
+                            if (isset($host['hw-address'])) {
+                                $deleteByMac = [
+                                    'identifier-type' => 'hw-address',
+                                    'identifier' => $host['hw-address'],
+                                    'subnet-id' => $subnetId
+                                ];
+                                $response2 = $this->sendKeaCommand('reservation-del', $deleteByMac);
+                                $result2 = json_decode($response2, true);
+                                error_log("Delete reservation by MAC response: " . json_encode($result2));
+                                
+                                if ($result2[0]['result'] === 0) {
+                                    return [
+                                        'result' => $result2[0]['result'],
+                                        'message' => $result2[0]['text'] ?? 'Reservation deleted successfully'
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Failed to delete by identifier: " . $e->getMessage());
+            }
+            
             throw new Exception($result[0]['text'] ?? 'Error deleting reservation');
         }
     }
