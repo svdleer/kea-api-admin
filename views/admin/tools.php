@@ -154,6 +154,14 @@ ob_start();
                     </svg>
                     List All Reservations
                 </button>
+                <button onclick="deleteAllReservations()" 
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete All Reservations
+                </button>
+                <p class="text-xs text-red-600 mt-2">⚠️ Warning: Deletes all reservations from all subnets. Cannot be undone!</p>
             </div>
         </div>
 
@@ -674,6 +682,120 @@ async function listReservations() {
     } catch (error) {
         console.error('Error in listReservations:', error);
         Swal.fire('Error', 'Failed to fetch reservations: ' + error.message, 'error');
+    }
+}
+
+async function deleteAllReservations() {
+    const result = await Swal.fire({
+        title: 'Delete All Reservations?',
+        html: `
+            <div class="text-left">
+                <p class="text-red-600 font-semibold mb-3">⚠️ This will permanently delete ALL reservations from ALL subnets!</p>
+                <p class="text-gray-600 mb-2">This action will:</p>
+                <ul class="list-disc list-inside text-gray-600 mb-3">
+                    <li>Delete all static DHCP reservations</li>
+                    <li>Remove all reservation options</li>
+                    <li>Cannot be undone</li>
+                </ul>
+                <p class="text-sm text-gray-500">Type <strong>DELETE ALL</strong> below to confirm:</p>
+                <input type="text" id="confirmDelete" class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Type DELETE ALL">
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, delete all!',
+        preConfirm: () => {
+            const confirmText = document.getElementById('confirmDelete').value;
+            if (confirmText !== 'DELETE ALL') {
+                Swal.showValidationMessage('Please type "DELETE ALL" to confirm');
+                return false;
+            }
+            return true;
+        }
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Deleting Reservations...',
+                text: 'Please wait while all reservations are being deleted',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Get all subnets first
+            const subnetsResponse = await fetch('/api/dhcp/subnets');
+            const subnets = await subnetsResponse.json();
+            
+            let totalDeleted = 0;
+            let errors = [];
+
+            // Delete reservations from each subnet
+            for (const subnet of subnets) {
+                try {
+                    // Get reservations for this subnet
+                    const response = await fetch(`/api/dhcp/static/${subnet.id}`);
+                    const result = await response.json();
+                    
+                    if (result.result === 0 && result.hosts && result.hosts.length > 0) {
+                        // Delete each reservation
+                        for (const host of result.hosts) {
+                            try {
+                                const deleteResponse = await fetch('/api/dhcp/reservations', {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        'ip-address': host['ip-addresses'][0],
+                                        'subnet-id': parseInt(subnet.id)
+                                    })
+                                });
+
+                                const deleteResult = await deleteResponse.json();
+                                if (deleteResult.success) {
+                                    totalDeleted++;
+                                } else {
+                                    errors.push(`Failed to delete ${host['ip-addresses'][0]}: ${deleteResult.message}`);
+                                }
+                            } catch (e) {
+                                errors.push(`Error deleting reservation: ${e.message}`);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    errors.push(`Error processing subnet ${subnet.id}: ${e.message}`);
+                }
+            }
+
+            if (errors.length === 0) {
+                Swal.fire({
+                    title: 'Success!',
+                    html: `<p>Successfully deleted <strong>${totalDeleted}</strong> reservation(s)</p>`,
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Partially Completed',
+                    html: `
+                        <p class="mb-2">Deleted <strong>${totalDeleted}</strong> reservation(s)</p>
+                        <p class="text-red-600">Encountered ${errors.length} error(s):</p>
+                        <div class="text-xs text-left bg-gray-50 p-3 rounded mt-2 max-h-32 overflow-y-auto">
+                            ${errors.map(e => `<p class="text-red-600">• ${e}</p>`).join('')}
+                        </div>
+                    `,
+                    icon: 'warning',
+                    confirmButtonColor: '#F59E0B'
+                });
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to delete reservations: ' + error.message, 'error');
+        }
     }
 }
 

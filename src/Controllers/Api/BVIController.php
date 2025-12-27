@@ -188,8 +188,36 @@ class BVIController
                 $subnet = $stmt->fetch(\PDO::FETCH_ASSOC);
                 
                 if ($subnet && $subnet['kea_subnet_id']) {
-                    error_log("Found DHCP subnet with Kea ID {$subnet['kea_subnet_id']} for BVI ID: $bviId - deleting via DHCP API");
-                    // Pass the kea_subnet_id to deleteSubnet
+                    error_log("Found DHCP subnet with Kea ID {$subnet['kea_subnet_id']} for BVI ID: $bviId");
+                    
+                    // Delete all reservations from this subnet first
+                    try {
+                        error_log("Deleting all reservations from subnet {$subnet['kea_subnet_id']}");
+                        
+                        // Get all reservations for this subnet
+                        $getReservations = $this->dhcpModel->getStaticLeases($subnet['kea_subnet_id']);
+                        
+                        if ($getReservations['result'] === 0 && isset($getReservations['hosts'])) {
+                            $deletedCount = 0;
+                            foreach ($getReservations['hosts'] as $host) {
+                                if (isset($host['ip-addresses']) && !empty($host['ip-addresses'])) {
+                                    try {
+                                        $this->dhcpModel->deleteReservation($host['ip-addresses'][0], $subnet['kea_subnet_id']);
+                                        $deletedCount++;
+                                    } catch (\Exception $e) {
+                                        error_log("Warning: Could not delete reservation {$host['ip-addresses'][0]}: " . $e->getMessage());
+                                    }
+                                }
+                            }
+                            error_log("Successfully deleted {$deletedCount} reservation(s) from subnet {$subnet['kea_subnet_id']}");
+                        }
+                    } catch (\Exception $e) {
+                        error_log("Warning: Could not delete reservations: " . $e->getMessage());
+                        // Continue with subnet deletion even if reservation deletion fails
+                    }
+                    
+                    // Now delete the subnet via DHCP API
+                    error_log("Deleting DHCP subnet via API");
                     $this->dhcpModel->deleteSubnet($subnet['kea_subnet_id']);
                     error_log("Successfully deleted DHCP subnet via API");
                 } else {
