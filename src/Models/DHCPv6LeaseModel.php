@@ -243,14 +243,21 @@ class DHCPv6LeaseModel extends KEAModel
             throw new Exception('Invalid IPv6 address');
         }
     
+        // For reservations with hw-address, use reservation6-add instead of lease6-add
         $commandParams = [
-            'ip-address' => $ipAddress,
-            'hw-address' => $hwAddress,
-            'subnet-id' => $subnetId,
-            'options' => $options
+            'reservation' => [
+                'subnet-id' => $subnetId,
+                'hw-address' => $hwAddress,
+                'ip-addresses' => [$ipAddress]
+            ]
         ];
+        
+        // Add options if provided
+        if (!empty($options)) {
+            $commandParams['reservation']['option-data'] = $options;
+        }
     
-        $response = $this->sendKeaCommand('lease6-add', $commandParams);
+        $response = $this->sendKeaCommand('reservation-add', $commandParams);
     
         $result = json_decode($response, true);
         error_log("Add static lease response: " . json_encode($result));
