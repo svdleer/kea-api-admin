@@ -124,68 +124,85 @@ foreach ($subnets as $subnet) {
             if ($hwAddress) {
                 $reservationData['hw-address'] = $hwAddress;
             }
-            // Add hostname if present
             if (isset($reservation['hostname'])) {
                 $reservationData['hostname'] = $reservation['hostname'];
             }
-            // Add option-data if present
             if (isset($reservation['option-data']) && !empty($reservation['option-data'])) {
                 $reservationData['option-data'] = $reservation['option-data'];
             }
-            
-            echo "  → Adding reservation: {$ipAddress}";
+
+            echo "  → Importing reservation: {$ipAddress}";
             if ($duid) echo " (DUID: {$duid})";
             if ($hwAddress) echo " (MAC: {$hwAddress})";
             echo "\n";
-            
-            // Prepare API request with explicit operation-target: database (no remote)
-            $apiData = [
-                'command' => 'reservation-add',
-                'service' => ['dhcp6'],
-                'arguments' => [
-                    'reservation' => $reservationData,
-                    'operation-target' => 'database'
-                ]
-            ];
-            
+
             // Send to all Kea servers
             foreach ($keaServers as $keaServer) {
                 echo "    → {$keaServer['name']}: ";
-                
+
+                // 1. Check if reservation exists
+                $getData = [
+                    'command' => 'reservation-get',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'subnet-id' => $subnetId,
+                        'ip-address' => $ipAddress
+                    ]
+                ];
+                $ch = curl_init($keaServer['api_url']);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($getData));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                $getResponse = curl_exec($ch);
+                $getHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                $getResult = json_decode($getResponse, true);
+
+                $exists = ($getHttpCode === 200 && isset($getResult[0]['arguments']['reservation']));
+
+                // 2. Prepare add or update command
+                if ($exists) {
+                    $apiData = [
+                        'command' => 'reservation-update',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'reservation' => $reservationData,
+                            'operation-target' => 'database'
+                        ]
+                    ];
+                } else {
+                    $apiData = [
+                        'command' => 'reservation-add',
+                        'service' => ['dhcp6'],
+                        'arguments' => [
+                            'reservation' => $reservationData,
+                            'operation-target' => 'database'
+                        ]
+                    ];
+                }
+
+                // 3. Send add or update
                 $ch = curl_init($keaServer['api_url']);
                 curl_setopt($ch, CURLOPT_POST, 1);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($apiData));
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                
                 $response = curl_exec($ch);
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                
                 if (curl_errno($ch)) {
                     echo "❌ CURL Error: " . curl_error($ch) . "\n";
                     $errorCount++;
                     curl_close($ch);
                     continue;
                 }
-                
                 curl_close($ch);
-                
                 $result = json_decode($response, true);
-                
                 if ($httpCode === 200 && isset($result[0]['result']) && $result[0]['result'] === 0) {
-                    echo "✅\n";
+                    echo $exists ? "🔄 Updated\n" : "✅ Added\n";
                     $successCount++;
-                } elseif ($httpCode === 200 && isset($result[0]['result']) && $result[0]['result'] === 1) {
-                    $errorMsg = $result[0]['text'] ?? 'Unknown error';
-                    // Check if it's a duplicate
-                    if (strpos($errorMsg, 'already exists') !== false || strpos($errorMsg, 'duplicate') !== false) {
-                        echo "⚠️  Already exists\n";
-                        $skippedCount++;
-                    } else {
-                        echo "❌ {$errorMsg}\n";
-                        $errorCount++;
-                    }
                 } else {
                     $errorMsg = $result[0]['text'] ?? 'Unknown error';
                     echo "❌ {$errorMsg}\n";
