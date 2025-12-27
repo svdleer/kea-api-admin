@@ -255,6 +255,15 @@ async function addStaticLease() {
             : ipAddressPrefix + '::';
             
     const fullIPv6 = normalizedPrefix + ipAddressSuffix;
+    
+    // Get the subnet ID from the select element
+    const subnetSelect = document.getElementById('subnetSelect');
+    const subnetId = subnetSelect ? subnetSelect.value : null;
+    
+    if (!subnetId) {
+        Swal.fire('Error', 'Please select a subnet', 'error');
+        return;
+    }
 
     try {
         const response = await fetch('/api/dhcp/static', {
@@ -265,6 +274,7 @@ async function addStaticLease() {
             body: JSON.stringify({
                 ipAddress: fullIPv6,
                 duid: duid,
+                subnetId: parseInt(subnetId),
                 options: options
             })
         });
@@ -1612,7 +1622,7 @@ async function viewStaticLeases(subnetId) {
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         ${host['ip-addresses'] ? host['ip-addresses'].join(', ') : 'N/A'}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-green-600">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         ${host['hw-address'] || 'N/A'}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
