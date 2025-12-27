@@ -486,6 +486,8 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/clear-cin-data', [$adminController, 'clearCinData'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->post('/api/admin/save-config', [$adminController, 'saveConfig'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/import-leases', [$adminController, 'importLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->post('/api/admin/import-leases-json', [$adminController, 'importLeasesJSON'])

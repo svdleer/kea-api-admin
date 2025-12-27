@@ -165,6 +165,29 @@ ob_start();
             </div>
         </div>
 
+        <!-- Save Configuration -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-2 border-green-200">
+            <div class="flex items-center mb-4">
+                <div class="bg-green-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                </div>
+                <h2 class="ml-4 text-xl font-semibold text-gray-900">Save Configuration</h2>
+            </div>
+            <p class="text-gray-600 text-sm mb-4">Write current Kea configuration to disk on all servers</p>
+            <div class="space-y-2">
+                <button onclick="saveKeaConfig()" 
+                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Config to Disk
+                </button>
+                <p class="text-xs text-gray-600 mt-2">💾 Persists configuration to /etc/kea/kea-dhcp6.conf on all HA servers</p>
+            </div>
+        </div>
+
         <!-- Clear CIN Data -->
         <div class="bg-white shadow-md rounded-lg p-6 border-2 border-red-200">
             <div class="flex items-center mb-4">
@@ -793,6 +816,67 @@ async function deleteAllReservations() {
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to delete reservations: ' + error.message, 'error');
+        }
+    }
+}
+
+async function saveKeaConfig() {
+    const result = await Swal.fire({
+        title: 'Save Configuration?',
+        html: `
+            <div class="text-left">
+                <p class="text-gray-700 mb-3">This will save the current Kea configuration to disk on all HA servers.</p>
+                <p class="text-sm text-gray-600 mb-2">✓ Configuration will persist across server restarts</p>
+                <p class="text-sm text-gray-600 mb-2">✓ Saved to /etc/kea/kea-dhcp6.conf</p>
+                <p class="text-sm text-gray-600 mb-3">✓ All configured servers will be updated</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10B981',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Yes, Save Config!',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            Swal.fire({
+                title: 'Saving Configuration...',
+                text: 'Writing config to disk on all servers',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch('/api/admin/save-config', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    title: 'Configuration Saved!',
+                    html: `
+                        <div class="text-left">
+                            <p class="mb-3">${data.message}</p>
+                            ${data.details ? `
+                                <div class="text-sm bg-gray-50 p-3 rounded">
+                                    ${data.details.map(detail => `<p class="mb-1">${detail}</p>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to save configuration', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to save configuration: ' + error.message, 'error');
         }
     }
 }

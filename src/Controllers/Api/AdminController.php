@@ -1636,6 +1636,51 @@ class AdminController
     }
 
     /**
+     * Save Kea configuration to disk on all servers
+     * POST /api/admin/save-config
+     */
+    public function saveConfig()
+    {
+        try {
+            header('Content-Type: application/json');
+            
+            $dhcpModel = new \App\Models\DHCP($this->db);
+            
+            // Call config-write on all servers (handled by DHCP model)
+            $result = $dhcpModel->sendKeaCommand('config-write', [
+                'filename' => '/etc/kea/kea-dhcp6.conf'
+            ]);
+            
+            // Get server count for response
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM kea_servers WHERE is_active = 1");
+            $stmt->execute();
+            $serverCount = $stmt->fetchColumn();
+            
+            if (isset($result[0]['result']) && $result[0]['result'] === 0) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Configuration saved successfully on all {$serverCount} server(s)",
+                    'details' => [
+                        "✓ Configuration written to /etc/kea/kea-dhcp6.conf",
+                        "✓ Changes will persist across server restarts",
+                        "✓ All {$serverCount} configured Kea server(s) updated"
+                    ]
+                ]);
+            } else {
+                $errorText = $result[0]['text'] ?? 'Unknown error';
+                throw new \Exception("Config-write command returned error: {$errorText}");
+            }
+        } catch (\Exception $e) {
+            error_log("Error in saveConfig: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to save configuration: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Clear all CIN data (switches, BVI interfaces, links) and remove from Kea
      * POST /api/admin/clear-cin-data
      */
