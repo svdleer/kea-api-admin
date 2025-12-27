@@ -1612,7 +1612,7 @@ async function viewStaticLeases(subnetId) {
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         ${host['ip-addresses'] ? host['ip-addresses'].join(', ') : 'N/A'}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-green-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-green-600">
                                         ${host['hw-address'] || 'N/A'}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1827,8 +1827,13 @@ async function editReservation(host) {
     if (formValues) {
         try {
             // First delete the old reservation
-            const deleteResponse = await fetch(`/api/dhcp/reservations/${host['ip-addresses'][0]}`, {
-                method: 'DELETE'
+            const deleteResponse = await fetch('/api/dhcp/leases', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    'ip-address': host['ip-addresses'][0],
+                    'subnet-id': host['subnet-id']
+                })
             });
             
             // Then add the updated reservation
