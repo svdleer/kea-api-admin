@@ -53,3 +53,6 @@ $router->delete('/api/subnets/{subnetId}', [NetworkController::class, 'deleteSub
 $router->post('/api/subnets/{subnetId}/prefixes', [NetworkController::class, 'createPrefix']);
 $router->put('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'updatePrefix']);
 $router->delete('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'deletePrefix']);
+
+// DHCPv6 Lease/Reservation routes
+$router->put('/api/dhcp/static', [\App\Controllers\Api\DHCPv6LeaseController::class, 'updateReservation']);

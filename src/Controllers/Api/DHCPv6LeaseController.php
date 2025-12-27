@@ -198,13 +198,67 @@ class DHCPv6LeaseController
         }
     }
     
-    public function deleteReservation(string $ipAddress)
+    public function updateReservation()
     {
         try {
-            error_log("Deleting reservation for IP: " . $ipAddress);
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($data['hwAddress']) || !isset($data['ipAddress']) || !isset($data['subnetId'])) {
+                $result = [
+                    'result' => 1,
+                    'message' => 'Missing required fields: hwAddress, ipAddress, and subnetId are required'
+                ];
+                header('Content-Type: application/json');
+                echo json_encode($result);
+                return;
+            }
+
+            $options = isset($data['options']) ? $data['options'] : [];
+
+            error_log("About to update reservation with parameters:");
+            error_log("IP Address: " . $data['ipAddress']);
+            error_log("MAC Address: " . $data['hwAddress']);
+            error_log("Subnet ID: " . $data['subnetId']);
+            
+            $keaResponse = $this->leaseModel->updateReservation(
+                $data['ipAddress'],
+                $data['hwAddress'], 
+                $data['subnetId'], 
+                $options
+            );
+            
+            header('Content-Type: application/json');
+            echo json_encode($keaResponse);
+            return;
+    
+        } catch (Exception $e) {
+            error_log("Error in updateReservation: " . $e->getMessage());
+            $result = [
+                'result' => 1,
+                'message' => 'Error updating reservation: ' . $e->getMessage()
+            ];
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            return;
+        }
+    }
+    
+    public function deleteReservation()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            $ipAddress = $data['ip-address'] ?? null;
+            $subnetId = $data['subnet-id'] ?? null;
+            
+            if (!$ipAddress || !$subnetId) {
+                throw new Exception('Missing required parameters: ip-address and subnet-id');
+            }
+            
+            error_log("Deleting reservation for IP: " . $ipAddress . " in subnet: " . $subnetId);
             
             // Delete the reservation
-            $result = $this->leaseModel->deleteReservation($ipAddress);
+            $result = $this->leaseModel->deleteReservation($ipAddress, $subnetId);
             
             header('Content-Type: application/json');
             echo json_encode([

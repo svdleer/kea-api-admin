@@ -1861,19 +1861,9 @@ async function editReservation(host) {
 
     if (formValues) {
         try {
-            // First delete the old reservation
-            const deleteResponse = await fetch('/api/dhcp/leases', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    'ip-address': host['ip-addresses'][0],
-                    'subnet-id': host['subnet-id']
-                })
-            });
-            
-            // Then add the updated reservation
-            const addResponse = await fetch('/api/dhcp/static', {
-                method: 'POST',
+            // Use reservation-update to update the reservation
+            const updateResponse = await fetch('/api/dhcp/static', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ipAddress: formValues.ip,
@@ -1884,12 +1874,12 @@ async function editReservation(host) {
                 })
             });
 
-            const result = await addResponse.json();
+            const result = await updateResponse.json();
             
-            if (result.success) {
+            if (result.result === 0) {
                 Swal.fire('Updated!', 'Reservation has been updated.', 'success');
-                // Reload reservations for this subnet
-                loadStaticLeases(host['subnet-id']);
+                // Reload reservations for this subnet  
+                location.reload();
             } else {
                 Swal.fire('Error!', result.message || 'Failed to update reservation', 'error');
             }

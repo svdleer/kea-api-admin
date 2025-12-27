@@ -325,10 +325,60 @@ class DHCPv6LeaseModel extends KEAModel
         }
     }
 
-    public function deleteReservation($ipAddress)
+    public function updateReservation($ipAddress, $hwAddress, $subnetId, $options)
+    {
+        if (!filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            throw new Exception('Invalid IPv6 address');
+        }
+    
+        // Use reservation-update command (creates or updates)
+        $commandParams = [
+            'reservation' => [
+                'subnet-id' => $subnetId,
+                'hw-address' => $hwAddress,
+                'ip-addresses' => [$ipAddress]
+            ]
+        ];
+        
+        // Add options if provided
+        if (!empty($options)) {
+            $commandParams['reservation']['option-data'] = $options;
+        }
+    
+        $response = $this->sendKeaCommand('reservation-update', $commandParams);
+    
+        $result = json_decode($response, true);
+        error_log("Update reservation response: " . json_encode($result));
+    
+        if (!isset($result[0]['result'])) {
+            throw new Exception('Invalid response from KEA API');
+        }
+    
+        switch ($result[0]['result']) {
+            case 0:
+                return [
+                    'result' => $result[0]['result'],
+                    'message' => $result[0]['text'] ?? 'Reservation updated successfully'
+                ];
+            case 1:
+                throw new Exception($result[0]['text'] ?? 'Error updating reservation');
+            case 2:
+                throw new Exception($result[0]['text'] ?? 'Unsupported operation');
+            case 3:
+                return [
+                    'result' => $result[0]['result'],
+                    'message' => $result[0]['text'] ?? 'Command completed successfully, but no data was affected'
+                ];
+            default:
+                throw new Exception('Unknown response code from KEA API');
+        }
+    }
+
+    public function deleteReservation($ipAddress, $subnetId)
     {
         $commandParams = [
-            'ip-address' => $ipAddress
+            'ip-address' => $ipAddress,
+            'subnet-id' => $subnetId
         ];
 
         $response = $this->sendKeaCommand('reservation-del', $commandParams);
