@@ -1866,7 +1866,7 @@ async function editReservation(host) {
                 body: JSON.stringify({
                     ipAddress: formValues.ip,
                     duid: formValues.duid,
-                    subnetId: host['subnet-id'],
+                    subnetId: parseInt(host['subnet-id']),
                     hostname: formValues.hostname,
                     options: formValues.options
                 })
