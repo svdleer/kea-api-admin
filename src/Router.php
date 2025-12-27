@@ -94,10 +94,13 @@ class Router
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $method = $_SERVER['REQUEST_METHOD'];
 
+        error_log("Router dispatch: Method=$method, URI=$uri");
+
         foreach ($this->routes as $route) {
             if ($route['method'] === $method) {
                 $pattern = $this->getPattern($route['path']);
                 if (preg_match($pattern, $uri, $matches)) {
+                    error_log("Route matched: " . $route['path'] . " with handler " . (is_array($route['handler']) ? $route['handler'][0] . '::' . $route['handler'][1] : 'callable'));
                     array_shift($matches); // Remove the full match
 
                     // Handle middleware if present
