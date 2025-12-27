@@ -118,20 +118,16 @@ foreach ($subnets as $subnet) {
                 'subnet-id' => $subnetId,
                 'ip-addresses' => [$ipAddress]
             ];
-            
             if ($duid) {
                 $reservationData['duid'] = $duid;
             }
-            
             if ($hwAddress) {
                 $reservationData['hw-address'] = $hwAddress;
             }
-            
             // Add hostname if present
             if (isset($reservation['hostname'])) {
                 $reservationData['hostname'] = $reservation['hostname'];
             }
-            
             // Add option-data if present
             if (isset($reservation['option-data']) && !empty($reservation['option-data'])) {
                 $reservationData['option-data'] = $reservation['option-data'];
@@ -142,12 +138,13 @@ foreach ($subnets as $subnet) {
             if ($hwAddress) echo " (MAC: {$hwAddress})";
             echo "\n";
             
-            // Prepare API request with MySQL backend
+            // Prepare API request with explicit operation-target: database
             $apiData = [
                 'command' => 'reservation-add',
                 'service' => ['dhcp6'],
                 'arguments' => [
                     'reservation' => $reservationData,
+                    'operation-target' => 'database',
                     'remote' => [
                         'type' => 'mysql'
                     ]
