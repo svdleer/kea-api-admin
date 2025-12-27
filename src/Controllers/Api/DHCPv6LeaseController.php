@@ -75,8 +75,11 @@ class DHCPv6LeaseController
             ob_end_flush();
 
         } catch (Exception $e) {
+            error_log("==================== LEASE ERROR ====================");
             error_log("Error in getLeases: " . $e->getMessage());
+            error_log("Error file: " . $e->getFile() . " line " . $e->getLine());
             error_log("Error trace: " . $e->getTraceAsString());
+            error_log("====================================================");
 
             // Clear any accidental output
             ob_clean();
@@ -87,9 +90,12 @@ class DHCPv6LeaseController
             $errorResponse = [
                 'success' => false,
                 'message' => $e->getMessage(),
-                'debug' => [
+                'error_details' => [
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
+                    'trace' => explode("\n", $e->getTraceAsString())
+                ],
+                'debug' => [
                     'params' => [
                         'switchId' => $switchId,
                         'bviId' => $bviId,
