@@ -412,9 +412,8 @@ async function importKeaConfig() {
                     html: `
                         <p class="mb-2">${result.message}</p>
                         <div class="text-sm text-left bg-gray-50 p-3 rounded">
-                            <p><strong>Subnets:</strong> ${result.stats.subnets.imported} imported, ${result.stats.subnets.skipped} skipped</p>
-                            <p><strong>Reservations:</strong> ${result.stats.reservations.imported} imported, ${result.stats.reservations.skipped} skipped</p>
-                            <p><strong>Options:</strong> ${result.stats.options.imported} imported, ${result.stats.options.skipped} skipped</p>
+                            <p><strong>Reservations Added (new):</strong> ${result.stats.reservations.imported || 0}</p>
+                            <p><strong>Reservations Updated (existing):</strong> ${result.stats.reservations.updated || 0}</p>
                         </div>
                         ${result.debug_output ? `
                             <details class="mt-3 text-left">

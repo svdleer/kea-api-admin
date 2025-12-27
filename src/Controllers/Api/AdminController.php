@@ -152,18 +152,22 @@ class AdminController
         if ($returnCode === 0) {
             // Parse stats from output
             preg_match('/Total reservations found:\s*(\d+)/', $outputText, $totalMatch);
-            preg_match('/Successfully added:\s*([\d.]+)/', $outputText, $successMatch);
-            preg_match('/Already existed:\s*([\d.]+)/', $outputText, $skippedMatch);
+            preg_match('/Added \(new\):\s*([\d.]+)/', $outputText, $addedMatch);
+            preg_match('/Updated \(existing\):\s*([\d.]+)/', $outputText, $updatedMatch);
             preg_match('/Errors:\s*([\d.]+)/', $outputText, $errorMatch);
+            
+            $added = isset($addedMatch[1]) ? (int)$addedMatch[1] : 0;
+            $updated = isset($updatedMatch[1]) ? (int)$updatedMatch[1] : 0;
             
             $this->jsonResponse([
                 'success' => true,
                 'message' => 'Reservations imported successfully',
                 'stats' => [
-                    'total' => isset($totalMatch[1]) ? (int)$totalMatch[1] : 0,
-                    'success' => isset($successMatch[1]) ? (int)$successMatch[1] : 0,
-                    'skipped' => isset($skippedMatch[1]) ? (int)$skippedMatch[1] : 0,
-                    'errors' => isset($errorMatch[1]) ? (int)$errorMatch[1] : 0
+                    'reservations' => [
+                        'imported' => $added,
+                        'updated' => $updated,
+                        'skipped' => 0
+                    ]
                 ],
                 'details' => $outputText
             ]);
