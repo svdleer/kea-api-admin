@@ -149,7 +149,8 @@ foreach ($subnets as $subnet) {
                         'service' => ['dhcp6'],
                         'arguments' => [
                             'subnet-id' => $subnetId,
-                            'hw-address' => $hwAddress
+                            'identifier-type' => 'hw-address',
+                            'identifier' => $hwAddress
                         ]
                     ];
                     $ch = curl_init($keaServer['api_url']);
