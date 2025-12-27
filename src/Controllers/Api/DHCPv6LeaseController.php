@@ -139,14 +139,14 @@ class DHCPv6LeaseController
             $options = isset($data['options']) ? $data['options'] : [];
 
             error_log("About to call addStaticLease with parameters:");
-            error_log("DUID: " . $data['duid']);
             error_log("IP Address: " . $data['ipAddress']);
+            error_log("DUID: " . $data['duid']);
             error_log("Subnet ID: " . $data['subnetId']);
             
             $keaResponse = $this->leaseModel->addStaticLease(
-                $data['subnetId'],
+                $data['ipAddress'],
                 $data['duid'], 
-                $data['ipAddress'], 
+                $data['subnetId'], 
                 $options
             );
             
