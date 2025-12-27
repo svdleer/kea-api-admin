@@ -378,7 +378,8 @@ class DHCPv6LeaseModel extends KEAModel
     {
         $commandParams = [
             'subnet-id' => $subnetId,
-            'ip-address' => $ipAddress
+            'ip-address' => $ipAddress,
+            'operation-target' => 'default'
         ];
 
         error_log("KEA API COMMAND: " . json_encode([
