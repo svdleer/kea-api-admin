@@ -395,10 +395,12 @@ class DHCPv6LeaseModel extends KEAModel
             throw new Exception('Invalid response from KEA API');
         }
 
-        if ($result[0]['result'] === 0) {
+        // Treat result 0 (success) and 3 (no data affected) as success
+        if ($result[0]['result'] === 0 || $result[0]['result'] === 3) {
             return [
                 'result' => $result[0]['result'],
-                'message' => $result[0]['text'] ?? 'Reservation deleted successfully'
+                'message' => $result[0]['text'] ??
+                    ($result[0]['result'] === 0 ? 'Reservation deleted successfully' : 'Reservation did not exist (already deleted)')
             ];
         } else {
             throw new Exception($result[0]['text'] ?? 'Error deleting reservation');
