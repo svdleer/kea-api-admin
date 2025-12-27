@@ -806,6 +806,12 @@ function toggleStaticLeaseForm(subnetId, subnetPrefix) {
     const form = document.getElementById('addStaticLeaseForm');
     
     if (form.classList.contains('hidden')) {
+        // Opening the form
+        if (!subnetId || !subnetPrefix) {
+            Swal.fire('Error', 'Please select a subnet first', 'error');
+            return;
+        }
+        
         // Store subnet context
         currentSubnetId = subnetId;
         currentSubnetPrefix = subnetPrefix;
