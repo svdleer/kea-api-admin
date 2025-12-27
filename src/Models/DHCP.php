@@ -556,25 +556,72 @@ class DHCP
         
         // Check if configs are arrays
         if (is_array($config1) && is_array($config2)) {
-            // Get all keys from both configs
-            $allKeys = array_unique(array_merge(array_keys($config1), array_keys($config2)));
+            // Check if this is a numeric array (list) vs associative array
+            $isNumericArray1 = array_keys($config1) === range(0, count($config1) - 1);
+            $isNumericArray2 = array_keys($config2) === range(0, count($config2) - 1);
             
-            foreach ($allKeys as $key) {
-                $newPath = $path ? "$path.$key" : $key;
+            if ($isNumericArray1 && $isNumericArray2) {
+                // For numeric arrays, compare sizes and sample differences
+                if (count($config1) !== count($config2)) {
+                    $differences[] = "$path: Array size differs - $server1Name has " . count($config1) . " items, $server2Name has " . count($config2) . " items";
+                }
                 
-                if (!isset($config1[$key]) && isset($config2[$key])) {
-                    $differences[] = "$newPath: Missing in $server1Name, present in $server2Name";
-                } elseif (isset($config1[$key]) && !isset($config2[$key])) {
-                    $differences[] = "$newPath: Present in $server1Name, missing in $server2Name";
-                } elseif (isset($config1[$key]) && isset($config2[$key])) {
-                    if (is_array($config1[$key]) || is_array($config2[$key])) {
-                        // Recursive check for nested arrays
-                        $nestedDiffs = $this->findConfigDifferences($config1[$key], $config2[$key], $server1Name, $server2Name, $newPath);
-                        $differences = array_merge($differences, $nestedDiffs);
-                    } elseif ($config1[$key] !== $config2[$key]) {
-                        $val1 = is_bool($config1[$key]) ? ($config1[$key] ? 'true' : 'false') : (string)$config1[$key];
-                        $val2 = is_bool($config2[$key]) ? ($config2[$key] ? 'true' : 'false') : (string)$config2[$key];
-                        $differences[] = "$newPath: '$val1' ($server1Name) vs '$val2' ($server2Name)";
+                // For arrays like hooks or subnets, show what's different
+                $maxCompare = min(count($config1), count($config2), 5);
+                for ($i = 0; $i < $maxCompare; $i++) {
+                    if (json_encode($config1[$i]) !== json_encode($config2[$i])) {
+                        // Try to show meaningful representation
+                        $repr1 = $this->getArrayRepresentation($config1[$i]);
+                        $repr2 = $this->getArrayRepresentation($config2[$i]);
+                        if ($repr1 !== $repr2) {
+                            $differences[] = "$path[$i]: '$repr1' ($server1Name) vs '$repr2' ($server2Name)";
+                        }
+                    }
+                }
+                
+                // Check for additional items
+                if (count($config1) > count($config2)) {
+                    $extra = count($config1) - count($config2);
+                    for ($i = count($config2); $i < min(count($config1), count($config2) + 3); $i++) {
+                        $repr = $this->getArrayRepresentation($config1[$i]);
+                        $differences[] = "$path[$i]: '$repr' exists in $server1Name but not in $server2Name";
+                    }
+                    if ($extra > 3) {
+                        $differences[] = "$path: ... and " . ($extra - 3) . " more items in $server1Name";
+                    }
+                } elseif (count($config2) > count($config1)) {
+                    $extra = count($config2) - count($config1);
+                    for ($i = count($config1); $i < min(count($config2), count($config1) + 3); $i++) {
+                        $repr = $this->getArrayRepresentation($config2[$i]);
+                        $differences[] = "$path[$i]: '$repr' exists in $server2Name but not in $server1Name";
+                    }
+                    if ($extra > 3) {
+                        $differences[] = "$path: ... and " . ($extra - 3) . " more items in $server2Name";
+                    }
+                }
+            } else {
+                // For associative arrays, compare keys
+                $allKeys = array_unique(array_merge(array_keys($config1), array_keys($config2)));
+                
+                foreach ($allKeys as $key) {
+                    $newPath = $path ? "$path.$key" : $key;
+                    
+                    if (!isset($config1[$key]) && isset($config2[$key])) {
+                        $repr = $this->getArrayRepresentation($config2[$key]);
+                        $differences[] = "$newPath: Missing in $server1Name (value in $server2Name: '$repr')";
+                    } elseif (isset($config1[$key]) && !isset($config2[$key])) {
+                        $repr = $this->getArrayRepresentation($config1[$key]);
+                        $differences[] = "$newPath: Missing in $server2Name (value in $server1Name: '$repr')";
+                    } elseif (isset($config1[$key]) && isset($config2[$key])) {
+                        if (is_array($config1[$key]) || is_array($config2[$key])) {
+                            // Recursive check for nested arrays
+                            $nestedDiffs = $this->findConfigDifferences($config1[$key], $config2[$key], $server1Name, $server2Name, $newPath);
+                            $differences = array_merge($differences, $nestedDiffs);
+                        } elseif ($config1[$key] !== $config2[$key]) {
+                            $val1 = is_bool($config1[$key]) ? ($config1[$key] ? 'true' : 'false') : (string)$config1[$key];
+                            $val2 = is_bool($config2[$key]) ? ($config2[$key] ? 'true' : 'false') : (string)$config2[$key];
+                            $differences[] = "$newPath: '$val1' ($server1Name) vs '$val2' ($server2Name)";
+                        }
                     }
                 }
             }
@@ -586,6 +633,38 @@ class DHCP
         
         // Limit to first 50 differences to avoid overwhelming output
         return array_slice($differences, 0, 50);
+    }
+    
+    /**
+     * Get a meaningful string representation of an array element
+     */
+    private function getArrayRepresentation($value) {
+        if (is_string($value)) {
+            return substr($value, 0, 100);
+        } elseif (is_numeric($value)) {
+            return (string)$value;
+        } elseif (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        } elseif (is_array($value)) {
+            // For arrays, try to find identifying information
+            if (isset($value['library'])) {
+                return basename($value['library']);
+            } elseif (isset($value['subnet'])) {
+                return $value['subnet'];
+            } elseif (isset($value['name'])) {
+                return $value['name'];
+            } elseif (isset($value['id'])) {
+                return 'id:' . $value['id'];
+            } else {
+                // Return a short JSON representation
+                $json = json_encode($value);
+                return substr($json, 0, 80) . (strlen($json) > 80 ? '...' : '');
+            }
+        } elseif (is_null($value)) {
+            return 'null';
+        } else {
+            return 'unknown';
+        }
     }
 
     /**
