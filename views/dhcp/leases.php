@@ -1862,6 +1862,30 @@ async function editReservation(host) {
     });
 
     if (formValues) {
+        // Show confirmation dialog
+        const confirmResult = await Swal.fire({
+            title: 'Confirm Changes',
+            html: `
+                <div class="text-left">
+                    <p class="mb-2">Are you sure you want to update this reservation?</p>
+                    <div class="bg-gray-50 p-3 rounded text-sm">
+                        <p><strong>IP Address:</strong> ${formValues.ip}</p>
+                        <p><strong>MAC Address:</strong> ${formValues.hwAddress}</p>
+                        <p><strong>Hostname:</strong> ${formValues.hostname || 'None'}</p>
+                    </div>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, update it',
+            confirmButtonColor: '#3B82F6',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!confirmResult.isConfirmed) {
+            return;
+        }
+
         try {
             // Use reservation-update to update the reservation
             const updateResponse = await fetch('/api/dhcp/static', {
