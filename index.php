@@ -302,13 +302,15 @@ try {
     $leaseModel = new \App\Models\DHCPv6LeaseModel($database);
     $router->get('/api/dhcp/leases/{switchId}/{bviId}/{from}/{limit}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'getLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->delete('/api/dhcp/leases', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'deleteLease'])
+    $router->delete('/api/dhcp/leases', [new \App\Controllers\Api\DHCPv6LeaseController(), 'deleteLease'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->post('/api/dhcp/static', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'addStaticLease'])
+    $router->post('/api/dhcp/static', [new \App\Controllers\Api\DHCPv6LeaseController(), 'addStaticLease'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
-    $router->get('/api/dhcp/static/{subnetId}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'getStaticLeases'])
+    $router->put('/api/dhcp/static', [new \App\Controllers\Api\DHCPv6LeaseController(), 'updateReservation'])
+        ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
+    $router->get('/api/dhcp/static/{subnetId}', [new \App\Controllers\Api\DHCPv6LeaseController(), 'getStaticLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->delete('/api/dhcp/reservations/{ipAddress}', [new \App\Controllers\Api\DHCPv6LeaseController($leaseModel), 'deleteReservation'])
+    $router->delete('/api/dhcp/reservations/{ipAddress}', [new \App\Controllers\Api\DHCPv6LeaseController(), 'deleteReservation'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
     // DHCPv6 Advanced Lease Search
