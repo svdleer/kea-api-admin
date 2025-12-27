@@ -3,6 +3,7 @@
 use App\Controllers\Api\CinSwitch;
 use App\Controllers\Api\NetworkController;
 use App\Controllers\Api\DHCPv6OptionsController;
+use App\Controllers\Api\DHCPv6LeaseController;
 use App\Controllers\Api\RadiusController;
 use App\Controllers\KeaServerController;
 
@@ -55,4 +56,4 @@ $router->put('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::
 $router->delete('/api/subnets/{subnetId}/prefixes/{prefixId}', [NetworkController::class, 'deletePrefix']);
 
 // DHCPv6 Lease/Reservation routes
-$router->put('/api/dhcp/static', [\App\Controllers\Api\DHCPv6LeaseController::class, 'updateReservation']);
+$router->put('/api/dhcp/static', [DHCPv6LeaseController::class, 'updateReservation']);
