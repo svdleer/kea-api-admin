@@ -1944,16 +1944,28 @@ async function deleteReservation(ipAddress, subnetId) {
 
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`/api/dhcp/reservations/${ipAddress}`, {
-                method: 'DELETE'
+            const response = await fetch('/api/dhcp/reservations', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'ip-address': ipAddress,
+                    'subnet-id': parseInt(subnetId)
+                })
             });
 
             const data = await response.json();
             
             if (data.success) {
-                Swal.fire('Deleted!', 'Reservation has been deleted.', 'success');
-                // Reload reservations for this subnet
-                loadStaticLeases(subnetId);
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Reservation has been deleted successfully.',
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                }).then(() => {
+                    loadStaticLeases(subnetId);
+                });
             } else {
                 Swal.fire('Error!', data.message || 'Failed to delete reservation', 'error');
             }
