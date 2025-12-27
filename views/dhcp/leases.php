@@ -144,7 +144,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                     </button>
                 </div>
                 <div id="dhcpOptionsContainer">
-                <div class="flex gap-4 mb-4 items-end option-row" id="option-row-initial">
+                <div class="flex gap-4 mb-4 items-start option-row" id="option-row-initial">
                     <div class="flex-1">
                         <label for="dhcpOptions" class="block text-sm font-medium text-gray-700 mb-1">DHCP Option</label>
                         <select id="dhcpOptions" name="dhcpOptions[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
@@ -161,8 +161,8 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
                                placeholder="For arrays: value1, value2, value3">
                         <datalist id="ccapCoreList"></datalist>
-                        <div class="text-xs text-gray-500 mt-1">For array options (syslog-servers, ccap-core, etc.), separate multiple values with commas</div>
                         <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
+                        <div class="text-xs text-gray-500 mt-1">For array options (syslog-servers, ccap-core, etc.), separate multiple values with commas</div>
                     </div>
                 </div>
                 </div>
@@ -485,24 +485,24 @@ function addOptionRow() {
     const newRow = document.createElement('div');
     const rowId = `option-row-${Date.now()}`;
     
-    newRow.className = 'flex gap-4 mb-4 items-end option-row';
+    newRow.className = 'flex gap-4 mb-4 items-start option-row';
     newRow.id = rowId;
     console.log('Created row with ID:', rowId);
 
     newRow.innerHTML = `
         <div class="flex-1">
-            <label class="block text-lg font-semibold mb-2">DHCP Option</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">DHCP Option</label>
             <select name="dhcpOptions[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                 <option value="">Select Option</option>
             </select>
             <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
         </div>
         <div class="flex-1">
-            <label class="block text-lg font-semibold mb-2">Option Value</label>
-            <input type="text" name="optionValues[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Option Value">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Option Value</label>
+            <input type="text" name="optionValues[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="For arrays: value1, value2, value3">
             <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
         </div>
-        <button type="button" class="text-red-600 hover:text-red-800 p-2 mt-8" onclick="removeOptionRow('${rowId}')">
+        <button type="button" class="text-red-600 hover:text-red-800 p-2 self-start mt-6" onclick="removeOptionRow('${rowId}')">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
