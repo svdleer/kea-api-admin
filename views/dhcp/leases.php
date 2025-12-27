@@ -897,6 +897,43 @@ function toggleStaticLeaseForm(subnetId, subnetPrefix) {
             });
         }
 
+        // MAC Address Validation
+        const hwAddressInput = document.getElementById('hwAddress');
+        if (hwAddressInput) {
+            hwAddressInput.addEventListener('input', function() {
+                const input = this;
+                let errorElement = input.parentElement.querySelector('.form__input-error-message');
+                
+                const macPattern = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+                const isValid = macPattern.test(input.value);
+
+                if (input.value && !isValid) {
+                    input.classList.add('border-red-500');
+                    input.classList.remove('border-green-500');
+                    if (errorElement) {
+                        errorElement.textContent = 'Invalid MAC address format. Use: 00:11:22:33:44:55 or 00-11-22-33-44-55';
+                        errorElement.style.display = 'block';
+                        errorElement.classList.remove('text-green-500');
+                        errorElement.classList.add('text-red-500');
+                    }
+                } else if (input.value) {
+                    input.classList.remove('border-red-500');
+                    input.classList.add('border-green-500');
+                    if (errorElement) {
+                        errorElement.textContent = 'Valid MAC address';
+                        errorElement.style.display = 'block';
+                        errorElement.classList.remove('text-red-500');
+                        errorElement.classList.add('text-green-500');
+                    }
+                } else {
+                    input.classList.remove('border-red-500', 'border-green-500');
+                    if (errorElement) {
+                        errorElement.style.display = 'none';
+                    }
+                }
+            });
+        }
+
         // DUID Validation
         const duidInput = document.getElementById('duid');
         if (duidInput) {
