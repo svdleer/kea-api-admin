@@ -1810,8 +1810,8 @@ async function editReservation(host) {
                            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">DUID</label>
-                    <input id="edit-duid" type="text" value="${host.duid || ''}"
+                    <label class="block text-sm font-medium text-gray-700 mb-1">MAC Address</label>
+                    <input id="edit-hwAddress" type="text" value="${host['hw-address'] || ''}" placeholder="00:11:22:33:44:55"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md" />
                 </div>
                 <div>
@@ -1852,7 +1852,7 @@ async function editReservation(host) {
 
             return {
                 ip: document.getElementById('edit-ip').value,
-                duid: document.getElementById('edit-duid').value,
+                hwAddress: document.getElementById('edit-hwAddress').value,
                 hostname: document.getElementById('edit-hostname').value,
                 options: options
             };
@@ -1877,7 +1877,7 @@ async function editReservation(host) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ipAddress: formValues.ip,
-                    duid: formValues.duid,
+                    hwAddress: formValues.hwAddress,
                     subnetId: parseInt(host['subnet-id']),
                     hostname: formValues.hostname,
                     options: formValues.options
