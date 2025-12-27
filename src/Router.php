@@ -71,9 +71,6 @@ class Router
                         new \App\Models\DHCP(\App\Database\Database::getInstance()),
                         new \App\Auth\Authentication(\App\Database\Database::getInstance())
                     ),
-                    \App\Controllers\Api\DHCPv6LeaseController::class => new $controllerClass(
-                        new \App\Models\DHCPv6LeaseModel(\App\Database\Database::getInstance())
-                    ),
                     default => new $controllerClass(\App\Database\Database::getInstance())
                 };
                 
@@ -94,13 +91,10 @@ class Router
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $method = $_SERVER['REQUEST_METHOD'];
 
-        error_log("Router dispatch: Method=$method, URI=$uri");
-
         foreach ($this->routes as $route) {
             if ($route['method'] === $method) {
                 $pattern = $this->getPattern($route['path']);
                 if (preg_match($pattern, $uri, $matches)) {
-                    error_log("Route matched: " . $route['path'] . " with handler " . (is_array($route['handler']) ? $route['handler'][0] . '::' . $route['handler'][1] : 'callable'));
                     array_shift($matches); // Remove the full match
 
                     // Handle middleware if present
