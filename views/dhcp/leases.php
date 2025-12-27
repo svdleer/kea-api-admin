@@ -264,18 +264,22 @@ async function addStaticLease() {
         return;
     }
 
+    const payload = {
+        ipAddress: fullIPv6,
+        hwAddress: hwAddress,
+        subnetId: parseInt(currentSubnetId),
+        options: options
+    };
+    
+    console.log('Sending payload:', payload);
+
     try {
         const response = await fetch('/api/dhcp/static', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                ipAddress: fullIPv6,
-                hwAddress: hwAddress,
-                subnetId: parseInt(currentSubnetId),
-                options: options
-            })
+            body: JSON.stringify(payload)
         });
 
         if (response.ok) {
