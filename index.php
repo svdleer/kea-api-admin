@@ -15,9 +15,18 @@ use App\Controllers\Api\DHCPController;
 use App\Models\User;
 use App\Models\IPv6Subnet;
 
-// Enable error reporting for debugging
+// Enable error reporting for debugging but disable display for API routes
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+
+// Check if this is an API request - if so, don't display errors as HTML
+$isApiRequest = strpos($_SERVER['REQUEST_URI'], '/api/') !== false;
+if ($isApiRequest) {
+    ini_set('display_errors', 0);
+    error_log("API request detected - HTML error display disabled");
+} else {
+    ini_set('display_errors', 1);
+}
+
 error_log("Script started - BASE_PATH: " . BASE_PATH);
 
 // Load environment variables
