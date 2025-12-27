@@ -599,20 +599,18 @@ async function listReservations() {
                 
                 console.log(`Subnet ${subnet.id} response:`, result);
                 
-                // Check if we have data (result.success is from our wrapper, result.data.hosts is the actual data)
-                if (result.success && result.data) {
-                    // Result code 0 = success with data, result code 3 = success but empty
-                    if (result.data.result === 0 && result.data.hosts && result.data.hosts.length > 0) {
-                        console.log(`Found ${result.data.hosts.length} reservations in subnet ${subnet.id}`);
-                        result.data.hosts.forEach(host => {
-                            host.subnet_id = subnet.id;
-                            host.subnet_prefix = subnet.subnet;
-                            allReservations.push(host);
-                        });
-                    } else {
-                        // Result code 3 or empty hosts array means no reservations
-                        console.log(`No reservations in subnet ${subnet.id}`);
-                    }
+                // API returns Kea response directly: {result: 0, hosts: [...]}
+                // Result code 0 = success with data, result code 3 = success but empty
+                if (result.result === 0 && result.hosts && result.hosts.length > 0) {
+                    console.log(`Found ${result.hosts.length} reservations in subnet ${subnet.id}`);
+                    result.hosts.forEach(host => {
+                        host.subnet_id = subnet.id;
+                        host.subnet_prefix = subnet.subnet;
+                        allReservations.push(host);
+                    });
+                } else if (result.result === 3) {
+                    // Result code 3 means no data (empty)
+                    console.log(`No reservations in subnet ${subnet.id}`);
                 } else {
                     console.log(`Unexpected response for subnet ${subnet.id}:`, result);
                 }
