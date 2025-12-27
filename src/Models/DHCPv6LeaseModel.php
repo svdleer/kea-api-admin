@@ -388,7 +388,6 @@ class DHCPv6LeaseModel extends KEAModel
         ], JSON_PRETTY_PRINT));
 
         $response = $this->sendKeaCommand('reservation-del', $commandParams);
-        
         $result = json_decode($response, true);
         error_log("Delete reservation response: " . json_encode($result));
 
@@ -396,13 +395,37 @@ class DHCPv6LeaseModel extends KEAModel
             throw new Exception('Invalid response from KEA API');
         }
 
-        // Treat result 0 (success) and 3 (no data affected) as success
-        if ($result[0]['result'] === 0 || $result[0]['result'] === 3) {
+        // If result is 3, check with reservation-get if the reservation still exists
+        if ($result[0]['result'] === 3) {
+            $getParams = [
+                'subnet-id' => $subnetId,
+                'ip-address' => $ipAddress
+            ];
+            $getResponse = $this->sendKeaCommand('reservation-get', $getParams);
+            $getResult = json_decode($getResponse, true);
+            error_log("Reservation-get after delete result 3: " . json_encode($getResult));
+            // If reservation-get returns a host, deletion failed
+            if (isset($getResult[0]['arguments']['reservation'])) {
+                return [
+                    'success' => false,
+                    'kea_response' => $result[0],
+                    'message' => 'Delete returned result 3, but reservation still exists!'
+                ];
+            } else {
+                return [
+                    'success' => true,
+                    'kea_response' => $result[0],
+                    'message' => $result[0]['text'] ?? 'Reservation did not exist (already deleted)'
+                ];
+            }
+        }
+
+        // Treat result 0 (success) as success
+        if ($result[0]['result'] === 0) {
             return [
                 'success' => true,
                 'kea_response' => $result[0],
-                'message' => $result[0]['text'] ??
-                    ($result[0]['result'] === 0 ? 'Reservation deleted successfully' : 'Reservation did not exist (already deleted)')
+                'message' => $result[0]['text'] ?? 'Reservation deleted successfully'
             ];
         } else {
             return [
