@@ -171,7 +171,7 @@ foreach ($subnets as $subnet) {
                     }
                 }
                 // Log get response for debugging
-                file_put_contents('import_kea_reservations_get_debug.log', print_r($getResponses, true), FILE_APPEND);
+                file_put_contents('/tmp/import_kea_reservations_get_debug.log', print_r($getResponses, true), FILE_APPEND);
 
                 // Prepare add or update command
                 if ($exists) {
@@ -208,7 +208,7 @@ foreach ($subnets as $subnet) {
                     'request' => $apiData,
                     'response' => $result
                 ];
-                file_put_contents('import_kea_reservations_add_update_debug.log', print_r($logEntry, true), FILE_APPEND);
+                file_put_contents('/tmp/import_kea_reservations_add_update_debug.log', print_r($logEntry, true), FILE_APPEND);
                 if (curl_errno($ch)) {
                     echo "❌ CURL Error: " . curl_error($ch) . "\n";
                     $errorCount++;
@@ -248,7 +248,7 @@ foreach ($subnets as $subnet) {
                             'request' => $apiDataUpdate,
                             'response' => $resultUpdate
                         ];
-                        file_put_contents('import_kea_reservations_add_update_debug.log', print_r($logEntryUpdate, true), FILE_APPEND);
+                        file_put_contents('/tmp/import_kea_reservations_add_update_debug.log', print_r($logEntryUpdate, true), FILE_APPEND);
                         if (curl_errno($ch)) {
                             echo "❌ CURL Error on update: " . curl_error($ch) . "\n";
                             $errorCount++;
