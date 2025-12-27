@@ -310,7 +310,7 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
     $router->get('/api/dhcp/static/{subnetId}', [new \App\Controllers\Api\DHCPv6LeaseController(), 'getStaticLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
-    $router->delete('/api/dhcp/reservations/{ipAddress}', [new \App\Controllers\Api\DHCPv6LeaseController(), 'deleteReservation'])
+    $router->delete('/api/dhcp/reservations', [new \App\Controllers\Api\DHCPv6LeaseController(), 'deleteReservation'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
 
     // DHCPv6 Advanced Lease Search
