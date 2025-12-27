@@ -282,22 +282,24 @@ async function addStaticLease() {
             body: JSON.stringify(payload)
         });
 
-        if (response.ok) {
+        const result = await response.json();
+        
+        if (result.result === 0) {
             Swal.fire({
                 title: 'Success',
-                text: 'Static lease added successfully',
+                text: result.message || 'Static lease added successfully',
                 icon: 'success',
                 confirmButtonColor: '#10B981'
             }).then(() => {
                 toggleStaticLeaseForm();
-                fetchLeases();
+                location.reload();
             });
         } else {
-            const error = await response.json();
-            Swal.fire('Error', error.message || 'Failed to add static lease', 'error');
+            Swal.fire('Error', result.message || 'Failed to add static lease', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
+        Swal.fire('Error', 'Failed to add static lease: ' + error.message, 'error');
         Swal.fire('Error', 'Failed to add static lease', 'error');
     }
 }
