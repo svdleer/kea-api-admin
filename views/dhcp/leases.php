@@ -145,26 +145,26 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </div>
                 <div id="dhcpOptionsContainer">
                 <div class="flex gap-4 mb-4 items-end option-row" id="option-row-initial">
-                        <div class="flex-1">
-                            <label for="dhcpOptions" class="block text-lg font-semibold mb-2">DHCP Option</label>
-                            <select id="dhcpOptions" name="dhcpOptions[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                <option value="">Select Option</option>
-                            </select>
-                            <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
-                        </div>
-                        <div class="flex-1">
-                            <label for="optionValue" class="block text-lg font-semibold mb-2">Option Value</label>
-                            <input type="text" 
-                                   id="optionValue" 
-                                   name="optionValues[]" 
-                                   list="ccapCoreList"
-                                   class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
-                                   placeholder="For arrays: value1, value2, value3">
-                            <datalist id="ccapCoreList"></datalist>
-                            <div class="text-xs text-gray-500 mt-1">For array options (syslog-servers, ccap-core, etc.), separate multiple values with commas</div>
-                            <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
-                        </div>
+                    <div class="flex-1">
+                        <label for="dhcpOptions" class="block text-sm font-medium text-gray-700 mb-1">DHCP Option</label>
+                        <select id="dhcpOptions" name="dhcpOptions[]" class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">Select Option</option>
+                        </select>
+                        <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
                     </div>
+                    <div class="flex-1">
+                        <label for="optionValue" class="block text-sm font-medium text-gray-700 mb-1">Option Value</label>
+                        <input type="text" 
+                               id="optionValue" 
+                               name="optionValues[]" 
+                               list="ccapCoreList"
+                               class="form__input w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                               placeholder="For arrays: value1, value2, value3">
+                        <datalist id="ccapCoreList"></datalist>
+                        <div class="text-xs text-gray-500 mt-1">For array options (syslog-servers, ccap-core, etc.), separate multiple values with commas</div>
+                        <div class="form__input-error-message text-sm text-red-500 mt-1"></div>
+                    </div>
+                </div>
                 </div>
             </div>
             <div class="flex justify-end space-x-4 pt-6 border-t">
@@ -213,10 +213,9 @@ async function addStaticLease() {
             const optionData = JSON.parse(select.value);
             options.push({
                 code: optionData.code,
-                space: optionData.space,
                 name: optionData.name,
-                type: optionData.type,
-                value: input.value.trim()
+                data: input.value.trim(),
+                space: optionData.space || 'dhcp6'
             });
         }
     });
