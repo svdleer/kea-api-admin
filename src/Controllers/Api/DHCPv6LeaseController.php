@@ -11,7 +11,12 @@ class DHCPv6LeaseController
 
     public function __construct()
     {
-        $this->leaseModel = new DHCPv6LeaseModel();
+        try {
+            $this->leaseModel = new DHCPv6LeaseModel();
+        } catch (\Exception $e) {
+            error_log("Failed to initialize DHCPv6LeaseModel: " . $e->getMessage());
+            // Don't throw here, handle in getLeases
+        }
     }
 
 
@@ -21,6 +26,11 @@ class DHCPv6LeaseController
         ob_start();
         
         try {
+            // Check if model was initialized
+            if (!isset($this->leaseModel)) {
+                throw new Exception('DHCPv6 Lease service is not available. Please configure Kea servers in Admin → Kea Servers.');
+            }
+            
             // Log incoming parameters
             error_log("getLeases called with parameters:");
 
