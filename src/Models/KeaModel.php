@@ -20,13 +20,19 @@ class KeaModel
         $stmt->execute();
         $this->keaServers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
+        // Don't throw in constructor - let methods handle this gracefully
         if (empty($this->keaServers)) {
-            throw new Exception('No active Kea servers configured in database');
+            error_log("Warning: No active Kea servers configured in database");
         }
     }
 
     public function sendKeaCommand($command, $arguments = []) 
     {
+        // Check if servers are configured before sending command
+        if (empty($this->keaServers)) {
+            throw new Exception('No active Kea servers configured. Please add servers in Admin → Kea Servers.');
+        }
+        
         $data = [
             "command" => $command,
             "service" => [$this->keaService],
