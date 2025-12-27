@@ -57,7 +57,7 @@ try {
             'command' => 'subnet6-get',
             'service' => ['dhcp6'],
             'arguments' => [
-                'remote' => ['type' => 'mysql'],
+                'operation-target' => 'all',
                 'subnets' => [['id' => (int)$subnetId]]
             ]
         ];

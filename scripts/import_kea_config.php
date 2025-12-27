@@ -285,7 +285,7 @@ class KeaConfigImporter {
                             'record-types' => $optionDef['record-types'] ?? null,
                             'encapsulate' => $optionDef['encapsulate'] ?? ''
                         ]],
-                        'remote' => ['type' => 'mysql'],
+                        'operation-target' => 'all',
                         'server-tags' => ['all']
                     ]
                 ];
@@ -348,6 +348,7 @@ class KeaConfigImporter {
                                     'space' => $option['space'] ?? 'dhcp6'
                                 ]]
                             ]],
+                            'operation-target' => 'all',
                             'server-tags' => ['all']
                         ]
                     ];
@@ -363,7 +364,7 @@ class KeaConfigImporter {
                                 'data' => $data,
                                 'space' => $option['space'] ?? 'dhcp6'
                             ]],
-                            'remote' => ['type' => 'mysql'],
+                            'operation-target' => 'all',
                             'server-tags' => ['all']
                         ]
                     ];

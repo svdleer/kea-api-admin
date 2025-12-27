@@ -59,7 +59,7 @@ class DHCPv6LeaseModel extends KEAModel
 
             // Prepare API call parameters - add subnet-id to filter
             $commandParams = [
-                "remote" => ["type" => "mysql"],
+                "operation-target" => "all",
                 "server-tags" => ["all"],
                 "subnet-id" => $subnetId,
                 'from' => $from,
@@ -289,7 +289,7 @@ class DHCPv6LeaseModel extends KEAModel
     public function getStaticLeases($subnetId)
     {
         $commandParams = [
-            'remote' => ['type' => 'mysql'],
+            'operation-target' => 'all',
             'subnet-id' => intval($subnetId),
             'server-tags' => ['all']
         ];

@@ -69,7 +69,7 @@ foreach ($optionDefinitions as $optionDef) {
         "service" => ["dhcp6"],
         "arguments" => [
             "option-defs" => [$optionDef],
-            "remote" => ["type" => "mysql"],
+            "operation-target" => "all",
             "server-tags" => ["all"]
         ]
     ];

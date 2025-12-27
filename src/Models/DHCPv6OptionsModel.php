@@ -281,7 +281,7 @@ class DHCPv6OptionsModel extends KeaModel
                 'command' => 'reservation-add',
                 'service' => ['dhcp6'],
                 'arguments' => [
-                    'remote' => ['type' => 'mysql'],
+                    'operation-target' => 'all',
                     'reservation' => [
                         'subnet-id' => intval($subnetId),
                         'duid' => $duid,
