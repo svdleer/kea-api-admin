@@ -513,21 +513,13 @@ async function importKeaReservations() {
                     html: `
                         <p class="mb-3">${result.message}</p>
                         <div class="text-sm text-left bg-gray-50 p-4 rounded space-y-2">
-                            <div class="flex justify-between">
-                                <span>Total Reservations:</span>
-                                <strong>${result.stats.total}</strong>
-                            </div>
                             <div class="flex justify-between text-green-600">
-                                <span>Successfully Added:</span>
-                                <strong>${result.stats.success}</strong>
+                                <span>Added (new):</span>
+                                <strong>${result.stats.reservations.imported || 0}</strong>
                             </div>
-                            <div class="flex justify-between text-yellow-600">
-                                <span>Already Existed:</span>
-                                <strong>${result.stats.skipped}</strong>
-                            </div>
-                            <div class="flex justify-between text-red-600">
-                                <span>Errors:</span>
-                                <strong>${result.stats.errors}</strong>
+                            <div class="flex justify-between text-blue-600">
+                                <span>Updated (existing):</span>
+                                <strong>${result.stats.reservations.updated || 0}</strong>
                             </div>
                         </div>
                         ${result.details ? `
@@ -537,7 +529,7 @@ async function importKeaReservations() {
                             </details>
                         ` : ''}
                     `,
-                    icon: result.stats.errors > 0 ? 'warning' : 'success',
+                    icon: 'success',
                     confirmButtonColor: '#4F46E5',
                     width: '600px'
                 });
