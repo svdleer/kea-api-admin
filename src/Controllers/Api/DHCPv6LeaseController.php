@@ -20,7 +20,7 @@ class DHCPv6LeaseController
     }
 
 
-    public function getLeases(string $switchId, string $bviId, string $from, string $limit)
+    public function getLeases(string $subnetId, string $from, string $limit)
     {   
         // Ensure no output before headers
         ob_start();
@@ -32,19 +32,23 @@ class DHCPv6LeaseController
             }
             
             // Log incoming parameters
-            error_log("getLeases called with parameters:");
+            error_log("getLeases called with subnetId: $subnetId, from: $from, limit: $limit");
 
-            // Validate and cast limit parameter
+            // Validate and cast parameters
             if (!is_numeric($limit) || (int)$limit <= 0) {
                 throw new Exception('Limit must be a positive integer');
             }
+            if (!is_numeric($subnetId) || (int)$subnetId <= 0) {
+                throw new Exception('Subnet ID must be a positive integer');
+            }
             
             $limit = (int)$limit;
+            $subnetId = (int)$subnetId;
 
-            // Log before database call
-            error_log("Calling leaseModel->getLeases with parameters");
+            // Call Kea API directly - no database queries
+            error_log("Calling leaseModel->getLeasesBySubnet with subnetId: $subnetId");
             
-            $result = $this->leaseModel->getLeases($from, $limit, $switchId, $bviId);
+            $result = $this->leaseModel->getLeasesBySubnet($from, $limit, $subnetId);
             
             // Log the result
             error_log("Database query result:");
@@ -61,8 +65,7 @@ class DHCPv6LeaseController
                 'data' => $result,
                 'debug' => [
                     'params' => [
-                        'switchId' => $switchId,
-                        'bviId' => $bviId,
+                        'subnetId' => $subnetId,
                         'from' => $from,
                         'limit' => $limit
                     ],
@@ -97,8 +100,7 @@ class DHCPv6LeaseController
                 ],
                 'debug' => [
                     'params' => [
-                        'switchId' => $switchId,
-                        'bviId' => $bviId,
+                        'subnetId' => $subnetId,
                         'from' => $from,
                         'limit' => $limit
                     ]

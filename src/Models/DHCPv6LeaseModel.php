@@ -13,42 +13,24 @@ class DHCPv6LeaseModel extends KEAModel
         parent::__construct();
     }
 
-    public function getLeases($from, $limit, $switchId, $bviId)
+    public function getLeasesBySubnet($from, $limit, $subnetId)
     {
         try {
-            error_log("DHCPv6LeaseModel::getLeases called with parameters:");
+            error_log("DHCPv6LeaseModel::getLeasesBySubnet called with subnetId: {$subnetId}, from: {$from}, limit: {$limit}");
 
             // Input validation
-            if (!is_numeric($limit)) {
-                throw new Exception('Limit must be a numeric value');
+            if (!is_numeric($limit) || $limit <= 0) {
+                throw new Exception('Limit must be a positive integer');
+            }
+            if (!is_numeric($subnetId) || $subnetId <= 0) {
+                throw new Exception('Subnet ID must be a positive integer');
             }
 
             $limit = (int)$limit;
-            if ($limit <= 0) {
-                error_log("Limit validation failed - not positive: {$limit}");
-                throw new Exception('Limit must be a positive integer');
-            }
-
-            if (!isset($switchId) || $switchId === '' || !isset($bviId) || $bviId === '') {
-                error_log("Missing required parameters - switchId: {$switchId}, bviId: {$bviId}");
-                throw new Exception('Switch ID and BVI ID are required');
-            }
-
-            // Get subnet ID for this BVI interface
-            $stmt = $this->db->prepare("SELECT kea_subnet_id FROM cin_bvi_dhcp_core WHERE bvi_interface_id = ?");
-            $stmt->execute([$bviId]);
-            $subnetInfo = $stmt->fetch(\PDO::FETCH_ASSOC);
-            
-            if (!$subnetInfo) {
-                error_log("No subnet found for BVI ID: {$bviId}");
-                throw new Exception('No subnet configured for this BVI interface');
-            }
-            
-            $subnetId = (int)$subnetInfo['kea_subnet_id'];
-            error_log("Found subnet ID {$subnetId} for BVI {$bviId}");
+            $subnetId = (int)$subnetId;
 
             // Check cache
-            $cacheKey = "{$switchId}_{$bviId}_{$from}_{$limit}";
+            $cacheKey = "subnet_{$subnetId}_{$from}_{$limit}";
             error_log("Checking cache with key: {$cacheKey}");
             $cachedResult = $this->getCachedLeases($cacheKey);
             if ($cachedResult !== null) {
@@ -57,7 +39,7 @@ class DHCPv6LeaseModel extends KEAModel
             }
             error_log("Cache miss - proceeding with API call");
 
-            // Prepare API call parameters - add subnet-id to filter
+            // Call Kea API directly - NO database queries
             $commandParams = [
                 "operation-target" => "all",
                 "server-tags" => ["all"],
@@ -65,7 +47,7 @@ class DHCPv6LeaseModel extends KEAModel
                 'from' => $from,
                 'limit' => $limit
             ];
-            error_log("Preparing KEA API call with parameters: " . json_encode($commandParams));
+            error_log("Calling Kea API with parameters: " . json_encode($commandParams));
 
             // Make API call
             $response = $this->sendKeaCommand('lease6-get-page', $commandParams);

@@ -180,14 +180,14 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 <script>
 
-function toggleLeases(button, switchId, bviId) {
+function toggleLeases(button, subnetId) {
     const leasesTableContainer = document.getElementById('leasesTableContainer');
 
     if (leasesTableContainer.classList.contains('hidden')) {
         // Show leases
         leasesTableContainer.classList.remove('hidden');
         button.textContent = 'Hide Leases';
-        loadLeases(switchId, bviId);
+        loadLeases(subnetId);
     } else {
         // Hide leases
         leasesTableContainer.classList.add('hidden');
@@ -1202,7 +1202,7 @@ async function loadSwitches() {
                 <!-- other cells -->
                 <td class="px-6 py-3">
                     <div class="flex space-x-2">
-                        <button onclick="toggleLeases(this, '${switchId}', '${subnets[0].bvi_interface_id}')" 
+                        <button onclick="toggleLeases(this, '${subnets[0].id}')" 
                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -1460,8 +1460,10 @@ function showLeases(switchId, bviId) {
 
 let subnetId = null;
 
-async function loadLeases(switchId, bviId, from = 'start', limit = 10) {
-    console.log('loadLeases called with:', { switchId, bviId, from, limit }); // Debug log
+async function loadLeases(subnetIdParam, from = 'start', limit = 10) {
+    console.log('loadLeases called with:', { subnetIdParam, from, limit }); // Debug log
+    
+    subnetId = subnetIdParam; // Save for later use
 
     const tableContainer = document.getElementById('leasesTableContainer');
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -1475,7 +1477,7 @@ async function loadLeases(switchId, bviId, from = 'start', limit = 10) {
     if (tableContainer) tableContainer.classList.add('hidden');
 
     try {
-        const response = await fetch(`/api/dhcp/leases/${switchId}/${bviId}/${from}/${limit}`, {
+        const response = await fetch(`/api/dhcp/leases/${subnetId}/${from}/${limit}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -1493,10 +1495,6 @@ async function loadLeases(switchId, bviId, from = 'start', limit = 10) {
         }
 
         const { leases } = responseData.data;
-        if (leases.length > 0) {
-            subnetId = leases[0]['subnet-id']; // Extract the subnet-id from the first lease
-            console.log('subnetId received and saved:', subnetId); // Debug log
-        }
 
         const pagination = responseData.data.pagination;
 

@@ -308,7 +308,7 @@ try {
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
 
     // DHCPv6 Lease/Reservation API Routes
-    $router->get('/api/dhcp/leases/{switchId}/{bviId}/{from}/{limit}', [new \App\Controllers\Api\DHCPv6LeaseController(), 'getLeases'])
+    $router->get('/api/dhcp/leases/{subnetId}/{from}/{limit}', [new \App\Controllers\Api\DHCPv6LeaseController(), 'getLeases'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel));
     $router->delete('/api/dhcp/leases', [new \App\Controllers\Api\DHCPv6LeaseController(), 'deleteLease'])
         ->middleware(new \App\Middleware\CombinedAuthMiddleware($auth, $apiKeyModel, true));
