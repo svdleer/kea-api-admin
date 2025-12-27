@@ -377,6 +377,7 @@ class DHCPv6LeaseModel extends KEAModel
     public function deleteReservation($ipAddress, $subnetId)
     {
         $commandParams = [
+            'subnet-id' => $subnetId,
             'ip-address' => $ipAddress
         ];
 
