@@ -599,16 +599,20 @@ async function listReservations() {
                 
                 console.log(`Subnet ${subnet.id} response:`, result);
                 
-                if (result.success && result.data && result.data.hosts) {
-                    console.log(`Found ${result.data.hosts.length} reservations in subnet ${subnet.id}`);
-                    result.data.hosts.forEach(host => {
-                        host.subnet_id = subnet.id;
-                        host.subnet_prefix = subnet.subnet;
-                        allReservations.push(host);
-                    });
-                } else if (result.data && result.data.result === 3) {
-                    // Result code 3 means no data (empty)
-                    console.log(`No reservations in subnet ${subnet.id}`);
+                // Check if we have data (result.success is from our wrapper, result.data.hosts is the actual data)
+                if (result.success && result.data) {
+                    // Result code 0 = success with data, result code 3 = success but empty
+                    if (result.data.result === 0 && result.data.hosts && result.data.hosts.length > 0) {
+                        console.log(`Found ${result.data.hosts.length} reservations in subnet ${subnet.id}`);
+                        result.data.hosts.forEach(host => {
+                            host.subnet_id = subnet.id;
+                            host.subnet_prefix = subnet.subnet;
+                            allReservations.push(host);
+                        });
+                    } else {
+                        // Result code 3 or empty hosts array means no reservations
+                        console.log(`No reservations in subnet ${subnet.id}`);
+                    }
                 } else {
                     console.log(`Unexpected response for subnet ${subnet.id}:`, result);
                 }
