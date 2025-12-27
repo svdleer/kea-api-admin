@@ -17,6 +17,9 @@ class DHCPv6LeaseController
 
     public function getLeases(string $switchId, string $bviId, string $from, string $limit)
     {   
+        // Ensure no output before headers
+        ob_start();
+        
         try {
             // Log incoming parameters
             error_log("getLeases called with parameters:");
@@ -38,6 +41,9 @@ class DHCPv6LeaseController
             error_log("Result type: " . gettype($result));
             error_log("Result content: " . json_encode($result));
 
+            // Clear any accidental output
+            ob_clean();
+            
             header('Content-Type: application/json');
             
             $response = [
@@ -56,11 +62,15 @@ class DHCPv6LeaseController
 
             error_log("Sending response: " . json_encode($response));
             echo json_encode($response);
+            ob_end_flush();
 
         } catch (Exception $e) {
             error_log("Error in getLeases: " . $e->getMessage());
             error_log("Error trace: " . $e->getTraceAsString());
 
+            // Clear any accidental output
+            ob_clean();
+            
             header('Content-Type: application/json');
             http_response_code(400);
             
@@ -81,6 +91,7 @@ class DHCPv6LeaseController
 
             error_log("Sending error response: " . json_encode($errorResponse));
             echo json_encode($errorResponse);
+            ob_end_flush();
         }
     }
 
