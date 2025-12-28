@@ -58,14 +58,21 @@ class DHCPv6LeaseSearchController
             // Search by DUID using Kea API
             if ($duid) {
                 error_log("Search: Calling lease6-get-by-duid with duid: $duid");
-                $result = $dhcpModel->sendKeaCommand('lease6-get-by-duid', [
-                    'duid' => $duid
-                ]);
-                error_log("Search: Kea result: " . json_encode($result));
-                
-                if (isset($result[0]['arguments']['leases'])) {
-                    $leases = $result[0]['arguments']['leases'];
-                    error_log("Search: Found " . count($leases) . " leases");
+                try {
+                    $result = $dhcpModel->sendKeaCommand('lease6-get-by-duid', [
+                        'duid' => $duid
+                    ]);
+                    error_log("Search: Kea result: " . json_encode($result));
+                    
+                    if (isset($result[0]['arguments']['leases'])) {
+                        $leases = $result[0]['arguments']['leases'];
+                        error_log("Search: Found " . count($leases) . " leases");
+                    } else {
+                        error_log("Search: No leases found in response");
+                    }
+                } catch (\Exception $keaEx) {
+                    error_log("Search: Kea API error: " . $keaEx->getMessage());
+                    // Continue with empty leases array
                 }
             }
             // Search by IPv6 address
