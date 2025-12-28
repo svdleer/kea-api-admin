@@ -105,7 +105,7 @@ Session Data:
     <footer class="absolute bottom-0 w-full bg-white shadow-inner">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <p class="text-center text-sm text-gray-500">
-                &copy; <?php echo date('Y'); ?> RPD Infrastructure Management. All rights reserved.
+                &copy; <?php echo date('Y'); ?> VFZ RPD Infrastructure Management. All rights reserved.
             </p>
         </div>
     </footer>
