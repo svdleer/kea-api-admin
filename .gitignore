@@ -1,2 +1,3 @@
 kea-api-admin.code-workspace
 .venvold/node_modules/
+.DS_Store

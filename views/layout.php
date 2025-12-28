@@ -5,13 +5,8 @@ require_once BASE_PATH . '/vendor/autoload.php';
 use App\Auth\Authentication;
 use App\Database\Database;
 
-// Debug the existing auth
-error_log('Existing auth in GLOBALS: ' . print_r(isset($GLOBALS['auth']), true));
-
 // Create new auth instance
 $auth = new Authentication(Database::getInstance());
-error_log('New auth instance created');
-error_log('isAdmin result: ' . ($auth->isAdmin() ? 'true' : 'false'));
 
 ?>
 <!DOCTYPE html>
