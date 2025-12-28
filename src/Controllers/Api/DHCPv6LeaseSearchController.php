@@ -19,6 +19,8 @@ class DHCPv6LeaseSearchController
      */
     public function searchLeases()
     {
+        error_log("=== SEARCH LEASES START ===");
+        
         // Clear output buffers
         while (ob_get_level()) {
             ob_end_clean();
@@ -27,6 +29,7 @@ class DHCPv6LeaseSearchController
         
         try {
             header('Content-Type: application/json');
+            error_log("Search: Headers set");
             
             // Get filter parameters
             $ipv6Address = $_GET['ipv6_address'] ?? null;
@@ -36,6 +39,8 @@ class DHCPv6LeaseSearchController
             $bviId = $_GET['bvi_id'] ?? null;
             $subnetId = $_GET['subnet_id'] ?? null;
             $leaseType = $_GET['lease_type'] ?? null;
+            
+            error_log("Search params: duid=$duid, ipv6=$ipv6Address, hostname=$hostname, subnet=$subnetId");
             $state = $_GET['state'] ?? null;
             $dateFrom = $_GET['date_from'] ?? null;
             $dateTo = $_GET['date_to'] ?? null;
@@ -46,17 +51,21 @@ class DHCPv6LeaseSearchController
             $pageSize = isset($_GET['page_size']) ? min(500, max(10, intval($_GET['page_size']))) : 50;
 
             // Use Kea API to search leases
+            error_log("Search: Creating DHCP model");
             $dhcpModel = new \App\Models\DHCP($this->db);
             $leases = [];
             
             // Search by DUID using Kea API
             if ($duid) {
+                error_log("Search: Calling lease6-get-by-duid with duid: $duid");
                 $result = $dhcpModel->sendKeaCommand('lease6-get-by-duid', [
                     'duid' => $duid
                 ]);
+                error_log("Search: Kea result: " . json_encode($result));
                 
                 if (isset($result[0]['arguments']['leases'])) {
                     $leases = $result[0]['arguments']['leases'];
+                    error_log("Search: Found " . count($leases) . " leases");
                 }
             }
             // Search by IPv6 address
