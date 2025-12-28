@@ -36,9 +36,6 @@ ON DUPLICATE KEY UPDATE id=id;
 ### 2. Install Python Script
 
 ```bash
-# Install dependencies
-sudo apt install python3-mysql.connector
-
 # Create scripts directory
 sudo mkdir -p /opt/scripts
 
@@ -50,7 +47,9 @@ sudo wget -O /opt/scripts/freeradius-reload-check.py \
 sudo chmod +x /opt/scripts/freeradius-reload-check.py
 ```
 
-**No configuration needed** - script automatically reads database credentials from FreeRADIUS SQL module config.
+**No configuration needed:**
+- Script automatically reads database credentials from FreeRADIUS SQL module config
+- Script auto-installs `mysql-connector-python` if missing (requires internet)
 
 ### 3. Test Script Manually
 

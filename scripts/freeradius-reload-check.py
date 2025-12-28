@@ -12,9 +12,23 @@ import sys
 import os
 import signal
 import logging
-import mysql.connector
 import re
 from datetime import datetime
+
+# Auto-install mysql.connector if not available
+try:
+    import mysql.connector
+except ImportError:
+    print("mysql-connector-python not found, attempting to install...")
+    import subprocess
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "mysql-connector-python"])
+        import mysql.connector
+        print("mysql-connector-python installed successfully")
+    except Exception as e:
+        print(f"Failed to install mysql-connector-python: {e}")
+        print("Please install manually: sudo apt install python3-mysql.connector")
+        sys.exit(1)
 
 # ============= CONFIGURATION =============
 # FreeRADIUS SQL config file locations (try in order)
