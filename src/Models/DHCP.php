@@ -242,7 +242,7 @@ class DHCP
      * Persist Kea configuration to file
      * In Kea 3.x without MySQL backend, changes are in-memory only until written to file
      */
-    private function saveKeaConfig()
+    public function saveKeaConfig()
     {
         error_log("DHCP Model: Persisting config to file with config-write");
         try {

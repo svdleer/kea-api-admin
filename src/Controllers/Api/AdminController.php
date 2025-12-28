@@ -1652,20 +1652,20 @@ class AdminController
             
             $dhcpModel = new \App\Models\DHCP($this->db);
             
-            // Call config-write on all servers (filename is optional, uses default from config)
-            $result = $dhcpModel->sendKeaCommand('config-write', []);
+            // Use the existing saveKeaConfig method that properly handles config-write
+            $success = $dhcpModel->saveKeaConfig();
             
             // Get server count for response
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM kea_servers WHERE is_active = 1");
             $stmt->execute();
             $serverCount = $stmt->fetchColumn();
             
-            if (isset($result[0]['result']) && $result[0]['result'] === 0) {
+            if ($success) {
                 $response = [
                     'success' => true,
                     'message' => "Configuration saved successfully on all {$serverCount} server(s)",
                     'details' => [
-                        "✓ Configuration written to /etc/kea/kea-dhcp6.conf",
+                        "✓ Configuration written to disk",
                         "✓ Changes will persist across server restarts",
                         "✓ All {$serverCount} configured Kea server(s) updated"
                     ]
@@ -1674,8 +1674,7 @@ class AdminController
                 ob_end_flush();
                 exit;
             } else {
-                $errorText = $result[0]['text'] ?? 'Unknown error';
-                throw new \Exception("Config-write command returned error: {$errorText}");
+                throw new \Exception("Config-write failed - check server logs");
             }
         } catch (\Exception $e) {
             error_log("Error in saveConfig: " . $e->getMessage());
