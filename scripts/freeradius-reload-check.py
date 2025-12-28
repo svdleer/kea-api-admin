@@ -17,9 +17,8 @@ from datetime import datetime
 
 # Auto-install MySQL connector if not available
 try:
-    import pymysql as mysql_connector
-    # pymysql uses slightly different API, make it compatible
-    mysql_connector.connect = pymysql.connect
+    import pymysql
+    mysql_connector = pymysql
 except ImportError:
     print("pymysql not found, attempting to install...")
     import subprocess
@@ -28,8 +27,8 @@ except ImportError:
         subprocess.check_call(["apt", "install", "-y", "python3-pymysql"], 
                             stderr=subprocess.DEVNULL, 
                             stdout=subprocess.DEVNULL)
-        import pymysql as mysql_connector
-        mysql_connector.connect = pymysql.connect
+        import pymysql
+        mysql_connector = pymysql
         print("python3-pymysql installed successfully via apt")
     except Exception as e:
         print(f"Failed to install python3-pymysql via apt: {e}")
