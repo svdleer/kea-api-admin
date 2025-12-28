@@ -30,7 +30,7 @@ try {
             b.interface_number,
             s.hostname
         FROM nas n
-        INNER JOIN cin_bvi_dhcp_core b ON n.bvi_interface_id = b.id
+        INNER JOIN cin_switch_bvi_interfaces b ON n.bvi_interface_id = b.id
         INNER JOIN cin_switches s ON b.switch_id = s.id
         WHERE n.bvi_interface_id IS NOT NULL
         ORDER BY s.hostname, b.interface_number
