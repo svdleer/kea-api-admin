@@ -1641,6 +1641,11 @@ class AdminController
      */
     public function saveConfig()
     {
+        // Clear any previous output
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
         try {
             header('Content-Type: application/json');
             
@@ -1657,7 +1662,7 @@ class AdminController
             $serverCount = $stmt->fetchColumn();
             
             if (isset($result[0]['result']) && $result[0]['result'] === 0) {
-                echo json_encode([
+                $response = [
                     'success' => true,
                     'message' => "Configuration saved successfully on all {$serverCount} server(s)",
                     'details' => [
@@ -1665,7 +1670,9 @@ class AdminController
                         "✓ Changes will persist across server restarts",
                         "✓ All {$serverCount} configured Kea server(s) updated"
                     ]
-                ]);
+                ];
+                echo json_encode($response);
+                exit;
             } else {
                 $errorText = $result[0]['text'] ?? 'Unknown error';
                 throw new \Exception("Config-write command returned error: {$errorText}");
@@ -1673,10 +1680,12 @@ class AdminController
         } catch (\Exception $e) {
             error_log("Error in saveConfig: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode([
+            $response = [
                 'success' => false,
                 'message' => 'Failed to save configuration: ' . $e->getMessage()
-            ]);
+            ];
+            echo json_encode($response);
+            exit;
         }
     }
 
