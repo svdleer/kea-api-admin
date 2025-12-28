@@ -220,7 +220,6 @@ ob_start();
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IPv6 Address</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DUID</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MAC Address</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostname</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Switch / BVI</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid Until</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -489,12 +488,15 @@ function displayResults(leases, total, searchTime) {
         
         const macAddress = lease.hwaddr ? lease.hwaddr.replace(/^01:00:00:00:00:00:/, '').toUpperCase() : 'N/A';
         
+        const switchBviText = lease.switch_hostname ? 
+            `${escapeHtml(lease.switch_hostname)} / BVI${lease.bvi_number}` : 
+            `Subnet ${lease.subnet_id}`;
+        
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${escapeHtml(lease.address)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">${escapeHtml(lease.duid ? lease.duid.substring(0, 20) + '...' : 'N/A')}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">${escapeHtml(macAddress)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.hostname || 'N/A')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(lease.switch_hostname || 'N/A')} / BVI${lease.bvi_number || '?'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${switchBviText}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(lease.expire)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${leaseType}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm ${stateClass} font-medium">${stateText}</td>

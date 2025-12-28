@@ -175,14 +175,41 @@ class DHCPv6LeaseSearchController
                 return;
             }
 
+            // Get subnet to BVI mapping for enrichment
+            $subnetBviMap = [];
+            if (!empty($paginatedLeases)) {
+                $subnetIds = array_unique(array_column($paginatedLeases, 'subnet-id'));
+                $placeholders = implode(',', array_fill(0, count($subnetIds), '?'));
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        c.kea_subnet_id,
+                        c.interface_number,
+                        s.hostname as switch_hostname
+                    FROM cin_bvi_dhcp_core c
+                    JOIN cin_switches s ON c.switch_id = s.id
+                    WHERE c.kea_subnet_id IN ($placeholders)
+                ");
+                $stmt->execute($subnetIds);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $subnetBviMap[$row['kea_subnet_id']] = [
+                        'bvi_number' => 100 + (int)$row['interface_number'],
+                        'switch_hostname' => $row['switch_hostname']
+                    ];
+                }
+            }
+
             // Format leases for response
-            $formattedLeases = array_map(function($lease) {
+            $formattedLeases = array_map(function($lease) use ($subnetBviMap) {
+                $subnetId = $lease['subnet-id'] ?? 0;
+                $bviInfo = $subnetBviMap[$subnetId] ?? null;
+                
                 return [
                     'address' => $lease['ip-address'] ?? '',
                     'duid' => $lease['duid'] ?? '',
                     'hwaddr' => $lease['hwaddr'] ?? '',
-                    'hostname' => $lease['hostname'] ?? '',
-                    'subnet_id' => $lease['subnet-id'] ?? 0,
+                    'subnet_id' => $subnetId,
+                    'switch_hostname' => $bviInfo['switch_hostname'] ?? null,
+                    'bvi_number' => $bviInfo['bvi_number'] ?? null,
                     'valid_lifetime' => $lease['valid-lft'] ?? 0,
                     'expire' => isset($lease['cltt'], $lease['valid-lft']) ? 
                         ($lease['cltt'] + $lease['valid-lft']) : 0,
