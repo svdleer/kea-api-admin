@@ -60,8 +60,9 @@ ob_start();
                         <input type="text" 
                                id="duid" 
                                name="duid"
-                               placeholder="00:11:22:33:44:55"
+                               placeholder="00:11:22:33:44:55 or 00:03:00:01:00:11:22:33:44:55"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <p id="duid_validation" class="mt-1 text-sm hidden"></p>
                     </div>
 
                     <!-- Hostname -->
@@ -269,6 +270,69 @@ let searchStartTime = 0;
 document.addEventListener('DOMContentLoaded', function() {
     loadSwitches();
     loadSubnets();
+    
+    // DUID/MAC validation
+    const duidInput = document.getElementById('duid');
+    const duidValidation = document.getElementById('duid_validation');
+    
+    duidInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        if (!value) {
+            duidInput.classList.remove('border-red-500', 'border-green-500');
+            duidValidation.classList.add('hidden');
+            return;
+        }
+        
+        // Normalize: remove dots, dashes, spaces
+        const normalized = value.replace(/[.\-\s]/g, ':').toLowerCase();
+        const parts = normalized.split(':').filter(p => p.length > 0);
+        
+        let isValid = false;
+        let message = '';
+        
+        // Check if it's a valid MAC address (6 octets)
+        if (parts.length === 6) {
+            isValid = parts.every(p => /^[0-9a-f]{2}$/.test(p));
+            if (isValid) {
+                message = '✓ Valid MAC address (will be converted to DUID)';
+                duidInput.classList.remove('border-red-500');
+                duidInput.classList.add('border-green-500');
+                duidValidation.className = 'mt-1 text-sm text-green-600';
+            } else {
+                message = '✗ Invalid MAC address format';
+                duidInput.classList.remove('border-green-500');
+                duidInput.classList.add('border-red-500');
+                duidValidation.className = 'mt-1 text-sm text-red-600';
+            }
+        }
+        // Check if it's a valid DUID (10 octets: 00:03:00:01 + MAC)
+        else if (parts.length === 10) {
+            const isDuidLL = parts[0] === '00' && parts[1] === '03' && parts[2] === '00' && parts[3] === '01';
+            const macValid = parts.slice(4).every(p => /^[0-9a-f]{2}$/.test(p));
+            isValid = isDuidLL && macValid;
+            
+            if (isValid) {
+                message = '✓ Valid DUID-LL format';
+                duidInput.classList.remove('border-red-500');
+                duidInput.classList.add('border-green-500');
+                duidValidation.className = 'mt-1 text-sm text-green-600';
+            } else {
+                message = '✗ Invalid DUID format (expected 00:03:00:01:MAC)';
+                duidInput.classList.remove('border-green-500');
+                duidInput.classList.add('border-red-500');
+                duidValidation.className = 'mt-1 text-sm text-red-600';
+            }
+        }
+        else {
+            message = '✗ Enter MAC (6 octets) or DUID (10 octets)';
+            duidInput.classList.remove('border-green-500');
+            duidInput.classList.add('border-red-500');
+            duidValidation.className = 'mt-1 text-sm text-red-600';
+        }
+        
+        duidValidation.textContent = message;
+        duidValidation.classList.remove('hidden');
+    });
     
     // Load BVIs when switch is selected
     document.getElementById('switch_id').addEventListener('change', function() {
