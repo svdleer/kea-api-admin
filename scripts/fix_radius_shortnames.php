@@ -6,7 +6,12 @@
  * to proper format like "mnd-gt0002-ar155-bvi100"
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// Set BASE_PATH if not defined
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', dirname(__DIR__));
+}
+
+require_once BASE_PATH . '/vendor/autoload.php';
 
 use App\Database\Database;
 
