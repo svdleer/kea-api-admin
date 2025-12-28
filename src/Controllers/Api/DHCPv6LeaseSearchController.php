@@ -19,7 +19,15 @@ class DHCPv6LeaseSearchController
      */
     public function searchLeases()
     {
+        // Clear output buffers
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        ob_start();
+        
         try {
+            header('Content-Type: application/json');
+            
             // Get filter parameters
             $ipv6Address = $_GET['ipv6_address'] ?? null;
             $duid = $_GET['duid'] ?? null;
@@ -174,17 +182,31 @@ class DHCPv6LeaseSearchController
                 ];
             }, $paginatedLeases);
 
-            ApiResponse::success([
-                'data' => $formattedLeases,
-                'total' => $totalCount,
-                'page' => $page,
-                'page_size' => $pageSize,
-                'total_pages' => ceil($totalCount / $pageSize)
-            ]);
+            $response = [
+                'success' => true,
+                'data' => [
+                    'data' => $formattedLeases,
+                    'total' => $totalCount,
+                    'page' => $page,
+                    'page_size' => $pageSize,
+                    'total_pages' => ceil($totalCount / $pageSize)
+                ]
+            ];
+            
+            echo json_encode($response);
+            ob_end_flush();
 
         } catch (\Exception $e) {
             error_log("Lease search error: " . $e->getMessage());
-            ApiResponse::error('Failed to search leases: ' . $e->getMessage(), 500);
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            ob_clean();
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to search leases: ' . $e->getMessage()
+            ]);
+            ob_end_flush();
         }
     }
 
