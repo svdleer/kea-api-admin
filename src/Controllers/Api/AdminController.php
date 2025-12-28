@@ -1641,12 +1641,13 @@ class AdminController
      */
     public function saveConfig()
     {
-        // Clear any previous output
-        if (ob_get_level()) {
-            ob_clean();
-        }
-        
         try {
+            // Clear and restart output buffering
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            ob_start();
+            
             header('Content-Type: application/json');
             
             $dhcpModel = new \App\Models\DHCP($this->db);
@@ -1670,6 +1671,7 @@ class AdminController
                     ]
                 ];
                 echo json_encode($response);
+                ob_end_flush();
                 exit;
             } else {
                 $errorText = $result[0]['text'] ?? 'Unknown error';
@@ -1683,6 +1685,7 @@ class AdminController
                 'message' => 'Failed to save configuration: ' . $e->getMessage()
             ];
             echo json_encode($response);
+            ob_end_flush();
             exit;
         }
     }
