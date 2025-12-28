@@ -177,8 +177,8 @@ class RadiusDatabaseSync
             }
         }
 
-        // Auto-reload FreeRADIUS on all servers that have auto_reload enabled
-        $this->autoReloadFreeRadius();
+        // Set reload flag for all servers after sync
+        $this->setReloadFlag();
 
         return $results;
     }
@@ -494,104 +494,34 @@ class RadiusDatabaseSync
     }
 
     /**
-     * Reload FreeRADIUS on all servers by sending HUP signal
-     * This causes FreeRADIUS to reload its configuration including NAS clients from MySQL
+     * Set reload flag for all servers
+     * This signals FreeRADIUS servers to reload their configuration
      */
-    public function reloadFreeRadius()
+    private function setReloadFlag()
     {
-        $results = [];
-        
-        foreach ($this->servers as $server) {
-            $serverName = $server['name'];
-            
-            try {
-                // Check if SSH command is configured
-                if (empty($server['ssh_host'])) {
-                    $results[$serverName] = [
-                        'success' => false,
-                        'message' => 'No SSH host configured - cannot reload FreeRADIUS'
-                    ];
-                    error_log("[$serverName] Cannot reload - no SSH host configured");
-                    continue;
-                }
-                
-                $sshHost = $server['ssh_host'];
-                $sshUser = $server['ssh_user'] ?? 'root';
-                $sshPort = $server['ssh_port'] ?? 22;
-                
-                // Build SSH command to send HUP signal to FreeRADIUS
-                $command = sprintf(
-                    "ssh -p %d %s@%s 'sudo systemctl reload freeradius || sudo killall -HUP radiusd' 2>&1",
-                    $sshPort,
-                    escapeshellarg($sshUser),
-                    escapeshellarg($sshHost)
-                );
-                
-                error_log("[$serverName] Reloading FreeRADIUS: $command");
-                
-                exec($command, $output, $returnCode);
-                $outputStr = implode("\n", $output);
-                
-                if ($returnCode === 0) {
-                    $results[$serverName] = [
-                        'success' => true,
-                        'message' => 'FreeRADIUS reloaded successfully',
-                        'output' => $outputStr
-                    ];
-                    error_log("[$serverName] FreeRADIUS reloaded successfully");
-                } else {
-                    $results[$serverName] = [
-                        'success' => false,
-                        'message' => "Reload failed with code $returnCode",
-                        'output' => $outputStr
-                    ];
-                    error_log("[$serverName] FreeRADIUS reload failed: $outputStr");
-                }
-            } catch (\Exception $e) {
-                $results[$serverName] = [
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ];
-                error_log("[$serverName] Exception during reload: " . $e->getMessage());
-            }
+        try {
+            $stmt = $this->db->prepare("UPDATE radius_server_config SET needs_reload = TRUE");
+            $stmt->execute();
+            error_log("Set needs_reload flag for all RADIUS servers");
+        } catch (\PDOException $e) {
+            error_log("Failed to set reload flag: " . $e->getMessage());
         }
-        
-        return $results;
     }
 
     /**
-     * Auto-reload FreeRADIUS only on servers that have auto_reload enabled
-     * Called automatically after NAS client changes
+     * Clear reload flag for a specific server
+     * Called by FreeRADIUS server after successful reload
      */
-    private function autoReloadFreeRadius()
+    public function clearReloadFlag($serverId)
     {
-        foreach ($this->servers as $server) {
-            // Check if auto_reload is enabled (default true if not set)
-            $autoReload = $server['auto_reload'] ?? true;
-            
-            if ($autoReload && !empty($server['ssh_host'])) {
-                $serverName = $server['name'];
-                $sshHost = $server['ssh_host'];
-                $sshUser = $server['ssh_user'] ?? 'root';
-                $sshPort = $server['ssh_port'] ?? 22;
-                
-                try {
-                    // Build SSH command to send HUP signal to FreeRADIUS
-                    $command = sprintf(
-                        "ssh -o ConnectTimeout=5 -p %d %s@%s 'sudo systemctl reload freeradius 2>/dev/null || sudo killall -HUP radiusd 2>/dev/null' 2>&1",
-                        $sshPort,
-                        escapeshellarg($sshUser),
-                        escapeshellarg($sshHost)
-                    );
-                    
-                    error_log("[$serverName] Auto-reloading FreeRADIUS after NAS sync");
-                    
-                    // Execute in background to not block the response
-                    exec($command . " > /dev/null 2>&1 &");
-                } catch (\Exception $e) {
-                    error_log("[$serverName] Auto-reload failed: " . $e->getMessage());
-                }
-            }
+        try {
+            $stmt = $this->db->prepare("UPDATE radius_server_config SET needs_reload = FALSE WHERE id = ?");
+            $stmt->execute([$serverId]);
+            error_log("Cleared needs_reload flag for server ID: $serverId");
+            return true;
+        } catch (\PDOException $e) {
+            error_log("Failed to clear reload flag: " . $e->getMessage());
+            return false;
         }
     }
 }

@@ -1,16 +1,8 @@
--- Add SSH configuration fields to radius_server_config table
--- This allows automatic FreeRADIUS reload after NAS client sync
+-- Add reload flag to radius_server_config table
+-- This flag is set when NAS clients change and needs FreeRADIUS reload
 
 ALTER TABLE radius_server_config 
-ADD COLUMN IF NOT EXISTS ssh_host VARCHAR(255) DEFAULT NULL COMMENT 'SSH hostname/IP for FreeRADIUS reload',
-ADD COLUMN IF NOT EXISTS ssh_user VARCHAR(50) DEFAULT 'root' COMMENT 'SSH username',
-ADD COLUMN IF NOT EXISTS ssh_port INT DEFAULT 22 COMMENT 'SSH port',
-ADD COLUMN IF NOT EXISTS auto_reload BOOLEAN DEFAULT TRUE COMMENT 'Auto-reload FreeRADIUS after sync';
+ADD COLUMN IF NOT EXISTS needs_reload BOOLEAN DEFAULT FALSE COMMENT 'Set to TRUE when FreeRADIUS needs to reload NAS clients';
 
--- Example update to configure SSH for existing servers
--- UPDATE radius_server_config SET 
---   ssh_host = 'radius1.gt.local',
---   ssh_user = 'root',
---   ssh_port = 22,
---   auto_reload = TRUE
--- WHERE name = 'FreeRADIUS Primary';
+-- Create index for quick polling
+CREATE INDEX IF NOT EXISTS idx_needs_reload ON radius_server_config(needs_reload);
