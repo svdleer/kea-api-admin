@@ -61,6 +61,8 @@ logging.basicConfig(
 
 def parse_freeradius_sql_config():
     """Parse FreeRADIUS SQL module config to extract database credentials"""
+    logging.info("Starting to parse FreeRADIUS SQL config...")
+    
     config = {
         'host': 'localhost',
         'port': 3306,
@@ -72,13 +74,14 @@ def parse_freeradius_sql_config():
     # Find first existing config file
     sql_config_file = None
     for config_path in FREERADIUS_SQL_CONFIGS:
+        logging.debug(f"Checking for config file: {config_path}")
         if os.path.exists(config_path):
             sql_config_file = config_path
             logging.info(f"Found FreeRADIUS SQL config: {config_path}")
             break
     
     if not sql_config_file:
-        logging.warning(f"No FreeRADIUS SQL config found, using defaults")
+        logging.warning(f"No FreeRADIUS SQL config found in common locations, using defaults")
         return config
     
     try:
@@ -103,10 +106,15 @@ def parse_freeradius_sql_config():
                         config[key] = int(value)
                     else:
                         config[key] = value
-                    logging.debug(f"Parsed {key}: {value if key != 'password' else '***'}")
+                    if key == 'password':
+                        logging.info(f"Parsed {key}: ***")
+                    else:
+                        logging.info(f"Parsed {key}: {value}")
         
         if not config['password']:
             logging.error("Could not find password in FreeRADIUS SQL config")
+        else:
+            logging.info("Successfully parsed all database credentials")
             
         return config
         
@@ -154,6 +162,10 @@ def send_hup_signal(pid):
 
 def check_and_reload():
     """Check database flag and reload FreeRADIUS if needed"""
+    logging.info("=" * 60)
+    logging.info("FreeRADIUS Reload Check Started")
+    logging.info("=" * 60)
+    
     conn = None
     cursor = None
     
@@ -162,10 +174,11 @@ def check_and_reload():
         db_config = parse_freeradius_sql_config()
         
         if not db_config['password']:
-            logging.error("No database password found in FreeRADIUS config")
+            logging.error("No database password found in FreeRADIUS config - cannot proceed")
             return
         
         # Connect to local radius database
+        logging.info(f"Connecting to database {db_config['database']} at {db_config['host']}:{db_config['port']}")
         conn = mysql_connector.connect(
             host=db_config['host'],
             port=db_config['port'],
@@ -174,40 +187,50 @@ def check_and_reload():
             database=db_config['database']
         )
         cursor = conn.cursor()
+        logging.info("Database connection established successfully")
         
         # Check if reload is needed
+        logging.info("Checking reload flag in database...")
         cursor.execute("SELECT needs_reload FROM radius_reload_flag WHERE id = 1")
         result = cursor.fetchone()
         
         if not result:
-            logging.error("No reload flag found in database")
+            logging.error("No reload flag found in database - table may not be created")
             return
         
         needs_reload = result[0]
+        logging.info(f"Reload flag value: {needs_reload}")
         
         if needs_reload:
-            logging.info("Reload flag is set, reloading FreeRADIUS...")
+            logging.info("✓ Reload flag is SET - proceeding with FreeRADIUS reload")
             
             # Get FreeRADIUS PID
+            logging.info("Looking for FreeRADIUS process...")
             pid = get_freeradius_pid()
             if not pid:
                 logging.error("Cannot reload: FreeRADIUS PID not found")
                 return
             
+            logging.info(f"Found FreeRADIUS process with PID: {pid}")
+            
             # Send HUP signal
+            logging.info(f"Sending HUP signal to PID {pid}...")
             if send_hup_signal(pid):
                 # Clear the flag and update last_reload timestamp
+                logging.info("Clearing reload flag in database...")
                 cursor.execute("""
                     UPDATE radius_reload_flag 
                     SET needs_reload = FALSE, last_reload = NOW() 
                     WHERE id = 1
                 """)
                 conn.commit()
-                logging.info("FreeRADIUS reloaded successfully, flag cleared")
+                logging.info("✓ FreeRADIUS reloaded successfully, flag cleared")
+                logging.info("=" * 60)
             else:
-                logging.error("Failed to send HUP signal to FreeRADIUS")
+                logging.error("✗ Failed to send HUP signal to FreeRADIUS")
         else:
-            logging.debug("No reload needed")
+            logging.info("No reload needed - flag is not set")
+            logging.info("=" * 60)
             
     except Exception as e:
         logging.error(f"Database error: {e}")
