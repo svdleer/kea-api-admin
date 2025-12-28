@@ -9,9 +9,9 @@ class ApiDocumentation
         return [
             'openapi' => '3.0.0',
             'info' => [
-                'title' => 'VFZ RPD Infrastructure Management API Documentation',
-                'version' => '1.0.0',
-                'description' => 'API documentation for VFZ RPD Infrastructure Management'
+                'title' => 'VFZ DAA Infrastructure Management API Documentation',
+                'version' => '1.0',
+                'description' => 'API documentation for VFZ DAA Infrastructure Management'
             ],
             'servers' => [
                 [

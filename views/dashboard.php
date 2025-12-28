@@ -12,7 +12,7 @@ if (!$auth->isLoggedIn()) {
 }
 
 $currentPage = 'dashboard';
-$title = 'Dashboard - RPD Infrastructure Management';
+$title = 'Dashboard - DAA Infrastructure Management';
 $username = $_SESSION['user_name'] ?? 'User';
 $isAdmin = $_SESSION['is_admin'] ?? false;
 

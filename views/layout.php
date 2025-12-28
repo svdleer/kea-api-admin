@@ -14,7 +14,7 @@ $auth = new Authentication(Database::getInstance());
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $title ?? 'VFZ RPD Infrastructure Management'; ?></title>
+    <title><?php echo $title ?? 'VFZ DAA Infrastructure Management'; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-minimal@5/minimal.css">
@@ -177,7 +177,7 @@ $auth = new Authentication(Database::getInstance());
                 <div class="flex justify-between h-16">
                     <div class="flex">
                         <div class="flex-shrink-0 flex items-center">
-                            <h1 class="text-xl font-bold text-gray-800">VFZ RPD Infrastructure Management</h1>
+                            <h1 class="text-xl font-bold text-gray-800">VFZ DAA Infrastructure Management</h1>
                         </div>
                         <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
                             <a href="/dashboard" class="<?php echo $currentPage === 'dashboard' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'; ?> inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">

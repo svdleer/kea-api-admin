@@ -26,7 +26,7 @@ unset($_SESSION['error']); // Clear the error message
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - RPD Infrastructure Management</title>
+    <title>Login - DAA Infrastructure Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -57,7 +57,7 @@ Session Data:
         <div class="max-w-md w-full space-y-8">
             <div>
                 <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    RPD Infrastructure Management
+                    DAA Infrastructure Management
                 </h2>
                 <p class="mt-2 text-center text-sm text-gray-600">
                     Please sign in to continue
@@ -105,7 +105,7 @@ Session Data:
     <footer class="absolute bottom-0 w-full bg-white shadow-inner">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <p class="text-center text-sm text-gray-500">
-                &copy; <?php echo date('Y'); ?> VFZ RPD Infrastructure Management. All rights reserved.
+                &copy; <?php echo date('Y'); ?> VFZ DAA Infrastructure Management. All rights reserved.
             </p>
         </div>
     </footer>

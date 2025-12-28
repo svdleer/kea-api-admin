@@ -17,7 +17,7 @@ if (!$auth->isLoggedIn()) {
 }
 
 $currentPage = 'switches';
-$title = 'Switches - VFZ RPD Infrastructure Management';
+$title = 'Switches - VFZ DAA Infrastructure Management';
 
 $error = null;
 $switches = [];

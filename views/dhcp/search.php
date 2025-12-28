@@ -13,7 +13,7 @@ if (!$auth->isLoggedIn()) {
 
 $currentPage = 'dhcp';
 $subPage = 'search';
-$title = 'Advanced Lease Search - RPD Infrastructure Management';
+$title = 'Advanced Lease Search - DAA Infrastructure Management';
 $username = $_SESSION['user_name'] ?? 'User';
 $isAdmin = $_SESSION['is_admin'] ?? false;
 
