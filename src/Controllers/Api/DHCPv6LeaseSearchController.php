@@ -128,33 +128,7 @@ class DHCPv6LeaseSearchController
 
             // Apply pagination
             $offset = ($page - 1) * $pageSize;
-            $paginatedLeases = array_slice($leases, $offset, $pageSize);            if ($dateFrom) {
-                $timestamp = strtotime($dateFrom);
-                if ($timestamp !== false) {
-                    $sql .= " AND l.expire >= :date_from";
-                    $params[':date_from'] = $timestamp;
-                }
-            }
-
-            if ($dateTo) {
-                $timestamp = strtotime($dateTo);
-                if ($timestamp !== false) {
-                    $sql .= " AND l.expire <= :date_to";
-                    $params[':date_to'] = $timestamp;
-                }
-            }
-
-            // Get total count
-            $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
-            $countStmt = $this->db->prepare($countSql);
-            foreach ($params as $key => $value) {
-                $countStmt->bindValue($key, $value);
-            }
-            $countStmt->execute();
-            $totalCount = $countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
-
-            // If export to CSV
-            if ($export === 'csv') {
+            $paginatedLeases = array_slice($leases, $offset, $pageSize);
             
             // Handle export
             if ($export === 'csv') {
