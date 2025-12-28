@@ -15,22 +15,25 @@ import logging
 import re
 from datetime import datetime
 
-# Auto-install mysql.connector if not available
+# Auto-install MySQL connector if not available
 try:
-    import mysql.connector
+    import pymysql as mysql_connector
+    # pymysql uses slightly different API, make it compatible
+    mysql_connector.connect = pymysql.connect
 except ImportError:
-    print("mysql-connector-python not found, attempting to install...")
+    print("pymysql not found, attempting to install...")
     import subprocess
     try:
         # Use apt to install system package (works on Ubuntu/Debian)
-        subprocess.check_call(["apt", "install", "-y", "python3-mysql.connector"], 
+        subprocess.check_call(["apt", "install", "-y", "python3-pymysql"], 
                             stderr=subprocess.DEVNULL, 
                             stdout=subprocess.DEVNULL)
-        import mysql.connector
-        print("python3-mysql.connector installed successfully via apt")
+        import pymysql as mysql_connector
+        mysql_connector.connect = pymysql.connect
+        print("python3-pymysql installed successfully via apt")
     except Exception as e:
-        print(f"Failed to install python3-mysql.connector via apt: {e}")
-        print("Please install manually: sudo apt install python3-mysql.connector")
+        print(f"Failed to install python3-pymysql via apt: {e}")
+        print("Please install manually: sudo apt install python3-pymysql")
         sys.exit(1)
 
 # ============= CONFIGURATION =============
@@ -164,7 +167,7 @@ def check_and_reload():
             return
         
         # Connect to local radius database
-        conn = mysql.connector.connect(
+        conn = mysql_connector.connect(
             host=db_config['host'],
             port=db_config['port'],
             user=db_config['user'],
@@ -207,7 +210,7 @@ def check_and_reload():
         else:
             logging.debug("No reload needed")
             
-    except mysql.connector.Error as e:
+    except Exception as e:
         logging.error(f"Database error: {e}")
     except Exception as e:
         logging.error(f"Unexpected error: {e}")

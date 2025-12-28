@@ -49,7 +49,7 @@ sudo chmod +x /opt/scripts/freeradius-reload-check.py
 
 **No configuration needed:**
 - Script automatically reads database credentials from FreeRADIUS SQL module config
-- Script auto-installs `mysql-connector-python` if missing (requires internet)
+- Script auto-installs `python3-pymysql` if missing (requires internet)
 
 ### 3. Test Script Manually
 
@@ -151,14 +151,12 @@ mysql -u radius -p radius -e "SELECT 1"
 ### Check Python Dependencies
 
 ```bash
-python3 -c "import mysql.connector; print('OK')"
+python3 -c "import pymysql; print('OK')"
 ```
 
 Install if missing:
 ```bash
-sudo apt install python3-mysql.connector
-# or
-sudo pip3 install mysql-connector-python
+sudo apt install python3-pymysql
 ```
 
 ## Benefits
