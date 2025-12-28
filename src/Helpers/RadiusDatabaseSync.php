@@ -510,13 +510,4 @@ class RadiusDatabaseSync
     {
         return $this->servers;
     }
-
-    /**
-     * Set reload flag for all servers
-     * This signals FreeRADIUS servers to reload their configuration
-     */
-    public function getServers()
-    {
-        return $this->servers;
-    }
 }
