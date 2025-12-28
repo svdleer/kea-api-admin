@@ -217,15 +217,6 @@ class DHCPv6LeaseSearchController
             
             // Write data rows
             foreach ($leases as $lease) {
-                $duid = $lease['duid'] ? bin2hex($lease['duid']) : '';
-                $hwaddr = $lease['hwaddr'] ? bin2hex($lease['hwaddr']) : '';
-                $leaseType = $lease['lease_type'] == 0 ? 'IA_NA (Address)' : 
-                            ($lease['lease_type'] == 2 ? 'IA_PD (Prefix)' : 'Unknown');
-                $state = $lease['state'] == 0 ? 'Active' : 
-                        ($lease['state'] == 1 ? 'Declined' : 'Expired');
-            
-            // Write data rows
-            foreach ($leases as $lease) {
                 $leaseType = $lease['type'] ?? 0;
                 $state = $lease['state'] ?? 0;
                 $expires = isset($lease['cltt'], $lease['valid-lft']) ? 
