@@ -27,7 +27,7 @@ cat << 'EOF'
   📁 LOG FILES FOR DEBUGGING:
   
      Kea DHCPv6 Server:
-       /var/log/kea/kea-dhcp6.log
+       /opt/kea/var/log/kea-dhcp6.log
        journalctl -u kea-dhcp6-server
      
      FreeRADIUS:
@@ -35,7 +35,7 @@ cat << 'EOF'
        journalctl -u freeradius
        
      View live logs:
-       tail -f /var/log/kea/kea-dhcp6.log
+       tail -f /opt/kea/var/log/kea-dhcp6.log
        tail -f /var/log/freeradius/radius.log
   
   🔧 COMMON TASKS:
