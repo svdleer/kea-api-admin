@@ -299,12 +299,22 @@ public function createBviInterface($switchId, $data)
         if ($result) {
             $bviId = $this->db->lastInsertId();
             
-            // Auto-create RADIUS client for this BVI interface
+            // Auto-create RADIUS client for this BVI interface with proper shortname
             try {
-                require_once BASE_PATH . '/src/Models/RadiusClient.php';
-                $radiusClient = new \App\Models\RadiusClient($this->db);
-                $radiusClient->createFromBvi($bviId, $data['ipv6_address']);
-                error_log("RADIUS client auto-created for BVI interface ID: $bviId");
+                // Get switch hostname for shortname
+                $stmt = $this->db->prepare("SELECT hostname FROM cin_switches WHERE id = ?");
+                $stmt->execute([$switchId]);
+                $switchData = $stmt->fetch(\PDO::FETCH_ASSOC);
+                
+                if ($switchData) {
+                    $displayBvi = $data['interface_number'] + 100;
+                    $shortname = strtolower($switchData['hostname']) . '-bvi' . $displayBvi;
+                    
+                    require_once BASE_PATH . '/src/Models/RadiusClient.php';
+                    $radiusClient = new \App\Models\RadiusClient($this->db);
+                    $radiusClient->createFromBvi($bviId, $data['ipv6_address'], null, $shortname);
+                    error_log("RADIUS client auto-created for BVI interface ID: $bviId with shortname: $shortname");
+                }
             } catch (\Exception $e) {
                 error_log("Failed to auto-create RADIUS client: " . $e->getMessage());
                 // Don't fail the BVI creation if RADIUS sync fails
