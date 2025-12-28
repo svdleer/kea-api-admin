@@ -177,7 +177,28 @@ class RadiusDatabaseSync
             }
         }
 
+        // Set reload flag on each RADIUS server after NAS changes
+        $this->setReloadFlagOnRadiusServers();
+
         return $results;
+    }
+
+    /**
+     * Set reload flag on each RADIUS server's local database
+     * This triggers the Python script on each server to send HUP signal to FreeRADIUS
+     */
+    private function setReloadFlagOnRadiusServers()
+    {
+        foreach ($this->servers as $server) {
+            try {
+                $conn = $this->getConnection($server);
+                $stmt = $conn->prepare("UPDATE radius_reload_flag SET needs_reload = TRUE WHERE id = 1");
+                $stmt->execute();
+                error_log("[{$server['name']}] Set reload flag in local radius database");
+            } catch (PDOException $e) {
+                error_log("[{$server['name']}] Failed to set reload flag: " . $e->getMessage());
+            }
+        }
     }
 
     /**
