@@ -21,7 +21,7 @@ $db = Database::getInstance();
 
 try {
     // Get all NAS entries with BVI interface links
-    $stmt = $db->query("
+    $sql = "
         SELECT 
             n.id as nas_id,
             n.nasname,
@@ -30,13 +30,17 @@ try {
             b.interface_number,
             s.hostname
         FROM nas n
-        JOIN cin_bvi_dhcp_core b ON n.bvi_interface_id = b.id
-        JOIN cin_switches s ON b.switch_id = s.id
+        INNER JOIN cin_bvi_dhcp_core b ON n.bvi_interface_id = b.id
+        INNER JOIN cin_switches s ON b.switch_id = s.id
         WHERE n.bvi_interface_id IS NOT NULL
         ORDER BY s.hostname, b.interface_number
-    ");
+    ";
     
+    echo "Executing query...\n";
+    $stmt = $db->query($sql);
     $entries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo "Query returned " . count($entries) . " results\n\n";
     
     if (empty($entries)) {
         echo "No NAS entries found with BVI interface links.\n";
