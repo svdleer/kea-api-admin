@@ -20,15 +20,23 @@ ob_start();
 ?>
 
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <!-- Welcome Section -->
+    <!-- Welcome Section with Overall Health -->
     <div class="px-4 py-6 sm:px-0">
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                Welcome to RPD Infrastructure Management
-            </h2>
-            <p class="text-gray-600">
-                Monitor and manage your network infrastructure from this central dashboard.
-            </p>
+        <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-lg shadow-lg p-6 mb-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">
+                        Welcome back, <?php echo htmlspecialchars($username); ?>!
+                    </h2>
+                    <p class="text-indigo-100">
+                        RPD Infrastructure Management Dashboard
+                    </p>
+                </div>
+                <div id="overall-health" class="text-center">
+                    <div class="text-4xl font-bold mb-1" id="health-score">--</div>
+                    <div class="text-sm text-indigo-100" id="health-text">Loading...</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -50,6 +58,33 @@ ob_start();
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Configuration Sync Status</h3>
             <div id="config-sync-status" class="bg-white shadow rounded-lg p-6">
                 <!-- Sync status will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Quick Actions Bar -->
+        <div class="px-4 sm:px-0 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
+                <div class="flex flex-wrap gap-2">
+                    <a href="/dhcp/search" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        Search Leases
+                    </a>
+                    <a href="/switches" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                        Manage Switches
+                    </a>
+                    <a href="/dhcp" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+                        DHCP Subnets
+                    </a>
+                    <?php if ($isAdmin): ?>
+                    <a href="/admin/tools" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Admin Tools
+                    </a>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
@@ -158,6 +193,9 @@ function renderKeaStatus(data) {
     const keaStatusEl = document.getElementById('kea-status');
     const servers = data.servers || [];
     
+    // Calculate overall health
+    updateOverallHealth(servers);
+    
     let html = '';
     
     servers.forEach(server => {
@@ -248,6 +286,54 @@ function renderStats(data) {
     statsHtml += '</dd></div></div>';
     
     statsCardsEl.innerHTML = statsHtml;
+}
+
+function updateOverallHealth(servers) {
+    let healthScore = 100;
+    let issues = [];
+    
+    // Check server status
+    const onlineServers = servers.filter(s => s.online).length;
+    const totalServers = servers.length;
+    
+    if (onlineServers < totalServers) {
+        const offlineCount = totalServers - onlineServers;
+        healthScore -= (offlineCount / totalServers) * 40;
+        issues.push(`${offlineCount} server(s) offline`);
+    }
+    
+    // Check lease utilization
+    servers.forEach(server => {
+        if (server.online && server.leases) {
+            const utilization = (server.leases.assigned / server.leases.total) * 100;
+            if (utilization > 90) {
+                healthScore -= 15;
+                issues.push('High lease utilization');
+            } else if (utilization > 80) {
+                healthScore -= 5;
+            }
+        }
+    });
+    
+    // Determine health status
+    let healthColor, healthText;
+    if (healthScore >= 90) {
+        healthColor = 'text-green-400';
+        healthText = 'Excellent';
+    } else if (healthScore >= 75) {
+        healthColor = 'text-yellow-400';
+        healthText = 'Good';
+    } else if (healthScore >= 50) {
+        healthColor = 'text-orange-400';
+        healthText = 'Fair';
+    } else {
+        healthColor = 'text-red-400';
+        healthText = 'Critical';
+    }
+    
+    document.getElementById('health-score').textContent = Math.round(healthScore);
+    document.getElementById('health-score').className = 'text-4xl font-bold mb-1 ' + healthColor;
+    document.getElementById('health-text').textContent = healthText + (issues.length > 0 ? ' - ' + issues[0] : '');
 }
 
 function escapeHtml(text) {
