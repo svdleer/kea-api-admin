@@ -97,15 +97,9 @@ class RadiusLogsController
                         ra.authdate,
                         COALESCE(NULLIF(ra.nasipaddress, ''), NULLIF(ra.nasipaddress, '0.0.0.0'), 'Unknown') as nas_ip,
                         COALESCE(NULLIF(ra.nasportid, ''), 'Unknown') as nas_port,
-                        COALESCE(
-                            (SELECT n.shortname 
-                             FROM nas n 
-                             WHERE n.nasname = ra.nasipaddress 
-                                OR n.shortname = ra.nasipaddress
-                             LIMIT 1
-                            ), ra.nasipaddress
-                        ) as nas_name
+                        COALESCE(n.shortname, ra.nasipaddress) as nas_name
                     FROM radpostauth ra
+                    LEFT JOIN nas n ON (n.nasname = ra.nasipaddress OR n.shortname = ra.nasipaddress)
                     $nasJoin
                     WHERE $whereClause
                     ORDER BY ra.authdate DESC
