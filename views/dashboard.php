@@ -21,20 +21,20 @@ ob_start();
 
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <!-- Welcome Section with Overall Health -->
-    <div class="px-4 py-6 sm:px-0">
-        <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-lg shadow-lg p-6 mb-6 text-white">
-            <div class="flex items-center justify-between">
+    <div class="px-4 py-3 sm:py-6 sm:px-0">
+        <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                 <div>
-                    <h2 class="text-2xl font-bold mb-2">
-                        Welcome back, <?php echo htmlspecialchars($username); ?>!
+                    <h2 class="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
+                        Welcome, <?php echo htmlspecialchars($username); ?>!
                     </h2>
-                    <p class="text-indigo-100">
-                        RPD Infrastructure Management Dashboard
+                    <p class="text-sm sm:text-base text-indigo-100">
+                        RPD Infrastructure Dashboard
                     </p>
                 </div>
                 <div id="overall-health" class="text-center">
-                    <div class="text-4xl font-bold mb-1" id="health-score">--</div>
-                    <div class="text-sm text-indigo-100" id="health-text">Loading...</div>
+                    <div class="text-3xl sm:text-4xl font-bold mb-1" id="health-score">--</div>
+                    <div class="text-xs sm:text-sm text-indigo-100" id="health-text">Loading...</div>
                 </div>
             </div>
         </div>
@@ -53,8 +53,8 @@ ob_start();
 
     <!-- Dashboard Content (Hidden until loaded) -->
     <div id="dashboard-content" class="hidden">
-        <!-- Config Sync Status (Only shown for multiple servers) -->
-        <div id="config-sync-section" class="px-4 sm:px-0 mb-6 hidden">
+        <!-- Config Sync Status (Only shown for multiple servers, hidden on mobile) -->
+        <div id="config-sync-section" class="hidden md:block px-4 sm:px-0 mb-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Configuration Sync Status</h3>
             <div id="config-sync-status" class="bg-white shadow rounded-lg p-6">
                 <!-- Sync status will be inserted here -->
@@ -62,26 +62,26 @@ ob_start();
         </div>
 
         <!-- Quick Actions Bar -->
-        <div class="px-4 sm:px-0 mb-6">
-            <div class="bg-white rounded-lg shadow-sm p-4">
-                <h3 class="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
-                <div class="flex flex-wrap gap-2">
-                    <a href="/dhcp/search" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        Search Leases
+        <div class="px-4 sm:px-0 mb-4 sm:mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-3 sm:p-4">
+                <h3 class="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Quick Actions</h3>
+                <div class="flex flex-wrap gap-1.5 sm:gap-2">
+                    <a href="/dhcp/search" class="inline-flex items-center px-2 py-1.5 sm:px-4 sm:py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <span class="hidden sm:inline">Search </span>Leases
                     </a>
-                    <a href="/switches" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
-                        Manage Switches
+                    <a href="/switches" class="inline-flex items-center px-2 py-1.5 sm:px-4 sm:py-2 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                        Switches
                     </a>
-                    <a href="/dhcp" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
-                        DHCP Subnets
+                    <a href="/dhcp" class="inline-flex items-center px-2 py-1.5 sm:px-4 sm:py-2 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+                        <span class="hidden sm:inline">DHCP </span>Subnets
                     </a>
                     <?php if ($isAdmin): ?>
-                    <a href="/admin/tools" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        Admin Tools
+                    <a href="/admin/tools" class="inline-flex items-center px-2 py-1.5 sm:px-4 sm:py-2 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <span class="hidden sm:inline">Admin </span>Tools
                     </a>
                     <?php endif; ?>
                 </div>
