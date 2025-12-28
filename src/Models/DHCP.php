@@ -54,7 +54,7 @@ class DHCP
         }
     }
 
-    private function sendKeaCommand($command, $arguments = [])
+    public function sendKeaCommand($command, $arguments = [])
     {
         // Get all active Kea servers
         $stmt = $this->db->prepare("SELECT id, name, api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority");
