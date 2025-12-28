@@ -64,7 +64,19 @@ sudo python3 /opt/scripts/freeradius-reload-check.py
 tail -f /var/log/freeradius-reload.log
 ```
 
-### 4. Add Cron Job (Every 5 Minutes)
+### 4. Install Cron Job
+
+```bash
+# Auto-install cron job (runs every 5 minutes, outputs to /dev/null)
+sudo python3 /opt/scripts/freeradius-reload-check.py --install-cron
+```
+
+This will:
+- Check if cron job already exists (won't create duplicates)
+- Add: `*/5 * * * * /usr/bin/python3 /opt/scripts/freeradius-reload-check.py > /dev/null 2>&1`
+- Redirect all output to /dev/null (logs go to /var/log/freeradius-reload.log)
+
+**Or install manually:**
 
 ```bash
 sudo crontab -e

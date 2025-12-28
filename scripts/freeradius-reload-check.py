@@ -242,7 +242,54 @@ def check_and_reload():
         if conn:
             conn.close()
 
+def install_cron_job():
+    """Install cron job if not already present"""
+    import subprocess
+    
+    script_path = os.path.abspath(__file__)
+    cron_command = f"*/5 * * * * /usr/bin/python3 {script_path} > /dev/null 2>&1"
+    
+    try:
+        # Get current crontab
+        result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
+        current_crontab = result.stdout if result.returncode == 0 else ""
+        
+        # Check if our cron job already exists
+        if script_path in current_crontab:
+            print(f"✓ Cron job already installed for {script_path}")
+            return True
+        
+        # Add our cron job
+        new_crontab = current_crontab.rstrip('\n') + '\n' + cron_command + '\n'
+        
+        # Install new crontab
+        process = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE, text=True)
+        process.communicate(input=new_crontab)
+        
+        if process.returncode == 0:
+            print(f"✓ Cron job installed successfully:")
+            print(f"  {cron_command}")
+            return True
+        else:
+            print(f"✗ Failed to install cron job")
+            return False
+            
+    except Exception as e:
+        print(f"✗ Error installing cron job: {e}")
+        return False
+
 if __name__ == '__main__':
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='FreeRADIUS Auto-Reload Script')
+    parser.add_argument('--install-cron', action='store_true', 
+                       help='Install cron job to run this script every 5 minutes')
+    args = parser.parse_args()
+    
+    if args.install_cron:
+        install_cron_job()
+        sys.exit(0)
+    
     try:
         check_and_reload()
     except Exception as e:
