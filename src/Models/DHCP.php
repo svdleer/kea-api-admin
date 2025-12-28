@@ -345,7 +345,7 @@ class DHCP
                 $insertStmt->execute([
                     ':server_id' => $server['id'],
                     ':config_json' => json_encode($decoded[0]['arguments']),
-                    ':created_by' => $_SESSION['user_name'] ?? 'system',
+                    ':created_by' => $_SESSION['username'] ?? 'system',
                     ':operation' => $operation
                 ]);
                 

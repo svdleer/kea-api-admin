@@ -75,7 +75,7 @@ class DHCPv6OptionsModel extends KeaModel
             $stmt->execute([
                 $server['id'],
                 json_encode($result['arguments']),
-                $_SESSION['user_name'] ?? 'system',
+                $_SESSION['username'] ?? 'system',
                 $operation
             ]);
             

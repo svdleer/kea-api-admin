@@ -13,7 +13,7 @@ if (!$auth->isLoggedIn()) {
 
 $currentPage = 'dashboard';
 $title = 'Dashboard - DAA Infrastructure Management';
-$username = $_SESSION['user_name'] ?? 'User';
+$username = $_SESSION['username'] ?? 'User';
 $isAdmin = $_SESSION['is_admin'] ?? false;
 
 ob_start();

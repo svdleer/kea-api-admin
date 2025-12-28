@@ -82,7 +82,7 @@ class DHCPv6OptionsDefModel extends KeaModel
             $stmt->execute([
                 ':server_id' => $server['id'],
                 ':config_json' => json_encode($result['arguments']),
-                ':created_by' => $_SESSION['user_name'] ?? 'system',
+                ':created_by' => $_SESSION['username'] ?? 'system',
                 ':operation' => $operation
             ]);
             

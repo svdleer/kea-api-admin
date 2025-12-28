@@ -37,7 +37,7 @@
                 </div>
                 <div class="flex items-center">
                     <span class="text-gray-600 mr-4">
-                        Welcome, <?php echo htmlspecialchars($_SESSION['username'] ?? $_SESSION['user_name'] ?? 'User'); ?>
+                        Welcome, <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
                     </span>
                     <a href="/logout" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
                         Logout
