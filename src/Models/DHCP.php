@@ -54,7 +54,7 @@ class DHCP
         }
     }
 
-    public function sendKeaCommand($command, $arguments = [])
+    private function sendKeaCommand($command, $arguments = [])
     {
         // Get all active Kea servers
         $stmt = $this->db->prepare("SELECT id, name, api_url FROM kea_servers WHERE is_active = 1 ORDER BY priority");
@@ -256,6 +256,42 @@ class DHCP
             error_log("DHCP Model: WARNING - Changes are in-memory only and will be lost on Kea restart!");
             return false;
         }
+    }
+
+    /**
+     * Search for leases by DUID
+     */
+    public function getLeasesByDuid($duid)
+    {
+        return $this->sendKeaCommand('lease6-get-by-duid', ['duid' => $duid]);
+    }
+
+    /**
+     * Search for lease by IPv6 address
+     */
+    public function getLeaseByAddress($ipAddress)
+    {
+        return $this->sendKeaCommand('lease6-get-by-address', ['ip-address' => $ipAddress]);
+    }
+
+    /**
+     * Search for leases by hostname
+     */
+    public function getLeasesByHostname($hostname)
+    {
+        return $this->sendKeaCommand('lease6-get-by-hostname', ['hostname' => $hostname]);
+    }
+
+    /**
+     * Get all leases from specific subnets
+     */
+    public function getAllLeases($subnetIds = [])
+    {
+        $args = [];
+        if (!empty($subnetIds)) {
+            $args['subnets'] = array_map('intval', $subnetIds);
+        }
+        return $this->sendKeaCommand('lease6-get-all', $args);
     }
 
     /**

@@ -78,9 +78,7 @@ class DHCPv6LeaseSearchController
             if ($duid) {
                 error_log("Search: Calling lease6-get-by-duid with duid: $duid");
                 try {
-                    $result = $dhcpModel->sendKeaCommand('lease6-get-by-duid', [
-                        'duid' => $duid
-                    ]);
+                    $result = $dhcpModel->getLeasesByDuid($duid);
                     error_log("Search: Kea result: " . json_encode($result));
                     
                     if (isset($result[0]['arguments']['leases'])) {
@@ -96,32 +94,38 @@ class DHCPv6LeaseSearchController
             }
             // Search by IPv6 address
             elseif ($ipv6Address) {
-                $result = $dhcpModel->sendKeaCommand('lease6-get-by-address', [
-                    'ip-address' => $ipv6Address
-                ]);
-                
-                if (isset($result[0]['arguments'])) {
-                    $leases = [$result[0]['arguments']];
+                try {
+                    $result = $dhcpModel->getLeaseByAddress($ipv6Address);
+                    
+                    if (isset($result[0]['arguments'])) {
+                        $leases = [$result[0]['arguments']];
+                    }
+                } catch (\Exception $keaEx) {
+                    error_log("Search: Kea API error: " . $keaEx->getMessage());
                 }
             }
             // Search by hostname
             elseif ($hostname) {
-                $result = $dhcpModel->sendKeaCommand('lease6-get-by-hostname', [
-                    'hostname' => $hostname
-                ]);
-                
-                if (isset($result[0]['arguments']['leases'])) {
-                    $leases = $result[0]['arguments']['leases'];
+                try {
+                    $result = $dhcpModel->getLeasesByHostname($hostname);
+                    
+                    if (isset($result[0]['arguments']['leases'])) {
+                        $leases = $result[0]['arguments']['leases'];
+                    }
+                } catch (\Exception $keaEx) {
+                    error_log("Search: Kea API error: " . $keaEx->getMessage());
                 }
             }
             // Get all leases from subnet
             elseif ($subnetId) {
-                $result = $dhcpModel->sendKeaCommand('lease6-get-all', [
-                    'subnets' => [(int)$subnetId]
-                ]);
-                
-                if (isset($result[0]['arguments']['leases'])) {
-                    $leases = $result[0]['arguments']['leases'];
+                try {
+                    $result = $dhcpModel->getAllLeases([(int)$subnetId]);
+                    
+                    if (isset($result[0]['arguments']['leases'])) {
+                        $leases = $result[0]['arguments']['leases'];
+                    }
+                } catch (\Exception $keaEx) {
+                    error_log("Search: Kea API error: " . $keaEx->getMessage());
                 }
             }
             else {
