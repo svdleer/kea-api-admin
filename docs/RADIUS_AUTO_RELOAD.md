@@ -23,11 +23,15 @@ mysql -u kea_admin -p kea_api < database/migrations/add_radius_ssh_config.sql
 ### 2. Install Cron Script on Each RADIUS Server
 
 ```bash
-sudo wget -O /usr/local/bin/freeradius-auto-reload.sh \
+# Create directory
+sudo mkdir -p /opt/scripts
+
+# Download script
+sudo wget -O /opt/scripts/freeradius-auto-reload.sh \
   https://raw.githubusercontent.com/svdleer/kea-api-admin/main/scripts/freeradius-auto-reload.sh
 
-sudo chmod +x /usr/local/bin/freeradius-auto-reload.sh
-sudo nano /usr/local/bin/freeradius-auto-reload.sh
+sudo chmod +x /opt/scripts/freeradius-auto-reload.sh
+sudo nano /opt/scripts/freeradius-auto-reload.sh
 ```
 
 **Configure:**
@@ -42,7 +46,7 @@ SERVER_NAME="FreeRADIUS Primary"  # Match database name
 
 ```bash
 sudo crontab -e
-# Add: * * * * * /usr/local/bin/freeradius-auto-reload.sh
+# Add: * * * * * /opt/scripts/freeradius-auto-reload.sh
 ```
 
 ### 4. Test

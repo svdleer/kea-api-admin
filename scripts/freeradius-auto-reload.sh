@@ -1,7 +1,7 @@
 #!/bin/bash
 # FreeRADIUS Auto-Reload Script
-# Place in /usr/local/bin/freeradius-auto-reload.sh
-# Run via cron every minute: * * * * * /usr/local/bin/freeradius-auto-reload.sh
+# Place in /opt/scripts/freeradius-auto-reload.sh
+# Run via cron every minute: * * * * * /opt/scripts/freeradius-auto-reload.sh
 
 # MySQL connection details - CONFIGURE THESE
 DB_HOST="mysql.gt.local"
