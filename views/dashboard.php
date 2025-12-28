@@ -53,11 +53,10 @@ ob_start();
 
     <!-- Dashboard Content (Hidden until loaded) -->
     <div id="dashboard-content" class="hidden">
-        <!-- Config Sync Status (Only shown for multiple servers, hidden on mobile) -->
-        <div id="config-sync-section" class="hidden md:block px-4 sm:px-0 mb-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Configuration Sync Status</h3>
-            <div id="config-sync-status" class="bg-white shadow rounded-lg p-6">
-                <!-- Sync status will be inserted here -->
+        <!-- Config Sync Status (Compact inline badge) -->
+        <div id="config-sync-section" class="hidden px-4 sm:px-0 mb-2">
+            <div id="config-sync-status" class="text-xs">
+                <!-- Sync status will be inserted here as compact badge -->
             </div>
         </div>
 
@@ -441,64 +440,36 @@ function renderConfigSync(data) {
     const section = document.getElementById('config-sync-section');
     const container = document.getElementById('config-sync-status');
     
-    let html = '<div class="flex items-start">';
+    // Compact badge-style display
+    let html = '';
     
-    // Status icon and color
     if (data.in_sync) {
-        html += '<div class="flex-shrink-0"><svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>';
-        html += '<div class="ml-3 flex-1">';
-        html += '<h3 class="text-sm font-medium text-green-800">Configuration In Sync</h3>';
-        html += '<div class="mt-2 text-sm text-green-700">';
-        html += '<p>All ' + data.server_count + ' Kea servers have identical configurations.</p>';
+        html += '<div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">';
+        html += '<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>';
+        html += 'Config Synced (' + data.server_count + ' servers)';
+        html += '</div>';
     } else {
-        html += '<div class="flex-shrink-0"><svg class="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>';
-        html += '<div class="ml-3 flex-1">';
-        html += '<h3 class="text-sm font-medium text-red-800">Configuration Mismatch</h3>';
-        html += '<div class="mt-2 text-sm text-red-700">';
-        html += '<p>' + data.message + '</p>';
-        if (data.differences && data.differences.length > 0) {
-            html += '<ul class="mt-2 list-disc list-inside">';
-            data.differences.forEach(diff => {
-                html += '<li>' + diff + '</li>';
-            });
-            html += '</ul>';
-        }
+        html += '<div class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 cursor-pointer" onclick="showSyncDetails()" title="Click for details">';
+        html += '<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>';
+        html += 'Config Mismatch - Click for details';
+        html += '</div>';
         
-        // Show detailed differences
-        if (data.detailed_differences && Object.keys(data.detailed_differences).length > 0) {
-            html += '<div class="mt-3 p-3 bg-red-50 rounded border border-red-200">';
-            html += '<p class="font-semibold text-xs text-red-900 mb-2">Detailed Differences:</p>';
-            Object.keys(data.detailed_differences).forEach(serverName => {
-                const diffs = data.detailed_differences[serverName];
-                if (diffs.length > 0) {
-                    html += '<div class="mt-2 text-xs">';
-                    html += '<p class="font-medium text-red-800 mb-1">' + serverName + ':</p>';
-                    html += '<ul class="list-disc list-inside ml-2 space-y-1">';
-                    diffs.slice(0, 10).forEach(diff => {
-                        html += '<li class="text-red-700">' + diff + '</li>';
-                    });
-                    if (diffs.length > 10) {
-                        html += '<li class="text-gray-600">... and ' + (diffs.length - 10) + ' more difference(s)</li>';
-                    }
-                    html += '</ul></div>';
-                }
-            });
-            html += '</div>';
-        }
+        // Store details for modal
+        window.syncDetails = data;
     }
-    
-    if (data.checked_servers && data.checked_servers.length > 0) {
-        html += '<p class="mt-2 text-xs">Checked servers: ' + data.checked_servers.join(', ') + '</p>';
-    }
-    
-    if (data.errors && data.errors.length > 0) {
-        html += '<p class="mt-2 text-xs text-gray-600">Errors: ' + data.errors.join(', ') + '</p>';
-    }
-    
-    html += '</div></div></div>';
     
     container.innerHTML = html;
     section.classList.remove('hidden');
+}
+
+function showSyncDetails() {
+    if (!window.syncDetails) return;
+    
+    let message = window.syncDetails.message || 'Configuration mismatch detected';
+    if (window.syncDetails.checked_servers) {
+        message += '\\n\\nChecked: ' + window.syncDetails.checked_servers.join(', ');
+    }
+    alert(message);
 }
 
 // Auto-refresh dashboard every 30 seconds
