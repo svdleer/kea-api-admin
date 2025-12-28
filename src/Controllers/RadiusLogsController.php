@@ -100,9 +100,10 @@ class RadiusLogsController
                         COALESCE(
                             (SELECT n.shortname 
                              FROM nas n 
-                             WHERE n.nasname = ra.nasipaddress
+                             WHERE n.nasname = ra.nasipaddress 
+                                OR n.shortname = ra.nasipaddress
                              LIMIT 1
-                            ), 'Unknown'
+                            ), ra.nasipaddress
                         ) as nas_name
                     FROM radpostauth ra
                     $nasJoin
