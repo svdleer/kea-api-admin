@@ -463,8 +463,8 @@ async function performSearch() {
         
         document.getElementById('loadingSpinner').classList.add('hidden');
         
-        if (data.success && data.data.length > 0) {
-            displayResults(data.data, data.total, searchTime);
+        if (data.success && data.data && data.data.data && data.data.data.length > 0) {
+            displayResults(data.data.data, data.data.total, searchTime);
         } else {
             document.getElementById('noResults').classList.remove('hidden');
         }
