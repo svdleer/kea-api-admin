@@ -1652,8 +1652,8 @@ class AdminController
             
             $dhcpModel = new \App\Models\DHCP($this->db);
             
-            // Call config-write on all servers with proper arguments
-            $result = $dhcpModel->sendKeaCommand('config-write', ['filename' => '/etc/kea/kea-dhcp6.conf']);
+            // Call config-write on all servers (filename is optional, uses default from config)
+            $result = $dhcpModel->sendKeaCommand('config-write', []);
             
             // Get server count for response
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM kea_servers WHERE is_active = 1");
