@@ -40,6 +40,25 @@ class DHCPv6LeaseSearchController
             $subnetId = $_GET['subnet_id'] ?? null;
             $leaseType = $_GET['lease_type'] ?? null;
             
+            // Convert MAC address to DUID if needed
+            // DUID format: 00:03:00:01:<mac-address>
+            // 00:03 = Type 3 (DUID-LL, Link-layer address)
+            // 00:01 = Hardware type 1 (Ethernet)
+            if ($duid) {
+                // Normalize the DUID/MAC format (remove dots, dashes, spaces)
+                $cleanDuid = preg_replace('/[.\-\s]/', ':', strtolower($duid));
+                
+                // Check if it's a MAC address (6 octets) without DUID prefix
+                $parts = explode(':', $cleanDuid);
+                if (count($parts) == 6) {
+                    // It's a MAC address - convert to DUID-LL format
+                    $duid = '00:03:00:01:' . $cleanDuid;
+                    error_log("Search: Converted MAC to DUID: $cleanDuid -> $duid");
+                } else {
+                    $duid = $cleanDuid;
+                }
+            }
+            
             error_log("Search params: duid=$duid, ipv6=$ipv6Address, hostname=$hostname, subnet=$subnetId");
             $state = $_GET['state'] ?? null;
             $dateFrom = $_GET['date_from'] ?? null;
