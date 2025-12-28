@@ -2,6 +2,7 @@
 """
 FreeRADIUS Auto-Reload Script
 Checks local radius database for reload flag and sends HUP signal to FreeRADIUS
+Reads database credentials from FreeRADIUS SQL module configuration
 
 Install: sudo cp freeradius-reload-check.py /opt/scripts/
 Run: python3 /opt/scripts/freeradius-reload-check.py (via cron every 5 minutes)
@@ -12,14 +13,18 @@ import os
 import signal
 import logging
 import mysql.connector
+import re
 from datetime import datetime
 
 # ============= CONFIGURATION =============
-DB_HOST = 'localhost'  # Local MySQL
-DB_PORT = 3306
-DB_NAME = 'radius'     # FreeRADIUS database
-DB_USER = 'radius'
-DB_PASS = 'radpass'    # Change this!
+# FreeRADIUS SQL config file locations (try in order)
+FREERADIUS_SQL_CONFIGS = [
+    '/etc/freeradius/3.0/mods-enabled/sql',
+    '/etc/freeradius/mods-enabled/sql',
+    '/etc/raddb/mods-enabled/sql',
+    '/etc/freeradius/3.0/mods-available/sql',
+    '/etc/raddb/mods-available/sql'
+]
 
 LOG_FILE = '/var/log/freeradius-reload.log'
 FREERADIUS_PID_FILE = '/var/run/radiusd/radiusd.pid'  # or /var/run/freeradius/freeradius.pid
@@ -34,6 +39,61 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+def parse_freeradius_sql_config():
+    """Parse FreeRADIUS SQL module config to extract database credentials"""
+    config = {
+        'host': 'localhost',
+        'port': 3306,
+        'database': 'radius',
+        'user': 'radius',
+        'password': None
+    }
+    
+    # Find first existing config file
+    sql_config_file = None
+    for config_path in FREERADIUS_SQL_CONFIGS:
+        if os.path.exists(config_path):
+            sql_config_file = config_path
+            logging.info(f"Found FreeRADIUS SQL config: {config_path}")
+            break
+    
+    if not sql_config_file:
+        logging.warning(f"No FreeRADIUS SQL config found, using defaults")
+        return config
+    
+    try:
+        with open(sql_config_file, 'r') as f:
+            content = f.read()
+            
+            # Extract MySQL connection details using regex
+            # Looking for patterns like: server = "localhost"
+            patterns = {
+                'host': r'server\s*=\s*["\']([^"\']+)["\']',
+                'port': r'port\s*=\s*(\d+)',
+                'database': r'radius_db\s*=\s*["\']([^"\']+)["\']',
+                'user': r'login\s*=\s*["\']([^"\']+)["\']',
+                'password': r'password\s*=\s*["\']([^"\']+)["\']'
+            }
+            
+            for key, pattern in patterns.items():
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    value = match.group(1)
+                    if key == 'port':
+                        config[key] = int(value)
+                    else:
+                        config[key] = value
+                    logging.debug(f"Parsed {key}: {value if key != 'password' else '***'}")
+        
+        if not config['password']:
+            logging.error("Could not find password in FreeRADIUS SQL config")
+            
+        return config
+        
+    except Exception as e:
+        logging.error(f"Error parsing FreeRADIUS SQL config: {e}")
+        return config
 
 def get_freeradius_pid():
     """Get FreeRADIUS process ID from PID file"""
@@ -79,13 +139,20 @@ def check_and_reload():
     cursor = None
     
     try:
+        # Parse FreeRADIUS SQL config for credentials
+        db_config = parse_freeradius_sql_config()
+        
+        if not db_config['password']:
+            logging.error("No database password found in FreeRADIUS config")
+            return
+        
         # Connect to local radius database
         conn = mysql.connector.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            user=DB_USER,
-            password=DB_PASS,
-            database=DB_NAME
+            host=db_config['host'],
+            port=db_config['port'],
+            user=db_config['user'],
+            password=db_config['password'],
+            database=db_config['database']
         )
         cursor = conn.cursor()
         

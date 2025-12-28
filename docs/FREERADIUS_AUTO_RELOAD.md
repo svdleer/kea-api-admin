@@ -50,21 +50,9 @@ sudo wget -O /opt/scripts/freeradius-reload-check.py \
 sudo chmod +x /opt/scripts/freeradius-reload-check.py
 ```
 
-### 3. Configure Script
+**No configuration needed** - script automatically reads database credentials from FreeRADIUS SQL module config.
 
-```bash
-sudo nano /opt/scripts/freeradius-reload-check.py
-```
-
-**Edit these settings:**
-```python
-DB_HOST = 'localhost'    # Local MySQL
-DB_NAME = 'radius'       # FreeRADIUS database
-DB_USER = 'radius'       # MySQL user
-DB_PASS = 'radpass'      # Change this!
-```
-
-### 4. Test Script Manually
+### 3. Test Script Manually
 
 ```bash
 # Set flag manually
@@ -77,7 +65,7 @@ sudo python3 /opt/scripts/freeradius-reload-check.py
 tail -f /var/log/freeradius-reload.log
 ```
 
-### 5. Add Cron Job (Every 5 Minutes)
+### 4. Add Cron Job (Every 5 Minutes)
 
 ```bash
 sudo crontab -e
