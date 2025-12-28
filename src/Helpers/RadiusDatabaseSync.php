@@ -177,9 +177,6 @@ class RadiusDatabaseSync
             }
         }
 
-        // Set reload flag for all servers after sync
-        $this->setReloadFlag();
-
         return $results;
     }
 
@@ -497,31 +494,8 @@ class RadiusDatabaseSync
      * Set reload flag for all servers
      * This signals FreeRADIUS servers to reload their configuration
      */
-    private function setReloadFlag()
+    public function getServers()
     {
-        try {
-            $stmt = $this->db->prepare("UPDATE radius_server_config SET needs_reload = TRUE");
-            $stmt->execute();
-            error_log("Set needs_reload flag for all RADIUS servers");
-        } catch (\PDOException $e) {
-            error_log("Failed to set reload flag: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Clear reload flag for a specific server
-     * Called by FreeRADIUS server after successful reload
-     */
-    public function clearReloadFlag($serverId)
-    {
-        try {
-            $stmt = $this->db->prepare("UPDATE radius_server_config SET needs_reload = FALSE WHERE id = ?");
-            $stmt->execute([$serverId]);
-            error_log("Cleared needs_reload flag for server ID: $serverId");
-            return true;
-        } catch (\PDOException $e) {
-            error_log("Failed to clear reload flag: " . $e->getMessage());
-            return false;
-        }
+        return $this->servers;
     }
 }
