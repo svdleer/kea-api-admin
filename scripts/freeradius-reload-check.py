@@ -22,11 +22,14 @@ except ImportError:
     print("mysql-connector-python not found, attempting to install...")
     import subprocess
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "mysql-connector-python"])
+        # Use apt to install system package (works on Ubuntu/Debian)
+        subprocess.check_call(["apt", "install", "-y", "python3-mysql.connector"], 
+                            stderr=subprocess.DEVNULL, 
+                            stdout=subprocess.DEVNULL)
         import mysql.connector
-        print("mysql-connector-python installed successfully")
+        print("python3-mysql.connector installed successfully via apt")
     except Exception as e:
-        print(f"Failed to install mysql-connector-python: {e}")
+        print(f"Failed to install python3-mysql.connector via apt: {e}")
         print("Please install manually: sudo apt install python3-mysql.connector")
         sys.exit(1)
 
