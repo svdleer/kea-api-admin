@@ -132,7 +132,7 @@ ob_start();
                 <tr>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Hostname</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">BVI Count</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Actions</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -151,8 +151,8 @@ ob_start();
                                         }
                                         ?>
                                     </td>
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm">
-                                        <div class="flex space-x-2">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-right">
+                                        <div class="flex space-x-2 justify-end">
                                             <a href="/switches/edit/<?php echo htmlspecialchars($switch['id']); ?>"     
                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
                                                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
