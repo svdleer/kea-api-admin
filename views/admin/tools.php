@@ -699,22 +699,6 @@ async function importKeaReservations() {
     }
 }
 
-                        <p class="mb-2 text-red-600">${result.message}</p>
-                        <div class="text-xs text-left bg-gray-50 p-3 rounded overflow-auto max-h-64">
-                            <pre class="whitespace-pre-wrap">${result.error || 'Unknown error'}</pre>
-                        </div>
-                    `,
-                    icon: 'error',
-                    width: '600px',
-                    confirmButtonColor: '#DC2626'
-                });
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Failed to import reservations: ' + error.message, 'error');
-        }
-    }
-}
-
 async function listReservations() {
     try {
         Swal.fire({
