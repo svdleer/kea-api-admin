@@ -283,13 +283,13 @@ class AdminController
         }
         
         // Import mode - apply custom hostnames and import to Kea
-        $stmt = $this->db->query("SELECT id, name, api_url FROM kea_servers WHERE status = 'active'");
+        $stmt = $this->db->query("SELECT id, name, api_url FROM kea_servers");
         $keaServers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         if (empty($keaServers)) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'No active Kea servers found'
+                'message' => 'No Kea servers found'
             ], 500);
             return;
         }
