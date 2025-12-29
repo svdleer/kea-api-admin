@@ -131,13 +131,20 @@ class DashboardController
                 }
             }
             
-            // Get reservations count from Kea database (hosts table)
+            // Get reservations count from Kea API
+            $totalReservations = 0;
             try {
-                $stmt = $this->db->query("SELECT COUNT(*) as total FROM hosts");
-                $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $totalReservations = $result ? intval($result['total']) : 0;
+                $keaModel = new \App\Models\KeaModel();
+                $response = $keaModel->sendKeaCommand('reservation-get-all', ['subnets' => []]);
+                $result = json_decode($response, true);
+                
+                if (isset($result[0]['arguments']['hosts']) && is_array($result[0]['arguments']['hosts'])) {
+                    $totalReservations = count($result[0]['arguments']['hosts']);
+                }
+                
+                error_log("Reservations from Kea API: $totalReservations");
             } catch (\Exception $e) {
-                error_log("Could not count hosts from Kea DB: " . $e->getMessage());
+                error_log("Could not get reservations from Kea API: " . $e->getMessage());
             }
             
             error_log("Kea stats - Subnets: $totalSubnets, Total leases: $totalLeases, Assigned: $assignedLeases, Reservations: $totalReservations");
