@@ -122,38 +122,38 @@ ob_start();
             </div>
         </div>
 
-        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <table class="min-w-full leading-normal">
-                <thead>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Interface Number
                         </th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             IPv6 Address
                         </th>
-                        <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($bviInterfaces)): ?>
                         <tr>
-                            <td colspan="3" class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
+                            <td colspan="3" class="px-6 py-4 text-sm text-center text-gray-500">
                                 No BVI interfaces found
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($bviInterfaces as $bvi): ?>
                             <tr>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     BVI<?php echo 100 + intval($bvi['interface_number']); ?>
                                 </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?php echo htmlspecialchars($bvi['ipv6_address']); ?>
                                 </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
                                     <div class="flex space-x-2">
                                         <button onclick="editBvi(<?php echo htmlspecialchars($bvi['id']); ?>)" 
                                                 class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">
