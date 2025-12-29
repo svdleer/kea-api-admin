@@ -101,7 +101,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
     </div>
 
     <!-- NAS Statistics -->
-    <div class="bg-white shadow overflow-hidden w-fit sm:rounded-lg mb-8">
+    <div class="bg-white shadow overflow-hidden w-fit mx-auto sm:rounded-lg mb-8">
         <div class="px-4 py-5 sm:px-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900">
                 Authentication Summary by NAS
@@ -177,7 +177,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
     </div>
 
     <!-- Recent Authentication Logs -->
-    <div class="bg-white shadow overflow-hidden w-fit sm:rounded-lg">
+    <div class="bg-white shadow overflow-hidden w-fit mx-auto sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900">
                 Recent Authentication Attempts

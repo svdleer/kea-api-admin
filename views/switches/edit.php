@@ -121,7 +121,7 @@ ob_start();
             <?php if (empty($bviInterfaces)): ?>
                 <p class="text-gray-600">No BVI interfaces found.</p>
             <?php else: ?>
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden w-fit">
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden w-fit mx-auto">
                     <table class="w-auto">
                         <thead class="bg-gray-50">
                             <tr>
