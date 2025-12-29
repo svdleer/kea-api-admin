@@ -1441,16 +1441,28 @@ function displayKeaConfigBackups(backups) {
     html += '<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>';
     html += '</tr></thead><tbody class="bg-white divide-y divide-gray-200">';
 
-    backups.forEach(backup => {
+    backups.forEach((backup, index) => {
         html += '<tr>';
         html += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${backup.id}</td>`;
-        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.server_name || 'Unknown'}</td>`;
-        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.operation}</td>`;
-        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_by}</td>`;
-        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_at}</td>`;
-        html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
-        html += `<button onclick="viewKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-blue-600 hover:text-blue-900 mr-3">View</button>`;
-        html += `<button onclick="restoreKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-green-600 hover:text-green-900">Restore</button>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${backup.server_name || 'Unknown'}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${backup.operation}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${backup.created_by}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${backup.created_at}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-right">`;
+        html += `<div class="flex space-x-2 justify-end">`;
+        html += `<button onclick="viewKeaConfigBackup(${backup.id}, '${backup.operation}')" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">`;
+        html += `<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>`;
+        html += `View</button>`;
+        if (index < backups.length - 1) {
+            const previousBackupId = backups[index + 1].id;
+            html += `<button onclick="diffKeaConfigBackup(${backup.id}, ${previousBackupId})" class="inline-flex items-center px-3 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700">`;
+            html += `<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>`;
+            html += `Diff</button>`;
+        }
+        html += `<button onclick="restoreKeaConfigBackup(${backup.id}, '${backup.operation}')" class="inline-flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700">`;
+        html += `<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>`;
+        html += `Restore</button>`;
+        html += `</div>`;
         html += `</td></tr>`;
     });
 
@@ -1538,6 +1550,66 @@ async function viewKeaConfigBackup(backupId, operation) {
         }
     } catch (error) {
         Swal.fire('Error!', 'Failed to load backup: ' + error.message, 'error');
+    }
+}
+
+async function diffKeaConfigBackup(backupId, previousBackupId) {
+    try {
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Comparing backups',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const [response1, response2] = await Promise.all([
+            fetch(`/api/admin/kea-config-backups/view/${backupId}`),
+            fetch(`/api/admin/kea-config-backups/view/${previousBackupId}`)
+        ]);
+        
+        const data1 = await response1.json();
+        const data2 = await response2.json();
+        
+        if (data1.success && data2.success) {
+            const config1 = JSON.stringify(data1.config, null, 2);
+            const config2 = JSON.stringify(data2.config, null, 2);
+            
+            // Simple line-by-line diff
+            const lines1 = config1.split('\n');
+            const lines2 = config2.split('\n');
+            const maxLines = Math.max(lines1.length, lines2.length);
+            
+            let diffHtml = '<div class="grid grid-cols-2 gap-2 text-xs">';
+            diffHtml += '<div><strong>Backup #' + previousBackupId + ' (Previous)</strong></div>';
+            diffHtml += '<div><strong>Backup #' + backupId + ' (Current)</strong></div>';
+            
+            for (let i = 0; i < maxLines; i++) {
+                const line1 = lines1[i] || '';
+                const line2 = lines2[i] || '';
+                
+                if (line1 !== line2) {
+                    diffHtml += `<div class="bg-red-50 p-1 font-mono">${line1 || '&nbsp;'}</div>`;
+                    diffHtml += `<div class="bg-green-50 p-1 font-mono">${line2 || '&nbsp;'}</div>`;
+                } else {
+                    diffHtml += `<div class="p-1 font-mono text-gray-400">${line1}</div>`;
+                    diffHtml += `<div class="p-1 font-mono text-gray-400">${line2}</div>`;
+                }
+            }
+            diffHtml += '</div>';
+            
+            Swal.fire({
+                title: `Diff: #${previousBackupId} → #${backupId}`,
+                html: `<div class="text-left overflow-auto max-h-96">${diffHtml}</div>`,
+                width: '90%',
+                confirmButtonText: 'Close'
+            });
+        } else {
+            Swal.fire('Error!', 'Failed to load backups for comparison', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error!', 'Failed to compare backups: ' + error.message, 'error');
     }
 }
 
