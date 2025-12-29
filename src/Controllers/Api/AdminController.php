@@ -133,24 +133,48 @@ class AdminController
         $file = $_FILES['config'];
         $tmpPath = $file['tmp_name'];
         
+        $extractHostnames = isset($_POST['extract_hostnames']) && $_POST['extract_hostnames'] === '1';
+        $previewOnly = isset($_POST['preview']) && $_POST['preview'] === '1';
+        $hostnamesJson = $_POST['hostnames'] ?? null;
+        
         error_log("Importing reservations from file: " . $file['name']);
+        error_log("Extract hostnames: " . ($extractHostnames ? 'yes' : 'no'));
+        error_log("Preview only: " . ($previewOnly ? 'yes' : 'no'));
 
         // Call the import script
         $scriptPath = BASE_PATH . '/scripts/import_kea_reservations.php';
         $output = [];
         $returnCode = 0;
 
-        $command = "php $scriptPath " . escapeshellarg($tmpPath) . " 2>&1";
+        $command = "php $scriptPath " . escapeshellarg($tmpPath);
+        if ($extractHostnames) {
+            $command .= " --extract-hostnames";
+        }
+        if ($previewOnly) {
+            $command .= " --preview";
+        }
+        if ($hostnamesJson) {
+            $command .= " --hostnames=" . escapeshellarg($hostnamesJson);
+        }
+        $command .= " 2>&1";
+        
         error_log("Executing: $command");
         
         exec($command, $output, $returnCode);
         
         $outputText = implode("\n", $output);
         error_log("Return code: $returnCode");
-        error_log("Output: " . $outputText);
+        error_log("Output: " . substr($outputText, 0, 500));
 
         if ($returnCode === 0) {
-            // Parse stats from output
+            // Check if output is JSON (preview mode)
+            $jsonData = json_decode($outputText, true);
+            if ($jsonData !== null) {
+                $this->jsonResponse($jsonData);
+                return;
+            }
+            
+            // Parse stats from output (import mode)
             preg_match('/Total reservations found:\s*(\d+)/', $outputText, $totalMatch);
             preg_match('/Added \(new\):\s*([\d.]+)/', $outputText, $addedMatch);
             preg_match('/Updated \(existing\):\s*([\d.]+)/', $outputText, $updatedMatch);

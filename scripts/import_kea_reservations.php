@@ -11,10 +11,21 @@ use App\Database\Database;
 
 // Get command line arguments
 $configFile = $argv[1] ?? null;
+$extractHostnames = in_array('--extract-hostnames', $argv);
+$previewOnly = in_array('--preview', $argv);
+$hostnamesJson = null;
+
+// Check for --hostnames=<json> argument
+foreach ($argv as $arg) {
+    if (strpos($arg, '--hostnames=') === 0) {
+        $hostnamesJson = substr($arg, strlen('--hostnames='));
+        break;
+    }
+}
 
 if (!$configFile) {
-    echo "Usage: php import_kea_reservations.php <path-to-kea-dhcp6.conf>\n";
-    echo "Example: php import_kea_reservations.php /etc/kea/kea-dhcp6.conf\n";
+    echo "Usage: php import_kea_reservations.php <path-to-kea-dhcp6.conf> [--extract-hostnames] [--preview] [--hostnames=<json>]\n";
+    echo "Example: php import_kea_reservations.php /etc/kea/kea-dhcp6.conf --extract-hostnames --preview\n";
     exit(1);
 }
 
@@ -27,6 +38,44 @@ echo "Reading Kea config from: {$configFile}\n\n";
 
 // Read and parse the config file
 $configContent = file_get_contents($configFile);
+
+// Extract hostname comments BEFORE cleaning (if enabled)
+$hostnameMap = [];
+if ($extractHostnames) {
+    echo "Extracting hostnames from comments...\n";
+    $lines = explode("\n", $configContent);
+    $currentComment = '';
+    
+    foreach ($lines as $line) {
+        // Collect comment lines
+        if (preg_match('/^\s*#(.*)$/', $line, $matches)) {
+            $currentComment .= trim($matches[1]) . ' ';
+        } 
+        // When we hit a line with MAC address, save the comment
+        else if (preg_match('/"hw-address"\s*:\s*"([0-9a-f:]+)"/i', $line, $macMatch)) {
+            if (!empty(trim($currentComment))) {
+                $mac = strtolower($macMatch[1]);
+                $hostname = trim($currentComment);
+                
+                // Try to extract MAC from comment in various formats
+                // Format: xxxx.xxxx.xxxx -> convert to xx:xx:xx:xx:xx:xx
+                if (preg_match('/\b([0-9a-f]{4})\.([0-9a-f]{4})\.([0-9a-f]{4})\b/i', $hostname, $m)) {
+                    // This MAC is in the comment, store it
+                    $hostnameMap[$mac] = $hostname;
+                } else {
+                    // No MAC in comment, just store as-is
+                    $hostnameMap[$mac] = $hostname;
+                }
+            }
+            $currentComment = '';
+        }
+        // Non-comment, non-MAC line resets the comment buffer
+        else if (!preg_match('/^\s*$/', $line)) {
+            $currentComment = '';
+        }
+    }
+    echo "Found " . count($hostnameMap) . " hostname comments\n";
+}
 
 // Clean JSON - remove comments and fix common issues
 echo "Cleaning JSON syntax...\n";
@@ -74,6 +123,53 @@ $addedCount = 0;
 $updatedCount = 0;
 $errorCount = 0;
 
+// Parse custom hostnames if provided
+$customHostnames = [];
+if ($hostnamesJson) {
+    $customHostnames = json_decode($hostnamesJson, true);
+    if (!is_array($customHostnames)) {
+        $customHostnames = [];
+    }
+}
+
+// Preview mode - collect all reservations with hostnames
+if ($previewOnly) {
+    $previewData = [
+        'success' => true,
+        'total_reservations' => 0,
+        'reservations' => []
+    ];
+    
+    $reservationIndex = 0;
+    foreach ($subnets as $subnet) {
+        $reservations = $subnet['reservations'] ?? [];
+        foreach ($reservations as $reservation) {
+            $hwAddress = $reservation['hw-address'] ?? null;
+            $ipAddress = ($reservation['ip-addresses'] ?? [])[0] ?? null;
+            
+            // Try to find hostname from map or custom hostnames
+            $hostname = '';
+            if (isset($customHostnames[$reservationIndex])) {
+                $hostname = $customHostnames[$reservationIndex];
+            } else if ($hwAddress && isset($hostnameMap[strtolower($hwAddress)])) {
+                $hostname = $hostnameMap[strtolower($hwAddress)];
+            }
+            
+            $previewData['reservations'][] = [
+                'hw_address' => $hwAddress,
+                'ip_address' => $ipAddress,
+                'hostname' => $hostname
+            ];
+            
+            $reservationIndex++;
+            $previewData['total_reservations']++;
+        }
+    }
+    
+    echo json_encode($previewData);
+    exit(0);
+}
+
 foreach ($subnets as $subnet) {
     $subnetId = $subnet['id'];
     $subnetPrefix = $subnet['subnet'];
@@ -86,6 +182,7 @@ foreach ($subnets as $subnet) {
     echo "\n=== Subnet {$subnetId} ({$subnetPrefix}) ===\n";
     echo "Found " . count($reservations) . " reservation(s)\n";
     
+    $reservationIndex = 0;
     foreach ($reservations as $reservation) {
         $totalReservations++;
         
@@ -102,6 +199,18 @@ foreach ($subnets as $subnet) {
         if (isset($reservation['hw-address'])) {
             $hwAddress = $reservation['hw-address'];
         }
+        
+        // Get hostname from custom hostnames, hostname map, or original
+        $hostname = null;
+        if (isset($customHostnames[$reservationIndex])) {
+            $hostname = $customHostnames[$reservationIndex];
+        } else if ($hwAddress && isset($hostnameMap[strtolower($hwAddress)])) {
+            $hostname = $hostnameMap[strtolower($hwAddress)];
+        } else if (isset($reservation['hostname'])) {
+            $hostname = $reservation['hostname'];
+        }
+        
+        $reservationIndex++;
         
         // Get IP addresses
         $ipAddresses = $reservation['ip-addresses'] ?? [];
@@ -124,8 +233,8 @@ foreach ($subnets as $subnet) {
             if ($hwAddress) {
                 $reservationData['hw-address'] = $hwAddress;
             }
-            if (isset($reservation['hostname'])) {
-                $reservationData['hostname'] = $reservation['hostname'];
+            if ($hostname) {
+                $reservationData['hostname'] = $hostname;
             }
             if (isset($reservation['option-data']) && !empty($reservation['option-data'])) {
                 $reservationData['option-data'] = $reservation['option-data'];
@@ -134,6 +243,7 @@ foreach ($subnets as $subnet) {
             echo "  → Importing reservation: {$ipAddress}";
             if ($duid) echo " (DUID: {$duid})";
             if ($hwAddress) echo " (MAC: {$hwAddress})";
+            if ($hostname) echo " (Hostname: {$hostname})";
             echo "\n";
 
             // Send to all Kea servers

@@ -484,7 +484,7 @@ async function importKeaConfig() {
 }
 
 async function importKeaReservations() {
-    const { value: file } = await Swal.fire({
+    const { value: formData } = await Swal.fire({
         title: 'Import Kea Reservations',
         html: `
             <p class="text-sm text-gray-600 mb-4">Upload your kea-dhcp6.conf file to import static DHCP reservations</p>
@@ -497,77 +497,208 @@ async function importKeaReservations() {
                     <li>Skips duplicates automatically</li>
                 </ul>
             </div>
-            <input type="file" id="keaReservationFile" accept=".conf,.json" class="block w-full text-sm text-gray-500
+            <input type="file" id="keaReservationFile" accept=".conf,.json" class="block w-full text-sm text-gray-500 mb-3
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-md file:border-0
                 file:text-sm file:font-semibold
                 file:bg-indigo-50 file:text-indigo-700
                 hover:file:bg-indigo-100"/>
+            <div class="mt-3 flex items-start">
+                <input type="checkbox" id="extractHostnames" class="mt-1" checked />
+                <label for="extractHostnames" class="ml-2 text-sm text-gray-700">
+                    Extract hostnames from comments<br>
+                    <span class="text-xs text-gray-500">Comments above reservations will be used as hostnames</span>
+                </label>
+            </div>
         `,
         showCancelButton: true,
         confirmButtonColor: '#4F46E5',
-        confirmButtonText: 'Import Reservations',
+        confirmButtonText: 'Next: Review Hostnames',
         width: '600px',
         preConfirm: () => {
             const file = document.getElementById('keaReservationFile').files[0];
             if (!file) {
                 Swal.showValidationMessage('Please select a file');
             }
-            return file;
+            const extractHostnames = document.getElementById('extractHostnames').checked;
+            return { file, extractHostnames };
         }
     });
 
-    if (file) {
-        const formData = new FormData();
-        formData.append('config', file);
+    if (formData) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('config', formData.file);
+        uploadFormData.append('extract_hostnames', formData.extractHostnames ? '1' : '0');
+        uploadFormData.append('preview', '1');
 
         try {
+            // Step 1: Get preview with hostname suggestions
             Swal.fire({
-                title: 'Importing Reservations...',
-                html: 'Processing configuration file and adding reservations to Kea<br><small class="text-gray-600">This may take a while...</small>',
+                title: 'Analyzing File...',
+                html: 'Reading reservations and extracting hostnames',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
 
-            const response = await fetch('/api/admin/import/kea-reservations', {
+            const previewResponse = await fetch('/api/admin/import/kea-reservations', {
                 method: 'POST',
-                body: formData
+                body: uploadFormData
             });
 
-            const result = await response.json();
+            const previewResult = await previewResponse.json();
 
-            if (result.success) {
-                Swal.fire({
-                    title: 'Import Complete!',
-                    html: `
-                        <p class="mb-3">${result.message}</p>
-                        <div class="text-sm text-left bg-gray-50 p-4 rounded space-y-2">
-                            <div class="flex justify-between text-green-600">
-                                <span>Added (new):</span>
-                                <strong>${result.stats.reservations.imported || 0}</strong>
-                            </div>
-                            <div class="flex justify-between text-blue-600">
-                                <span>Updated (existing):</span>
-                                <strong>${result.stats.reservations.updated || 0}</strong>
-                            </div>
-                        </div>
-                        ${result.details ? `
-                            <details class="mt-3 text-left">
-                                <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">Show Details</summary>
-                                <pre class="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto max-h-64 whitespace-pre-wrap">${result.details}</pre>
-                            </details>
-                        ` : ''}
-                    `,
-                    icon: 'success',
-                    confirmButtonColor: '#4F46E5',
-                    width: '600px'
+            if (!previewResult.success) {
+                Swal.fire('Error', previewResult.message || 'Failed to analyze file', 'error');
+                return;
+            }
+
+            // Step 2: Show preview with hostname editing
+            if (formData.extractHostnames && previewResult.reservations) {
+                let tableHTML = `
+                    <div class="text-left mb-3">
+                        <p class="text-sm text-gray-600">Found ${previewResult.total_reservations} reservations. Edit hostnames below:</p>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto border rounded">
+                        <table class="w-full text-xs">
+                            <thead class="sticky top-0 bg-gray-100">
+                                <tr>
+                                    <th class="p-2 border text-left">MAC Address</th>
+                                    <th class="p-2 border text-left">IP Address</th>
+                                    <th class="p-2 border text-left">Hostname</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                previewResult.reservations.forEach((res, idx) => {
+                    tableHTML += `<tr>`;
+                    tableHTML += `<td class="p-2 border text-xs">${res.hw_address || '-'}</td>`;
+                    tableHTML += `<td class="p-2 border text-xs">${res.ip_address || '-'}</td>`;
+                    tableHTML += `<td class="p-2 border">`;
+                    tableHTML += `<input type="text" class="hostname-input w-full p-1 text-xs border rounded" data-idx="${idx}" value="${res.hostname || ''}" placeholder="Enter hostname..." />`;
+                    tableHTML += `</td></tr>`;
                 });
-            } else {
+                
+                tableHTML += `</tbody></table></div>`;
+                
+                const { value: confirmed } = await Swal.fire({
+                    title: 'Review Hostnames',
+                    html: tableHTML,
+                    width: '900px',
+                    showCancelButton: true,
+                    confirmButtonText: 'Import with Hostnames',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#4F46E5',
+                    allowEnterKey: false,
+                    preConfirm: () => {
+                        const hostnames = [];
+                        document.querySelectorAll('.hostname-input').forEach(input => {
+                            hostnames.push(input.value);
+                        });
+                        return hostnames;
+                    }
+                });
+                
+                if (!confirmed) return;
+                
+                // Step 3: Import with edited hostnames
+                const importFormData = new FormData();
+                importFormData.append('config', formData.file);
+                importFormData.append('extract_hostnames', '1');
+                importFormData.append('hostnames', JSON.stringify(confirmed));
+                
                 Swal.fire({
-                    title: 'Import Failed',
-                    html: `
+                    title: 'Importing Reservations...',
+                    html: 'Adding reservations with hostnames to Kea<br><small class="text-gray-600">This may take a while...</small>',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const response = await fetch('/api/admin/import/kea-reservations', {
+                    method: 'POST',
+                    body: importFormData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        title: 'Import Complete!',
+                        html: `
+                            <p class="mb-3">${result.message}</p>
+                            <div class="text-sm text-left bg-gray-50 p-4 rounded space-y-2">
+                                <div class="flex justify-between text-green-600">
+                                    <span>Added (new):</span>
+                                    <strong>${result.stats.reservations.imported || 0}</strong>
+                                </div>
+                                <div class="flex justify-between text-blue-600">
+                                    <span>Updated (existing):</span>
+                                    <strong>${result.stats.reservations.updated || 0}</strong>
+                                </div>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonColor: '#4F46E5',
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire('Error', result.message || 'Import failed', 'error');
+                }
+            } else {
+                // Import without hostnames - skip review
+                const importFormData = new FormData();
+                importFormData.append('config', formData.file);
+                
+                Swal.fire({
+                    title: 'Importing Reservations...',
+                    html: 'Adding reservations to Kea<br><small class="text-gray-600">This may take a while...</small>',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const response = await fetch('/api/admin/import/kea-reservations', {
+                    method: 'POST',
+                    body: importFormData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        title: 'Import Complete!',
+                        html: `
+                            <p class="mb-3">${result.message}</p>
+                            <div class="text-sm text-left bg-gray-50 p-4 rounded space-y-2">
+                                <div class="flex justify-between text-green-600">
+                                    <span>Added (new):</span>
+                                    <strong>${result.stats.reservations.imported || 0}</strong>
+                                </div>
+                                <div class="flex justify-between text-blue-600">
+                                    <span>Updated (existing):</span>
+                                    <strong>${result.stats.reservations.updated || 0}</strong>
+                                </div>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonColor: '#4F46E5',
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire('Error', result.message || 'Import failed', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            Swal.fire('Error', 'Failed to import reservations: ' + error.message, 'error');
+        }
+    }
+}
+
                         <p class="mb-2 text-red-600">${result.message}</p>
                         <div class="text-xs text-left bg-gray-50 p-3 rounded overflow-auto max-h-64">
                             <pre class="whitespace-pre-wrap">${result.error || 'Unknown error'}</pre>
