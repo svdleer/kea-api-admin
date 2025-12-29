@@ -149,14 +149,14 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </p>
                 <div class="mt-6 flex justify-center gap-3">
                     <a href="/bvi" 
-                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                       class="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                         Add BVI Interface
                     </a>
                     <a href="/admin/import-wizard" 
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                       class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
@@ -180,20 +180,20 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($switches as $switch): ?>
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                                 <?= htmlspecialchars($switch['hostname'] ?? '') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                                 <?= isset($switch['bvi_interface']) && $switch['bvi_interface'] !== '' ? 'BVI' . (100 + intval($switch['bvi_interface'])) : '' ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                                 <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
                                     <?= htmlspecialchars($switch['subnet']['subnet']) ?>
                                 <?php else: ?>
                                     <span class="text-gray-400">Not Configured</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-normal text-sm text-gray-500">
                                 <?php if (!empty($switch['subnet']) && is_array($switch['subnet']) && isset($switch['subnet']['pool'])): ?>
                                     <div class="flex flex-col">
                                         <span class="mb-1"><?= htmlspecialchars($switch['subnet']['pool']['start']) ?></span>
@@ -205,14 +205,14 @@ require BASE_PATH . '/views/dhcp-menu.php';
                             </td>
 
 
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                                 <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
                                     <?= htmlspecialchars($switch['subnet']['ccap_core'] ?? 'Not set') ?>
                                 <?php else: ?>
                                     <span class="text-gray-400">Not configured</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end space-x-2">
                                     <?php if (!empty($switch['subnet']) && is_array($switch['subnet'])): ?>
                                         <button onclick="showEditSubnetModal('<?= htmlspecialchars(json_encode($switch['subnet']), ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars($switch['ipv6_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>')"
@@ -315,10 +315,10 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($orphanedSubnets as $orphan): ?>
                         <tr class="bg-red-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
                                 <?= htmlspecialchars($orphan['subnet'] ?? 'N/A') ?>
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-900">
+                            <td class="px-8 py-5 text-sm text-gray-900">
                                 <?php if (!empty($orphan['pools'])): ?>
                                     <?php foreach ($orphan['pools'] as $pool): ?>
                                         <div><?= htmlspecialchars($pool['pool'] ?? 'N/A') ?></div>
@@ -327,7 +327,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                     No pools
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                 <button onclick="linkOrphanedSubnet('<?= $orphan['id'] ?>', '<?= htmlspecialchars($orphan['subnet'], ENT_QUOTES, 'UTF-8') ?>')"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                     Link to BVI

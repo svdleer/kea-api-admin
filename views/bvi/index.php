@@ -24,7 +24,7 @@ ob_start();
             <p class="text-gray-600 mt-1">Manage all BVI interfaces across all switches</p>
         </div>
         <button onclick="showCreateModal()" 
-                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                class="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -61,16 +61,16 @@ ob_start();
         <table class="w-auto divide-y divide-gray-200 table-fixed">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                         Switch Name
                     </th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                         BVI Interface
                     </th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
                         IPv6 Address
                     </th>
-                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                         Actions
                     </th>
                 </tr>
@@ -90,7 +90,7 @@ ob_start();
         <p class="mt-1 text-sm text-gray-500">Create one to get started.</p>
         <div class="mt-6">
             <button onclick="openCreateModal()" 
-                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    class="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -128,11 +128,11 @@ ob_start();
 
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" onclick="closeCreateModal()"
-                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                         Cancel
                     </button>
                     <button type="submit" id="createBtn"
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                            class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                         Create
                     </button>
                 </div>
@@ -211,16 +211,16 @@ function displayBviData(bviInterfaces) {
     bviInterfaces.forEach(bvi => {
         const row = `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(bvi.switch_hostname)}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
                     BVI${100 + parseInt(bvi.interface_number)}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(bvi.ipv6_address)}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-right text-sm">
+                <td class="px-6 py-3 whitespace-nowrap text-right text-sm">
                     <div class="flex justify-end space-x-2">
                         <a href="/switches/${bvi.switch_id}/bvi/${bvi.bvi_id}/edit" 
                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">

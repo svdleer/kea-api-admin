@@ -70,13 +70,13 @@ ob_start();
 
             <div class="flex justify-end space-x-4 pt-6 border-t">
                 <a href="/switches" 
-                   class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                   class="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Cancel
                 </a>
                 <button type="submit" 
                         id="submitButton"
                         disabled
-                        class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                     Add CIN Switch
                 </button>
             </div>

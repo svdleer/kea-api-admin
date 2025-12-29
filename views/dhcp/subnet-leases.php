@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showLoading(tableBody) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-6 py-4 text-center">
+                <td colspan="6" class="px-8 py-5 text-center">
                     <div class="flex justify-center items-center">
                         <svg class="animate-spin h-5 w-5 text-blue-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showError(tableBody, message) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-6 py-4 text-center">
+                <td colspan="6" class="px-8 py-5 text-center">
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
                         <strong class="font-bold">Error!</strong>
                         <span class="block sm:inline"> ${message}</span>
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!subnets || subnets.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                    <td colspan="6" class="px-8 py-5 text-center text-gray-500">
                         No subnets configured
                     </td>
                 </tr>
@@ -124,25 +124,25 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                     ${escapeHtml(subnet.switch_hostname || 'N/A')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                     ${escapeHtml(bviNumber)}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                     ${escapeHtml(subnet.ipv6_address || 'N/A')}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                     ${escapeHtml(subnet.subnet || 'N/A')}
                 </td>
-                <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                <td class="px-8 py-5 whitespace-normal text-sm text-gray-500">
                     <div class="flex flex-col">
                         <span class="mb-1">${escapeHtml(poolStart)}</span>
                         <span>${escapeHtml(poolEnd)}</span>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                     <a href="/dhcp/subnet/${subnet.id}/leases" 
                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                         View Leases
@@ -196,12 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
         pagination.innerHTML = `
             <div class="flex-1 flex justify-between items-center">
                 <button onclick="loadPreviousPage()" 
-                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${lastFromAddress === 'start' ? 'opacity-50 cursor-not-allowed' : ''}"
+                        class="relative inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${lastFromAddress === 'start' ? 'opacity-50 cursor-not-allowed' : ''}"
                         ${lastFromAddress === 'start' ? 'disabled' : ''}>
                     Previous
                 </button>
                 <button onclick="loadNextPage()" 
-                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${!hasNextPage ? 'opacity-50 cursor-not-allowed' : ''}"
+                        class="ml-3 relative inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${!hasNextPage ? 'opacity-50 cursor-not-allowed' : ''}"
                         ${!hasNextPage ? 'disabled' : ''}>
                     Next
                 </button>

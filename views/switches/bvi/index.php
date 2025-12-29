@@ -59,7 +59,7 @@ ob_start();
                 ← Back to Switches
             </a>
             <a href="/switches/<?php echo htmlspecialchars($switchId); ?>/bvi/add" 
-               class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+               class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 Add BVI Interface
             </a>
         </div>
@@ -105,7 +105,7 @@ ob_start();
     <div id="noDataMessage" class="hidden text-center py-8">
         <p class="text-gray-500 text-lg">No BVI interfaces found for this switch.</p>
         <a href="/switches/<?php echo htmlspecialchars($switchId); ?>/bvi/add" 
-           class="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+           class="inline-block mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
             Add BVI Interface
         </a>
     </div>
@@ -157,13 +157,13 @@ $(document).ready(function() {
                 data.data.forEach(bvi => {
                     bviTableBody.append(`
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
                                 BVI${bvi.interface_number}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
                                 ${bvi.ipv6_address}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-right">
                                 <div class="flex space-x-2 justify-end">
                                     <a href="/switches/${switchId}/bvi/${bvi.id}/edit" 
                                        class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">

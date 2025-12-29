@@ -120,12 +120,12 @@ ob_start();
 
                 <div class="flex justify-end space-x-4">
                     <a href="/switches/edit/<?php echo htmlspecialchars($switchId); ?>" 
-                       class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                       class="px-6 py-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
                         Cancel
                     </a>
                     <button type="submit" 
                             id="submitButton" 
-                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled>
                         Update BVI Interface
                     </button>

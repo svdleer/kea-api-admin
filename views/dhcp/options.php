@@ -75,7 +75,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 <!-- Create Modal -->
  <!-- Error Message Container -->
-<div id="errorMessage" class="hidden fixed bottom-0 right-0 mb-4 mr-4 bg-red-500 text-white px-6 py-4 rounded-lg">
+<div id="errorMessage" class="hidden fixed bottom-0 right-0 mb-4 mr-4 bg-red-500 text-white px-8 py-5 rounded-lg">
 </div>
 
 <div id="createModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
@@ -144,11 +144,11 @@ require BASE_PATH . '/views/dhcp-menu.php';
             </div>
             <div class="flex justify-end">
                 <button type="button" onclick="closeCreateModal()"
-                        class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 focus:outline-none focus:shadow-outline">
+                        class="mr-2 px-6 py-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 focus:outline-none focus:shadow-outline">
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline">
+                        class="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline">
                     Save
                 </button>
             </div>
@@ -353,11 +353,11 @@ function openCreateModal(optionDef) {
                 </div>
                 <div class="flex justify-end">
                     <button type="button" onclick="closeCreateModal()" 
-                            class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            class="mr-2 px-6 py-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
                         Cancel
                     </button>
                     <button type="submit" 
-                        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline">
+                        class="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline">
                         Save
                     </button>
                 </div>
@@ -579,12 +579,12 @@ function updateOptionsTable(options) {
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${definition.code || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${definition.name || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${definition.type || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${definition.space || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${option.option ? option.option.data : 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${definition.code || 'N/A'}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${definition.name || 'N/A'}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${definition.type || 'N/A'}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${definition.space || 'N/A'}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${option.option ? option.option.data : 'N/A'}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm">
                 <div class="flex space-x-2">
                 ${option.option ? `
                     <button onclick='openEditModal(${JSON.stringify(option).replace(/'/g, "&#39;").replace(/"/g, "&quot;")})'
@@ -687,11 +687,11 @@ function openEditModal(option) {
                 </div>
                 <div class="flex justify-end">
                     <button type="button" onclick="closeEditModal()" 
-                            class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            class="mr-2 px-6 py-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
                         Cancel
                     </button>
                     <button type="submit" id="saveButton"
-                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed">
                         Save
                     </button>
                 </div>

@@ -132,7 +132,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <p class="mt-1 text-sm text-gray-600">IPv6 subnets without BVI interface association</p>
             </div>
             <button onclick="showCreateDedicatedSubnetModal()" 
-                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    class="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -187,16 +187,16 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($dedicatedSubnets as $subnet): ?>
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
                                 <?= htmlspecialchars($subnet['name'] ?? 'Unnamed') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
                                 <?= htmlspecialchars($subnet['id'] ?? '') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
                                 <?= htmlspecialchars($subnet['subnet'] ?? '') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-normal text-sm text-gray-500">
                                 <?php if (isset($subnet['pool'])): ?>
                                     <div class="flex flex-col">
                                         <span class="mb-1"><?= htmlspecialchars($subnet['pool']['start']) ?></span>
@@ -206,13 +206,13 @@ require BASE_PATH . '/views/dhcp-menu.php';
                                     <span class="text-gray-400">Not configured</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                                 <?= htmlspecialchars($subnet['relay'] ?? '-') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
                                 <?= htmlspecialchars($subnet['ccap_core'] ?? 'Not set') ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end space-x-2">
                                     <button onclick='editDedicatedSubnet(<?= json_encode($subnet) ?>)'
                                             class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">

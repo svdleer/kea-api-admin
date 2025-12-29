@@ -169,13 +169,13 @@ ob_start();
                 <div class="flex justify-between items-center pt-4">
                     <button type="button" 
                             id="clearFilters"
-                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            class="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Clear Filters
                     </button>
                     <div class="flex space-x-3">
                         <button type="button" 
                                 id="exportResults"
-                                class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                class="px-6 py-3 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                             <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
@@ -492,12 +492,12 @@ function displayResults(leases, total, searchTime) {
             `Subnet ${lease.subnet_id}`;
         
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.address)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.duid ? lease.duid.substring(0, 20) + '...' : 'N/A')}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${switchBviText}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(lease.expire)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${leaseType}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm ${stateClass} font-medium">${stateText}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.address)}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.duid ? lease.duid.substring(0, 20) + '...' : 'N/A')}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${switchBviText}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${formatDate(lease.expire)}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${leaseType}</td>
+            <td class="px-8 py-5 whitespace-nowrap text-sm ${stateClass} font-medium">${stateText}</td>
         `;
         
         tbody.appendChild(row);
