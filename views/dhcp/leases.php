@@ -1608,6 +1608,9 @@ async function viewStaticLeases(subnetId) {
     let currentRow;
 
     try {
+        // Get the button that was clicked
+        const button = event.target.closest('button');
+        
         // Show loading state in the current row
         currentRow = event.target.closest('tr');
         const nextRow = currentRow.nextElementSibling;
@@ -1615,8 +1618,22 @@ async function viewStaticLeases(subnetId) {
         // If there's already a details row, remove it
         if (nextRow && nextRow.classList.contains('details-row')) {
             nextRow.remove();
+            button.innerHTML = `
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                View Reservations
+            `;
             return;
         }
+        
+        // Update button to show "Hide" state
+        button.innerHTML = `
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Hide Reservations
+        `;
 
         // Create and insert the details row
         detailsRow = document.createElement('tr');
