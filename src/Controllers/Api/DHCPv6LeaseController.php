@@ -243,17 +243,20 @@ class DHCPv6LeaseController
             }
 
             $options = isset($data['options']) ? $data['options'] : [];
+            $hostname = isset($data['hostname']) ? $data['hostname'] : null;
 
             error_log("About to update reservation with parameters:");
             error_log("IP Address: " . $data['ipAddress']);
             error_log("MAC Address: " . $data['hwAddress']);
             error_log("Subnet ID: " . $data['subnetId']);
+            error_log("Hostname: " . ($hostname ?? 'NONE'));
             
             $keaResponse = $this->leaseModel->updateReservation(
                 $data['ipAddress'],
                 $data['hwAddress'], 
                 $data['subnetId'], 
-                $options
+                $options,
+                $hostname
             );
             
             header('Content-Type: application/json');

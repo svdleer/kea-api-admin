@@ -307,7 +307,7 @@ class DHCPv6LeaseModel extends KEAModel
         }
     }
 
-    public function updateReservation($ipAddress, $hwAddress, $subnetId, $options)
+    public function updateReservation($ipAddress, $hwAddress, $subnetId, $options, $hostname = null)
     {
         if (!filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             throw new Exception('Invalid IPv6 address');
@@ -321,6 +321,11 @@ class DHCPv6LeaseModel extends KEAModel
                 'ip-addresses' => [$ipAddress]
             ]
         ];
+        
+        // Add hostname if provided
+        if (!empty($hostname)) {
+            $commandParams['reservation']['hostname'] = $hostname;
+        }
         
         // Add options if provided
         if (!empty($options)) {
