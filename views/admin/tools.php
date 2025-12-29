@@ -560,6 +560,8 @@ async function importKeaReservations() {
 
             // Step 2: Show preview with hostname editing
             if (formData.extractHostnames && previewResult.reservations) {
+                const allComments = previewResult.all_comments || [];
+                
                 let tableHTML = `
                     <div class="text-left mb-3">
                         <p class="text-sm text-gray-600">Found ${previewResult.total_reservations} reservations. Edit hostnames below:</p>
@@ -580,7 +582,24 @@ async function importKeaReservations() {
                     tableHTML += `<td class="p-2 border text-xs">${res.hw_address || '-'}</td>`;
                     tableHTML += `<td class="p-2 border text-xs">${res.ip_address || '-'}</td>`;
                     tableHTML += `<td class="p-2 border">`;
-                    tableHTML += `<input type="text" class="hostname-input w-full p-1 text-xs border rounded" data-idx="${idx}" value="${res.hostname || ''}" placeholder="Enter hostname..." />`;
+                    
+                    if (res.hostname) {
+                        // Has auto-matched hostname - show input
+                        tableHTML += `<input type="text" class="hostname-input w-full p-1 text-xs border rounded" data-idx="${idx}" value="${res.hostname}" placeholder="Enter hostname..." />`;
+                    } else if (allComments.length > 0) {
+                        // No match - show dropdown with all comments
+                        tableHTML += `<select class="hostname-input w-full p-1 text-xs border rounded" data-idx="${idx}">`;
+                        tableHTML += `<option value="">-- Select comment or type below --</option>`;
+                        allComments.forEach(comment => {
+                            tableHTML += `<option value="${comment.replace(/"/g, '&quot;')}">${comment}</option>`;
+                        });
+                        tableHTML += `</select>`;
+                        tableHTML += `<input type="text" class="hostname-manual-${idx} w-full p-1 text-xs border rounded mt-1" placeholder="Or enter manually..." />`;
+                    } else {
+                        // No comments at all - just input
+                        tableHTML += `<input type="text" class="hostname-input w-full p-1 text-xs border rounded" data-idx="${idx}" value="" placeholder="Enter hostname..." />`;
+                    }
+                    
                     tableHTML += `</td></tr>`;
                 });
                 
@@ -597,8 +616,14 @@ async function importKeaReservations() {
                     allowEnterKey: false,
                     preConfirm: () => {
                         const hostnames = [];
-                        document.querySelectorAll('.hostname-input').forEach(input => {
-                            hostnames.push(input.value);
+                        document.querySelectorAll('.hostname-input').forEach((input, idx) => {
+                            let value = input.value;
+                            // Check if there's a manual input field for this index
+                            const manualInput = document.querySelector(`.hostname-manual-${idx}`);
+                            if (manualInput && manualInput.value) {
+                                value = manualInput.value;
+                            }
+                            hostnames.push(value);
                         });
                         return hostnames;
                     }

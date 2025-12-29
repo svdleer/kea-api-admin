@@ -190,15 +190,9 @@ class AdminController
                         $commentMac = $normalizeMac($m[0]);
                     }
                     
-                    // If MACs match, store the comment (without the MAC part)
+                    // Store the comment with MAC address kept intact
                     if ($commentMac && $reservationMac && $commentMac === $reservationMac) {
-                        // Remove the MAC from the comment to get clean hostname
-                        $hostname = $currentComment;
-                        $hostname = preg_replace('/\b([0-9a-f]{4})\.([0-9a-f]{4})\.([0-9a-f]{4})\b/i', '', $hostname);
-                        $hostname = preg_replace('/\b([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})\b/i', '', $hostname);
-                        $hostname = preg_replace('/\b([0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2})\b/i', '', $hostname);
-                        $hostname = preg_replace('/\b([0-9a-f]{12})\b/i', '', $hostname);
-                        $hostnameMap[$reservationMac] = trim($hostname);
+                        $hostnameMap[$reservationMac] = trim($currentComment);
                     } else {
                         // No MAC in comment or doesn't match - store whole comment
                         $hostnameMap[$reservationMac] = trim($currentComment);
@@ -261,9 +255,22 @@ class AdminController
         
         // Preview mode - return data for review
         if ($previewOnly) {
+            // Find all comments that weren't matched
+            $allComments = [];
+            $lines = explode("\n", $configContent);
+            foreach ($lines as $line) {
+                if (preg_match('/^\s*#(.*)$/', $line, $matches)) {
+                    $comment = trim($matches[1]);
+                    if (!empty($comment)) {
+                        $allComments[] = $comment;
+                    }
+                }
+            }
+            
             $this->jsonResponse([
                 'success' => true,
                 'total_reservations' => count($allReservations),
+                'all_comments' => array_values(array_unique($allComments)),
                 'reservations' => array_map(function($r) {
                     return [
                         'hw_address' => $r['hw_address'],
