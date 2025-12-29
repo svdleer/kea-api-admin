@@ -370,13 +370,6 @@ function renderDhcpStats(data) {
     html += '<dd class="mt-1 text-3xl font-semibold text-' + utilizationColor + '-600">' + utilization + '%</dd>';
     html += '</div></div>';
     
-    // Static Reservations
-    html += '<div class="bg-white overflow-hidden shadow-sm rounded-lg border-l-4 border-purple-500">';
-    html += '<div class="px-4 py-5 sm:p-6">';
-    html += '<dt class="text-sm font-medium text-gray-500 truncate">Static Reservations</dt>';
-    html += '<dd class="mt-1 text-3xl font-semibold text-purple-600">' + (data.total_reservations || 0) + '</dd>';
-    html += '</div></div>';
-    
     dhcpStatsEl.innerHTML = html;
 }
 
