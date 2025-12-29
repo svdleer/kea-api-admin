@@ -29,7 +29,7 @@ ob_start();
     </div>
 
     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-        <table class="min-w-full leading-normal">
+        <table class="w-auto leading-normal">
             <thead>
                 <tr>
                     <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">

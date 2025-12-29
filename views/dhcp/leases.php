@@ -31,7 +31,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
     <!-- Switches Table Container -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="w-auto divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -62,7 +62,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
     <!-- Leases Table Container -->
     <div id="leasesTableContainer" class="bg-white shadow-md rounded-lg overflow-hidden hidden">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="w-auto divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1343,7 +1343,7 @@ function showLeases(switchId, bviId) {
         html: `
             <div id="leasesTableContainer" class="hidden">
                 <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-300">
+                    <table class="w-auto divide-y divide-gray-300">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">IP Address</th>
@@ -1685,7 +1685,7 @@ async function viewStaticLeases(subnetId) {
             // Create table with static leases data
             const tableContent = `
                 <td colspan="6" class="px-6 py-4">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="w-auto divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>

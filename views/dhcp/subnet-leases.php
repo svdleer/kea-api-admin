@@ -24,7 +24,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white shadow-md rounded my-6 overflow-x-auto">
-        <table id="leasesTable" class="min-w-full divide-y divide-gray-200">
+        <table id="leasesTable" class="w-auto divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CIN Switch</th>

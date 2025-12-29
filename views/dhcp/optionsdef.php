@@ -47,7 +47,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
         <!-- Options Table -->
         <div class="overflow-x-auto">
-            <table id="optionDefsTable" class="min-w-full divide-y divide-gray-200">
+            <table id="optionDefsTable" class="w-auto divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>

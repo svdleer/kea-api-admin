@@ -122,7 +122,7 @@ ob_start();
                 <p class="text-gray-600">No BVI interfaces found.</p>
             <?php else: ?>
                 <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                    <table class="min-w-full">
+                    <table class="w-auto">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

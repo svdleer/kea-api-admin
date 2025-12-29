@@ -201,7 +201,7 @@ function displaySubnets(subnets) {
     document.getElementById('subnet-count').textContent = subnets.length;
     
     const table = `
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="w-auto divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
