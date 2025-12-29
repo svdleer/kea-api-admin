@@ -167,7 +167,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                                 </div>
                             </div>
                             <?php if (!empty($subnet['prefixes'])): ?>
-                                <div class="border-t border-gray-200 px-8 py-5">
+                                <div class="border-t border-gray-200 px-6 py-4">
                                     <h4 class="text-sm font-medium text-gray-900 mb-2">Associated Prefixes</h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         <?php foreach ($subnet['prefixes'] as $prefix): ?>

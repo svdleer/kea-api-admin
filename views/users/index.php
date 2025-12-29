@@ -29,7 +29,7 @@ ob_start();
     </div>
 
     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-        <table class="w-auto leading-normal">
+        <table class="min-w-full leading-normal">
             <thead>
                 <tr>
                     <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -107,22 +107,22 @@ function loadUsers() {
             data.users.forEach(user => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm text-gray-900">
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-900">
                         ${user.username || ''}
                     </td>
-                    <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm text-gray-900">
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-900">
                         ${user.email || ''}
                     </td>
-                    <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm text-gray-900">
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-900">
                         ${user.is_admin ? 'Admin' : 'User'}
                     </td>
-                    <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <span class="relative inline-block px-3 py-1 font-semibold ${user.active ? 'text-green-900' : 'text-red-900'} leading-tight">
                             <span aria-hidden class="absolute inset-0 ${user.active ? 'bg-green-200' : 'bg-red-200'} opacity-50 rounded-full"></span>
                             <span class="relative">${user.active ? 'Active' : 'Inactive'}</span>
                         </span>
                     </td>
-                    <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <button onclick="editUser(${user.id || 0})" 
                                 class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2">
                             <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

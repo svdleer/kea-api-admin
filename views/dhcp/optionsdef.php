@@ -37,7 +37,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">DHCPv6 Option Definitions</h1>
             <button onclick="openCreateDefModal()" 
-                    class="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -47,7 +47,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
         <!-- Options Table -->
         <div class="overflow-x-auto">
-            <table id="optionDefsTable" class="w-auto divide-y divide-gray-200">
+            <table id="optionDefsTable" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
@@ -134,11 +134,11 @@ require BASE_PATH . '/views/dhcp-menu.php';
             </div>
             <div class="flex justify-end">
                 <button type="button" onclick="closeCreateDefModal()"
-                        class="mr-2 px-6 py-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 focus:outline-none focus:shadow-outline">
+                        class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 focus:outline-none focus:shadow-outline">
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-6 py-3 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Save
                 </button>
             </div>
@@ -392,11 +392,11 @@ function openEditDefModal(optionDef) {
                     </div>
                     <div class="flex justify-end">
                         <button type="button" onclick="closeEditDefModal()" 
-                                class="mr-2 px-6 py-3 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                                class="mr-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
                             Cancel
                         </button>
                         <button type="submit" 
-                                class="px-6 py-3 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                                class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
                             Update
                         </button>
                     </div>
@@ -691,7 +691,7 @@ async function loadOptionDefs() {
         if (data.length === 0 || !data[0] || !data[0].arguments || !data[0].arguments['option-defs']) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="6" class="px-8 py-5 whitespace-nowrap text-sm text-gray-500 text-center">
+                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                     No option definitions found
                 </td>
             `;
@@ -705,15 +705,15 @@ async function loadOptionDefs() {
         optionDefs.forEach(def => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${def.code}</td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${def.name}</td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${def.type}</td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">${def.space}</td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${def.code}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${def.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${def.type}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${def.space}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${def.array ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>' 
                               : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">No</span>'}
                 </td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-right">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
                     <div class="flex space-x-2 justify-end">
                         <button onclick='openEditDefModal(${JSON.stringify(def)})' 
                                 class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">

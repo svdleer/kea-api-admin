@@ -68,12 +68,12 @@ ob_start();
 
             <div class="flex justify-end space-x-4">
                 <a href="/switches" 
-                   class="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                   class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Cancel
                 </a>
                 <button type="button" 
                         id="deleteButton"
-                        class="px-6 py-3 text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
                     Delete CIN Switch
                 </button>
             </div>

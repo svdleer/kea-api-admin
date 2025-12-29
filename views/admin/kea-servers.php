@@ -25,7 +25,7 @@ ob_start();
             <p class="text-gray-600 mt-1">Manage Kea DHCP server connections</p>
         </div>
         <button onclick="showAddServerModal()" 
-                class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
             <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -34,26 +34,26 @@ ob_start();
     </div>
 
     <!-- Servers Table -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit mx-auto">
-        <table class="w-auto divide-y divide-gray-200">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Name
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Description
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         API URL
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Priority
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                     </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                     </th>
                 </tr>
@@ -134,11 +134,11 @@ ob_start();
 
             <div class="flex justify-end space-x-3 pt-4">
                 <button type="button" onclick="closeServerModal()"
-                        class="px-6 py-3 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
                     Save Server
                 </button>
             </div>
@@ -186,24 +186,24 @@ function renderServers() {
 
     tbody.innerHTML = servers.map(server => `
         <tr class="hover:bg-gray-50">
-            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(server.name)}
             </td>
-            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(server.description || '-')}
             </td>
-            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(server.api_url)}
             </td>
-            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                 ${server.priority}
             </td>
-            <td class="px-6 py-3 whitespace-nowrap text-sm">
+            <td class="px-4 py-2 whitespace-nowrap text-sm">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${server.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
                     ${server.is_active ? 'Active' : 'Inactive'}
                 </span>
             </td>
-            <td class="px-6 py-3 whitespace-nowrap text-right text-sm">
+            <td class="px-4 py-2 whitespace-nowrap text-right text-sm">
                 <button onclick="testServer(${server.id})" 
                         class="text-blue-600 hover:text-blue-900 mr-3" title="Test Connection">
                     <svg class="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">

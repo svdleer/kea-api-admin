@@ -11,7 +11,7 @@
         <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md text-center">
             <h1 class="text-4xl font-bold text-gray-900">404</h1>
             <p class="text-gray-600">Page not found</p>
-            <a href="/" class="inline-block bg-indigo-600 text-white px-6 py-3 rounded hover:bg-indigo-700">
+            <a href="/" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
                 Return Home
             </a>
         </div>

@@ -40,7 +40,7 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Import configuration from kea-dhcp6.conf</p>
             <div class="space-y-2">
                 <a href="/admin/import-wizard" 
-                   class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 flex items-center justify-center">
+                   class="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md hover:from-blue-700 hover:to-purple-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                     </svg>
@@ -62,14 +62,14 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Backup configuration database (subnets, options, BVI interfaces)</p>
             <div class="space-y-2">
                 <button onclick="backupKeaDatabase()" 
-                        class="w-full px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                     </svg>
                     Backup Database
                 </button>
                 <button onclick="restoreKeaDatabase()" 
-                        class="w-full px-6 py-3 border border-green-600 text-green-600 rounded-md hover:bg-green-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-green-600 text-green-600 rounded-md hover:bg-green-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                     </svg>
@@ -91,35 +91,35 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Backup active DHCP leases database or import existing leases as static reservations</p>
             <div class="space-y-2">
                 <button onclick="backupKeaLeases()" 
-                        class="w-full px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                     </svg>
                     Backup Leases
                 </button>
                 <button onclick="exportKeaLeases()" 
-                        class="w-full px-6 py-3 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Export to CSV
                 </button>
                 <button onclick="importLeasesWizard()" 
-                        class="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-md hover:from-purple-700 hover:to-pink-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>
                     Import Leases from CSV
                 </button>
                 <button onclick="importLeasesJSONWizard()" 
-                        class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>
                     Import Leases from JSON
                 </button>
                 <button onclick="deleteAllLeases()" 
-                        class="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
@@ -141,21 +141,21 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Import static DHCP reservations (with options) from kea-dhcp6.conf</p>
             <div class="space-y-2">
                 <button onclick="importKeaReservations()" 
-                        class="w-full px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>
                     Import Reservations from Config
                 </button>
                 <button onclick="listReservations()" 
-                        class="w-full px-6 py-3 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
                     List All Reservations
                 </button>
                 <button onclick="deleteAllReservations()" 
-                        class="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
@@ -178,7 +178,7 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Write current Kea configuration to disk on all servers</p>
             <div class="space-y-2">
                 <button onclick="saveKeaConfig()" 
-                        class="w-full px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
@@ -201,7 +201,7 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Delete all CIN switches and BVI data. Kea subnets remain untouched.</p>
             <div class="space-y-2">
                 <button onclick="clearCinData()" 
-                        class="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
@@ -224,14 +224,14 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Check and clean orphaned RADIUS entries</p>
             <div class="space-y-2">
                 <button onclick="checkRadiusOrphans()" 
-                        class="w-full px-6 py-3 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                     </svg>
                     Check for Orphans
                 </button>
                 <button onclick="cleanRadiusOrphans()" 
-                        class="w-full px-6 py-3 border border-yellow-600 text-yellow-600 rounded-md hover:bg-yellow-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-yellow-600 text-yellow-600 rounded-md hover:bg-yellow-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
@@ -254,14 +254,14 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Export RADIUS clients for FreeRADIUS</p>
             <div class="space-y-2">
                 <button onclick="exportRadiusClients()" 
-                        class="w-full px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                     </svg>
                     Export Clients
                 </button>
                 <button onclick="syncRadiusToServers()" 
-                        class="w-full px-6 py-3 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
@@ -283,7 +283,7 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">View current Kea DHCPv6 configuration with syntax highlighting</p>
             <div class="space-y-2">
                 <button onclick="viewKeaConfig()" 
-                        class="w-full px-6 py-3 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -291,7 +291,7 @@ ob_start();
                     View Config
                 </button>
                 <button onclick="downloadKeaConfigJSON()" 
-                        class="w-full px-6 py-3 border border-cyan-600 text-cyan-600 rounded-md hover:bg-cyan-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-cyan-600 text-cyan-600 rounded-md hover:bg-cyan-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                     </svg>
@@ -313,14 +313,14 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Backup FreeRADIUS databases (Primary & Secondary)</p>
             <div class="space-y-2">
                 <button onclick="backupRadiusDatabase('primary')" 
-                        class="w-full px-6 py-3 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                     </svg>
                     Backup Primary
                 </button>
                 <button onclick="backupRadiusDatabase('secondary')" 
-                        class="w-full px-6 py-3 border border-yellow-600 text-yellow-600 rounded-md hover:bg-yellow-50 flex items-center justify-center">
+                        class="w-full px-4 py-2 border border-yellow-600 text-yellow-600 rounded-md hover:bg-yellow-50 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                     </svg>
@@ -342,7 +342,7 @@ ob_start();
             <p class="text-gray-600 text-sm mb-4">Backup everything at once</p>
             <div class="space-y-2">
                 <button onclick="fullSystemBackup()" 
-                        class="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
+                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
                     </svg>
@@ -792,7 +792,7 @@ async function listReservations() {
         
         if (allReservations.length > 0) {
             html += `<div class="max-h-96 overflow-y-auto text-xs">
-                <table class="w-auto divide-y divide-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 sticky top-0">
                         <tr>
                             <th class="px-2 py-2 text-left font-semibold">Subnet</th>
@@ -831,7 +831,7 @@ async function listReservations() {
                 </svg>
                 <p class="mt-2 text-gray-500">No reservations found</p>
                 <p class="text-xs text-gray-400 mt-1">Import reservations from a config file to see them here</p>
-                <button onclick="Swal.close(); importKeaReservations();" class="mt-3 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                <button onclick="Swal.close(); importKeaReservations();" class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                     Import Reservations Now
                 </button>
             </div>`;
@@ -1334,7 +1334,7 @@ async function fullSystemBackup() {
                 summaryHtml += '</div>';
 
                 // Add download link
-                let downloadHtml = `<a href="${data.path}" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium" download>
+                let downloadHtml = `<a href="${data.path}" class="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium" download>
                     <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -1430,7 +1430,7 @@ async function loadKeaConfigBackups() {
 }
 
 function displayKeaConfigBackups(backups) {
-    let html = '<div class="overflow-x-auto"><table class="w-auto divide-y divide-gray-200">';
+    let html = '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">';
     html += '<thead class="bg-gray-50">';
     html += '<tr>';
     html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>';
@@ -1443,12 +1443,12 @@ function displayKeaConfigBackups(backups) {
 
     backups.forEach(backup => {
         html += '<tr>';
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">${backup.id}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.server_name || 'Unknown'}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.operation}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.created_by}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.created_at}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${backup.id}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.server_name || 'Unknown'}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.operation}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_by}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.created_at}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
         html += `<button onclick="viewKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-blue-600 hover:text-blue-900 mr-3">View</button>`;
         html += `<button onclick="restoreKeaConfigBackup(${backup.id}, '${backup.operation}')" class="text-green-600 hover:text-green-900">Restore</button>`;
         html += `</td></tr>`;
@@ -1543,7 +1543,7 @@ async function viewKeaConfigBackup(backupId, operation) {
 
 
 function displayBackups(backups) {
-    let html = '<div class="overflow-x-auto"><table class="w-auto divide-y divide-gray-200">';
+    let html = '<div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">';
     html += '<thead class="bg-gray-50">';
     html += '<tr>';
     html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Filename</th>';
@@ -1555,11 +1555,11 @@ function displayBackups(backups) {
 
     backups.forEach(backup => {
         html += '<tr>';
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">${backup.filename}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.type}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.size}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">${backup.date}</td>`;
-        html += `<td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${backup.filename}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.type}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.size}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${backup.date}</td>`;
+        html += `<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">`;
         html += `<button onclick="restoreBackup('${backup.filename}')" class="text-green-600 hover:text-green-900 mr-3">Restore</button>`;
         html += `<a href="/api/admin/backup/download/${backup.filename}" class="text-indigo-600 hover:text-indigo-900 mr-3">Download</a>`;
         html += `<button onclick="deleteBackup('${backup.filename}')" class="text-red-600 hover:text-red-900">Delete</button>`;
@@ -2297,13 +2297,13 @@ async function viewKeaConfig() {
                             <pre class="p-4 text-xs text-left text-gray-100"><code class="language-json text-gray-100" id="kea-config-code" style="color: #f3f4f6;">${escapeHtml(configJson)}</code></pre>
                         </div>
                         <div class="mt-3 flex gap-2">
-                            <button onclick="downloadKeaConfigJSON()" class="flex-1 px-6 py-3 bg-cyan-600 text-white rounded hover:bg-cyan-700">
+                            <button onclick="downloadKeaConfigJSON()" class="flex-1 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">
                                 <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                                 </svg>
                                 Download JSON
                             </button>
-                            <button onclick="downloadKeaConfigINI()" class="flex-1 px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            <button onclick="downloadKeaConfigINI()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                                 <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                                 </svg>

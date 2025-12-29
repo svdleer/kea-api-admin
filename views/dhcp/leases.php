@@ -29,9 +29,9 @@ require BASE_PATH . '/views/dhcp-menu.php';
     </div>
 
     <!-- Switches Table Container -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit mx-auto mb-6">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
         <div class="overflow-x-auto">
-            <table class="w-auto divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -61,8 +61,8 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 
     <!-- Leases Table Container -->
-    <div id="leasesTableContainer" class="bg-white shadow-md rounded-lg overflow-hidden w-fit mx-auto hidden">
-        <table class="w-auto divide-y divide-gray-200">
+    <div id="leasesTableContainer" class="bg-white shadow-md rounded-lg overflow-hidden hidden">
+        <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -168,8 +168,8 @@ require BASE_PATH . '/views/dhcp-menu.php';
                 </div>
             </div>
             <div class="flex justify-end space-x-4 pt-6 border-t">
-                <button type="button" onclick="toggleStaticLeaseForm()" class="px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="button" onclick="addStaticLease()" class="px-6 py-3 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Add Static Lease</button>
+                <button type="button" onclick="toggleStaticLeaseForm()" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onclick="addStaticLease()" class="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Add Static Lease</button>
             </div>
         </form>
     </div>
@@ -1102,7 +1102,7 @@ async function loadSwitches() {
         // Show loading state
         tableBody.innerHTML = `
             <tr>
-                <td colspan="5" class="px-8 py-5 text-center">
+                <td colspan="5" class="px-6 py-4 text-center">
                     <div class="flex justify-center items-center">
                         <svg class="animate-spin h-5 w-5 text-blue-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1159,7 +1159,7 @@ async function loadSwitches() {
         if (Object.keys(groupedSubnets).length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-8 py-5 text-center text-gray-500">
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                         No switches found
                     </td>
                 </tr>
@@ -1180,10 +1180,10 @@ async function loadSwitches() {
             console.log('Got switch name:', switchName); // Debug log
             
             row.innerHTML = `
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${switchName}
                 </td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${subnets.map(subnet => {
                         const bviNum = subnet.bvi_interface !== null && subnet.bvi_interface !== undefined 
                             ? 'BVI' + (100 + parseInt(subnet.bvi_interface)) 
@@ -1191,10 +1191,10 @@ async function loadSwitches() {
                         return bviNum;
                     }).join(', ')}
                 </td>
-                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${subnets.map(subnet => subnet.subnet).join(', ')}
                 </td>
-                <td class="px-8 py-5 text-sm text-gray-900">
+                <td class="px-6 py-4 text-sm text-gray-900">
                     ${subnets.map(subnet => 
                         subnet.pool ? `<div class="flex flex-col"><span>${subnet.pool.start}</span><span>${subnet.pool.end}</span></div>` : 'No pool'
                     ).join(', ')}
@@ -1236,7 +1236,7 @@ async function loadSwitches() {
 
         tableBody.innerHTML = `
             <tr>
-                <td colspan="5" class="px-8 py-5 text-center text-red-500">
+                <td colspan="5" class="px-6 py-4 text-center text-red-500">
                     Error loading switches: ${error.message}
                 </td>
             </tr>
@@ -1343,7 +1343,7 @@ function showLeases(switchId, bviId) {
         html: `
             <div id="leasesTableContainer" class="hidden">
                 <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                    <table class="w-auto divide-y divide-gray-300">
+                    <table class="min-w-full divide-y divide-gray-300">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">IP Address</th>
@@ -1362,10 +1362,10 @@ function showLeases(switchId, bviId) {
                 </div>
                 <div id="paginationContainer" class="mt-4 flex justify-between items-center px-4">
                     <div class="flex-1 flex justify-between sm:hidden">
-                        <button id="prevButtonMobile" class="relative inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <button id="prevButtonMobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             Previous
                         </button>
-                        <button id="nextButtonMobile" class="ml-3 relative inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <button id="nextButtonMobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             Next
                         </button>
                     </div>
@@ -1518,17 +1518,17 @@ async function loadLeases(subnetIdParam, from = 'start', limit = 10) {
             } else {
                 tableBody.innerHTML = leases.map(lease => `
                     <tr class="hover:bg-gray-50 transition-colors duration-200">
-                        <td class="px-8 py-5 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="text-sm text-gray-900">
                                     ${lease['ip-address']}
                                 </div>
                             </div>
                         </td>
-                        <td class="px-8 py-5 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${lease.duid}</div>
                         </td>
-                        <td class="px-8 py-5 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                 lease.state === 0 
                                     ? 'bg-green-100 text-green-800' 
@@ -1537,13 +1537,13 @@ async function loadLeases(subnetIdParam, from = 'start', limit = 10) {
                                 ${lease.state === 0 ? 'Active' : 'Inactive'}
                             </span>
                         </td>
-                        <td class="px-8 py-5 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${new Date(lease.cltt * 1000).toLocaleString()}</div>
                         </td>
-                        <td class="px-8 py-5 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${new Date((lease.cltt + lease['valid-lft']) * 1000).toLocaleString()}</div>
                         </td>
-                        <td class="px-8 py-5 whitespace-nowrap text-left text-sm font-medium">
+                        <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                             <button onclick="deleteLease('${lease['ip-address']}')" 
                                     class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
                                 <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1589,7 +1589,7 @@ async function loadLeases(subnetIdParam, from = 'start', limit = 10) {
         if (tableBody) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-8 py-5 text-center">
+                    <td colspan="6" class="px-6 py-4 text-center">
                         <div class="flex flex-col items-center justify-center space-y-3">
                             <svg class="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1639,7 +1639,7 @@ async function viewStaticLeases(subnetId) {
         detailsRow = document.createElement('tr');
         detailsRow.className = 'details-row bg-gray-50';
         detailsRow.innerHTML = `
-            <td colspan="6" class="px-8 py-5">
+            <td colspan="6" class="px-6 py-4">
                 <div class="flex justify-center items-center">
                     <svg class="animate-spin h-5 w-5 text-blue-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1663,7 +1663,7 @@ async function viewStaticLeases(subnetId) {
         if (data.result === 3 || (data.text && data.text.includes('0 IPv6 host(s) found'))) {
             // No reservations found - this is normal, not an error
             detailsRow.innerHTML = `
-                <td colspan="6" class="px-8 py-5 text-center text-gray-500">
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                     No static reservations found for this subnet
                 </td>
             `;
@@ -1675,7 +1675,7 @@ async function viewStaticLeases(subnetId) {
             
             if (hosts.length === 0) {
                 detailsRow.innerHTML = `
-                    <td colspan="6" class="px-8 py-5 text-center text-gray-500">
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                         No static reservations found for this subnet
                     </td>
                 `;
@@ -1684,8 +1684,8 @@ async function viewStaticLeases(subnetId) {
 
             // Create table with static leases data
             const tableContent = `
-                <td colspan="6" class="px-8 py-5">
-                    <table class="w-auto divide-y divide-gray-200">
+                <td colspan="6" class="px-6 py-4">
+                    <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
@@ -1709,19 +1709,19 @@ async function viewStaticLeases(subnetId) {
                                 }
                                 return `
                                 <tr>
-                                    <td class="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         ${host['ip-addresses'] ? host['ip-addresses'].join(', ') : 'N/A'}
                                     </td>
-                                    <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         ${host['hw-address'] || 'N/A'}
                                     </td>
-                                    <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         ${host.hostname || 'N/A'}
                                     </td>
-                                    <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         ${ccapCore}
                                     </td>
-                                    <td class="px-8 py-5 whitespace-nowrap text-sm">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
                                         <div class="flex space-x-2">
                                             <button onclick="editReservation(${JSON.stringify(host).replace(/"/g, '&quot;')})" 
                                                     class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">
@@ -1754,7 +1754,7 @@ async function viewStaticLeases(subnetId) {
         console.error('Error:', error);
         if (detailsRow) {
             detailsRow.innerHTML = `
-                <td colspan="6" class="px-8 py-5 text-center text-red-500">
+                <td colspan="6" class="px-6 py-4 text-center text-red-500">
                     Error loading reservations: ${error.message}
                 </td>
             `;
@@ -1785,7 +1785,7 @@ function updatePaginationControls(pagination, switchId, bviId) {
             <div class="flex items-center justify-between px-4 py-3 sm:px-6">
                 <div class="flex justify-between flex-1 sm:hidden">
                     <button onclick="loadLeases('${switchId}', '${bviId}', '${pagination.nextFrom}', ${pagination.limit})"
-                            class="relative inline-flex items-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                         Load More
                     </button>
                 </div>
@@ -1797,7 +1797,7 @@ function updatePaginationControls(pagination, switchId, bviId) {
                     </div>
                     <div>
                         <button onclick="loadLeases('${switchId}', '${bviId}', '${pagination.nextFrom}', ${pagination.limit})"
-                                class="relative inline-flex items-center px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                             Load More
                         </button>
                     </div>

@@ -27,14 +27,14 @@ ob_start();
             </div>
             <div class="flex space-x-3">
                 <a href="/radius/logs" 
-                   class="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Authentication Logs
                 </a>
                 <a href="/radius/import" 
-                   class="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>
@@ -42,7 +42,7 @@ ob_start();
                 </a>
                 <?php if ($auth->isAdmin()): ?>
                 <a href="/radius/settings" 
-                   class="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -51,7 +51,7 @@ ob_start();
                 </a>
                 <?php endif; ?>
                 <button onclick="syncAllBvi()" 
-                        class="inline-flex items-center px-6 py-3 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
+                        class="inline-flex items-center px-4 py-2 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
@@ -152,25 +152,25 @@ ob_start();
 
     <!-- RADIUS Clients Table -->
     <div id="radiusTable" class="hidden bg-white shadow-md rounded-lg overflow-hidden">
-        <table class="w-auto divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Switch / BVI
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         NAS IP (IPv6)
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Short Name
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Shared Secret
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Type
                     </th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                     </th>
                 </tr>
@@ -240,11 +240,11 @@ ob_start();
 
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" onclick="closeGlobalSecretModal()"
-                            class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                         Cancel
                     </button>
                     <button type="submit" id="saveGlobalSecretBtn"
-                            class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                         Save Global Secret
                     </button>
                 </div>
@@ -318,11 +318,11 @@ ob_start();
 
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" onclick="closeEditModal()"
-                            class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                         Cancel
                     </button>
                     <button type="submit" id="saveBtn"
-                            class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                         Save Changes
                     </button>
                 </div>
@@ -563,24 +563,24 @@ function displayRadiusClients(clients) {
         
         const row = `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${switchInfo}
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(client.nasname)}
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(client.shortname || 'N/A')}
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${maskedSecret}
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                         ${escapeHtml(client.type || 'other')}
                     </span>
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-right text-sm">
+                <td class="px-4 py-2 whitespace-nowrap text-right text-sm">
                     ${hasGlobalSecret ? `
                         <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-gray-400 bg-gray-100 cursor-not-allowed" 
                               title="Individual secrets are disabled when global secret is configured">

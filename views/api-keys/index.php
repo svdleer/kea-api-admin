@@ -38,8 +38,8 @@ $title = 'API Keys ';
     </div>
 
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit mx-auto">
-        <table class="w-auto leading-normal">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full leading-normal">
             <thead>
                 <tr>
                     <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -209,25 +209,25 @@ function loadApiKeys() {
                 data.keys.forEach(key => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${key.name}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${key.read_only ? 'Read-only' : 'Read/Write'}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${new Date(key.created_at).toLocaleDateString()}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${key.last_used ? new Date(key.last_used).toLocaleDateString() : 'Never'}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <span class="relative inline-block px-3 py-1 font-semibold ${key.active ? 'text-green-900' : 'text-red-900'} leading-tight">
                                 <span aria-hidden class="absolute inset-0 ${key.active ? 'bg-green-200' : 'bg-red-200'} opacity-50 rounded-full"></span>
                                 <span class="relative">${key.active ? 'Active' : 'Inactive'}</span>
                             </span>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm text-right">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
                             ${key.active ? `
                             <button onclick="deactivateApiKey(${key.id})" class="text-red-600 hover:text-red-900">
                                 Deactivate
@@ -338,25 +338,25 @@ function loadApiKeys() {
                 data.keys.forEach(key => {  // This part is correct as it matches the response
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${key.name}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${key.read_only ? 'Read-only' : 'Read/Write'}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${new Date(key.created_at).toLocaleDateString()}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <p class="text-gray-900 whitespace-no-wrap">${key.last_used ? new Date(key.last_used).toLocaleDateString() : 'Never'}</p>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                             <span class="relative inline-block px-3 py-1 font-semibold ${key.active ? 'text-green-900' : 'text-red-900'} leading-tight">
                                 <span aria-hidden class="absolute inset-0 ${key.active ? 'bg-green-200' : 'bg-red-200'} opacity-50 rounded-full"></span>
                                 <span class="relative">${key.active ? 'Active' : 'Inactive'}</span>
                             </span>
                         </td>
-                        <td class="px-7 py-6 border-b border-gray-200 bg-white text-sm text-right">
+                        <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
                             ${key.active ? `
                                 <button onclick="deactivateApiKey(${key.id})" class="text-yellow-600 hover:text-yellow-900 mr-2">
                                     Deactivate

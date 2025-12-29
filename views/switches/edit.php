@@ -94,12 +94,12 @@ ob_start();
                 </div>
 
                 <div class="flex justify-end space-x-4">
-                    <a href="/switches" class="px-6 py-3 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                    <a href="/switches" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
                         Cancel
                     </a>
                     <button type="submit" 
                             id="submitButton" 
-                            class="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled>
                         Update Switch
                     </button>
@@ -113,7 +113,7 @@ ob_start();
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-gray-800">BVI Interfaces</h2>
                 <a href="/switches/<?php echo htmlspecialchars($switchId); ?>/bvi/add" 
-                   class="px-6 py-3 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                   class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
                     Add BVI Interface
                 </a>
             </div>
@@ -121,8 +121,8 @@ ob_start();
             <?php if (empty($bviInterfaces)): ?>
                 <p class="text-gray-600">No BVI interfaces found.</p>
             <?php else: ?>
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden w-fit mx-auto">
-                    <table class="w-auto">
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <table class="min-w-full">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -139,13 +139,13 @@ ob_start();
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php foreach ($bviInterfaces as $bvi): ?>
                                 <tr>
-                                    <td class="px-8 py-5 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap">
                                         BVI<?php echo 100 + intval($bvi['interface_number']); ?>
                                     </td>
-                                    <td class="px-8 py-5 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap">
                                         <?php echo htmlspecialchars($bvi['ipv6_address']); ?>
                                     </td>
-                                    <td class="px-8 py-5 whitespace-nowrap text-right">
+                                    <td class="px-6 py-4 whitespace-nowrap text-right">
                                         <a href="/switches/<?php echo htmlspecialchars($switchId); ?>/bvi/<?php echo htmlspecialchars($bvi['id']); ?>/edit" 
                                            class="text-blue-500 hover:text-blue-700 mr-4">
                                             Edit

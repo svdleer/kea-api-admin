@@ -77,7 +77,7 @@ ob_start();
                 </a>
                 <?php if ($switch): ?>
                 <button onclick="addBvi()" 
-                   class="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -122,8 +122,8 @@ ob_start();
             </div>
         </div>
 
-        <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit mx-auto">
-            <table class="w-auto divide-y divide-gray-200">
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -140,20 +140,20 @@ ob_start();
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php if (empty($bviInterfaces)): ?>
                         <tr>
-                            <td colspan="3" class="px-8 py-5 text-sm text-center text-gray-500">
+                            <td colspan="3" class="px-6 py-4 text-sm text-center text-gray-500">
                                 No BVI interfaces found
                             </td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($bviInterfaces as $bvi): ?>
                             <tr>
-                                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     BVI<?php echo 100 + intval($bvi['interface_number']); ?>
                                 </td>
-                                <td class="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?php echo htmlspecialchars($bvi['ipv6_address']); ?>
                                 </td>
-                                <td class="px-8 py-5 whitespace-nowrap text-sm">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
                                     <div class="flex space-x-2">
                                         <button onclick="editBvi(<?php echo htmlspecialchars($bvi['id']); ?>)" 
                                                 class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">
