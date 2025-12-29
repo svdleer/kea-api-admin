@@ -32,7 +32,7 @@ ob_start();
 
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Delete BVI Interface</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">Delete BVI Interface</h1>
         <a href="/switches/<?php echo htmlspecialchars($switchId); ?>/bvi" class="text-blue-500 hover:text-blue-700">
             ← Back to BVI Interfaces
         </a>
@@ -40,12 +40,12 @@ ob_start();
 
     <div class="bg-white shadow rounded-lg p-6">
         <div id="switchInfo" class="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h2 class="text-lg font-semibold mb-2">Switch Information</h2>
+            <h2 class="text-sm font-medium text-gray-900 mb-2">Switch Information</h2>
             <p class="text-gray-600">Hostname: <span id="switchHostname" class="font-medium text-gray-900"></span></p>
         </div>
 
         <div id="bviDetails" class="mb-6">
-            <h2 class="text-xl font-semibold mb-4">BVI Interface Details</h2>
+            <h2 class="text-lg font-medium text-gray-900 mb-4">BVI Interface Details</h2>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <p class="text-gray-600">Interface Number</p>

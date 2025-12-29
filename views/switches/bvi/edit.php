@@ -63,7 +63,7 @@ ob_start();
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Edit BVI Interface</h1>
+            <h1 class="text-2xl font-semibold text-gray-900">Edit BVI Interface</h1>
             <a href="/switches/edit/<?php echo htmlspecialchars($switchId); ?>" 
                class="text-blue-500 hover:text-blue-700">
                 ← Back to Switch

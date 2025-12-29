@@ -48,7 +48,7 @@ ob_start();
 
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Add BVI Interface</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">Add BVI Interface</h1>
         <a href="/switches/<?php echo htmlspecialchars($switchId); ?>/bvi" class="text-blue-500 hover:text-blue-700">
             ← Back to BVI Interfaces
         </a>
@@ -56,7 +56,7 @@ ob_start();
 
     <div class="bg-white shadow rounded-lg p-6">
         <div id="switchInfo" class="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h2 class="text-lg font-semibold mb-2">Switch Information</h2>
+            <h2 class="text-sm font-medium text-gray-900 mb-2">Switch Information</h2>
             <p class="text-gray-600">Hostname: <span id="switchHostname" class="font-medium text-gray-900"><?php echo htmlspecialchars($switch['hostname']); ?></span></p>
         </div>
 
@@ -64,7 +64,7 @@ ob_start();
             <input type="hidden" id="switchId" value="<?php echo htmlspecialchars($switchId); ?>">
             
             <div>
-                <label for="interface_display" class="block text-lg font-semibold mb-2">
+                <label for="interface_display" class="block text-sm font-medium text-gray-700 mb-2">
                     BVI Interface Number
                     <span class="text-sm font-normal text-gray-600 ml-1">(Auto-assigned)</span>
                 </label>
@@ -82,7 +82,7 @@ ob_start();
             </div>
 
             <div>
-                <label for="ipv6_address" class="block text-lg font-semibold mb-2">
+                <label for="ipv6_address" class="block text-sm font-medium text-gray-700 mb-2">
                     IPv6 Address
                 </label>
                 <input type="text" 
