@@ -492,8 +492,8 @@ function displayResults(leases, total, searchTime) {
             `Subnet ${lease.subnet_id}`;
         
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${escapeHtml(lease.address)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">${escapeHtml(lease.duid ? lease.duid.substring(0, 20) + '...' : 'N/A')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.address)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(lease.duid ? lease.duid.substring(0, 20) + '...' : 'N/A')}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${switchBviText}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(lease.expire)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${leaseType}</td>

@@ -566,13 +566,13 @@ function displayRadiusClients(clients) {
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${switchInfo}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(client.nasname)}
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(client.shortname || 'N/A')}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${maskedSecret}
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">

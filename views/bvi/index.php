@@ -217,7 +217,7 @@ function displayBviData(bviInterfaces) {
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     BVI${100 + parseInt(bvi.interface_number)}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                     ${escapeHtml(bvi.ipv6_address)}
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap text-right text-sm">

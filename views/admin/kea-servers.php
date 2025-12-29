@@ -192,7 +192,7 @@ function renderServers() {
             <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(server.description || '-')}
             </td>
-            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                 ${escapeHtml(server.api_url)}
             </td>
             <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
