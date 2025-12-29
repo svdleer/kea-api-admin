@@ -119,7 +119,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
     </div>
 
     <!-- Table Container -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit">
         <?php 
         // Debug: Log the switches array
         error_log("DEBUG - Total switches in array: " . count($switches));
@@ -303,7 +303,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
             Debug: <?= htmlspecialchars(json_encode($orphanedSubnets)) ?>
         </div>
         <?php else: ?>
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit">
             <table class="w-auto divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>

@@ -103,7 +103,7 @@ ob_start();
     </div>
 
     <!-- Switches Table -->
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="bg-white shadow overflow-hidden w-fit sm:rounded-lg">
         <?php if (empty($switches)): ?>
             <!-- Empty state - no table header -->
             <div class="px-6 py-12 text-center text-sm text-gray-500">

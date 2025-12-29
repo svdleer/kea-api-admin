@@ -158,7 +158,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
     </div>
 
     <!-- Table Container -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit">
         <?php if (empty($dedicatedSubnets)): ?>
             <!-- Empty state -->
             <div class="px-6 py-12 text-center text-sm text-gray-500">

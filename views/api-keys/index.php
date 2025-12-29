@@ -38,7 +38,7 @@ $title = 'API Keys ';
     </div>
 
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit">
         <table class="w-auto leading-normal">
             <thead>
                 <tr>

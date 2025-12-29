@@ -29,7 +29,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
     </div>
 
     <!-- Switches Table Container -->
-    <div class="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit mb-6">
         <div class="overflow-x-auto">
             <table class="w-auto divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -61,7 +61,7 @@ require BASE_PATH . '/views/dhcp-menu.php';
 
 
     <!-- Leases Table Container -->
-    <div id="leasesTableContainer" class="bg-white shadow-md rounded-lg overflow-hidden hidden">
+    <div id="leasesTableContainer" class="bg-white shadow-md rounded-lg overflow-hidden w-fit hidden">
         <table class="w-auto divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>

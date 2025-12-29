@@ -79,7 +79,7 @@ ob_start();
 
     <!-- BVI Interfaces table -->
     <div id="bviTable" class="hidden">
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="bg-white shadow-md rounded-lg overflow-hidden w-fit">
             <table class="w-auto divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
