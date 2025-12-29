@@ -131,77 +131,198 @@ class AdminController
         }
 
         $file = $_FILES['config'];
-        $tmpPath = $file['tmp_name'];
-        
         $extractHostnames = isset($_POST['extract_hostnames']) && $_POST['extract_hostnames'] === '1';
         $previewOnly = isset($_POST['preview']) && $_POST['preview'] === '1';
-        $hostnamesJson = $_POST['hostnames'] ?? null;
+        $customHostnames = isset($_POST['hostnames']) ? json_decode($_POST['hostnames'], true) : [];
         
-        error_log("Importing reservations from file: " . $file['name']);
-        error_log("Extract hostnames: " . ($extractHostnames ? 'yes' : 'no'));
-        error_log("Preview only: " . ($previewOnly ? 'yes' : 'no'));
-
-        // Call the import script
-        $scriptPath = BASE_PATH . '/scripts/import_kea_reservations.php';
-        $output = [];
-        $returnCode = 0;
-
-        $command = "php $scriptPath " . escapeshellarg($tmpPath);
+        // Read config file
+        $configContent = file_get_contents($file['tmp_name']);
+        
+        // Extract hostnames from comments if enabled
+        $hostnameMap = [];
         if ($extractHostnames) {
-            $command .= " --extract-hostnames";
-        }
-        if ($previewOnly) {
-            $command .= " --preview";
-        }
-        if ($hostnamesJson) {
-            $command .= " --hostnames=" . escapeshellarg($hostnamesJson);
-        }
-        $command .= " 2>&1";
-        
-        error_log("Executing: $command");
-        
-        exec($command, $output, $returnCode);
-        
-        $outputText = implode("\n", $output);
-        error_log("Return code: $returnCode");
-        error_log("Output: " . substr($outputText, 0, 500));
-
-        if ($returnCode === 0) {
-            // Check if output is JSON (preview mode)
-            $jsonData = json_decode($outputText, true);
-            if ($jsonData !== null) {
-                $this->jsonResponse($jsonData);
-                return;
+            $lines = explode("\n", $configContent);
+            $currentComment = '';
+            
+            foreach ($lines as $line) {
+                if (preg_match('/^\s*#(.*)$/', $line, $matches)) {
+                    $currentComment .= trim($matches[1]) . ' ';
+                } else if (preg_match('/"hw-address"\s*:\s*"([0-9a-f:]+)"/i', $line, $macMatch)) {
+                    if (!empty(trim($currentComment))) {
+                        $mac = strtolower($macMatch[1]);
+                        $hostnameMap[$mac] = trim($currentComment);
+                    }
+                    $currentComment = '';
+                } else if (!preg_match('/^\s*$/', $line)) {
+                    $currentComment = '';
+                }
             }
-            
-            // Parse stats from output (import mode)
-            preg_match('/Total reservations found:\s*(\d+)/', $outputText, $totalMatch);
-            preg_match('/Added \(new\):\s*([\d.]+)/', $outputText, $addedMatch);
-            preg_match('/Updated \(existing\):\s*([\d.]+)/', $outputText, $updatedMatch);
-            preg_match('/Errors:\s*([\d.]+)/', $outputText, $errorMatch);
-            
-            $added = isset($addedMatch[1]) ? (int)$addedMatch[1] : 0;
-            $updated = isset($updatedMatch[1]) ? (int)$updatedMatch[1] : 0;
-            
-            $this->jsonResponse([
-                'success' => true,
-                'message' => 'Reservations imported successfully',
-                'stats' => [
-                    'reservations' => [
-                        'imported' => $added,
-                        'updated' => $updated,
-                        'skipped' => 0
-                    ]
-                ],
-                'details' => $outputText
-            ]);
-        } else {
+        }
+        
+        // Clean and parse JSON
+        $configContent = preg_replace('/\/\*.*?\*\//s', '', $configContent);
+        $configContent = preg_replace('/^\s*#.*$/m', '', $configContent);
+        $configContent = preg_replace('/^\s*\/\/.*$/m', '', $configContent);
+        $configContent = preg_replace('/#.*$/m', '', $configContent);
+        $configContent = preg_replace('/,(\s*[}\]])/', '$1', $configContent);
+        
+        $config = json_decode($configContent, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Failed to import reservations',
-                'error' => $outputText
-            ], 500);
+                'message' => 'Invalid JSON in config file: ' . json_last_error_msg()
+            ], 400);
+            return;
         }
+        
+        $subnets = $config['Dhcp6']['subnet6'] ?? [];
+        
+        // Collect all reservations
+        $allReservations = [];
+        foreach ($subnets as $subnet) {
+            $reservations = $subnet['reservations'] ?? [];
+            foreach ($reservations as $reservation) {
+                $hwAddress = $reservation['hw-address'] ?? null;
+                $ipAddress = ($reservation['ip-addresses'] ?? [])[0] ?? null;
+                
+                $hostname = '';
+                if ($hwAddress && isset($hostnameMap[strtolower($hwAddress)])) {
+                    $hostname = $hostnameMap[strtolower($hwAddress)];
+                }
+                
+                $allReservations[] = [
+                    'subnet_id' => $subnet['id'],
+                    'hw_address' => $hwAddress,
+                    'duid' => $reservation['duid'] ?? null,
+                    'ip_address' => $ipAddress,
+                    'hostname' => $hostname,
+                    'option_data' => $reservation['option-data'] ?? []
+                ];
+            }
+        }
+        
+        // Preview mode - return data for review
+        if ($previewOnly) {
+            $this->jsonResponse([
+                'success' => true,
+                'total_reservations' => count($allReservations),
+                'reservations' => array_map(function($r) {
+                    return [
+                        'hw_address' => $r['hw_address'],
+                        'ip_address' => $r['ip_address'],
+                        'hostname' => $r['hostname']
+                    ];
+                }, $allReservations)
+            ]);
+            return;
+        }
+        
+        // Import mode - apply custom hostnames and import to Kea
+        $stmt = $this->db->query("SELECT id, name, api_url FROM kea_servers WHERE status = 'active'");
+        $keaServers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($keaServers)) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'No active Kea servers found'
+            ], 500);
+            return;
+        }
+        
+        $addedCount = 0;
+        $updatedCount = 0;
+        
+        foreach ($allReservations as $idx => $reservation) {
+            // Use custom hostname if provided
+            if (isset($customHostnames[$idx]) && !empty($customHostnames[$idx])) {
+                $reservation['hostname'] = $customHostnames[$idx];
+            }
+            
+            // Build Kea reservation data
+            $reservationData = [
+                'subnet-id' => $reservation['subnet_id']
+            ];
+            
+            if ($reservation['duid']) {
+                $reservationData['duid'] = $reservation['duid'];
+            }
+            if ($reservation['hw_address']) {
+                $reservationData['hw-address'] = $reservation['hw_address'];
+            }
+            if ($reservation['ip_address']) {
+                $reservationData['ip-addresses'] = [$reservation['ip_address']];
+            }
+            if (!empty($reservation['hostname'])) {
+                $reservationData['hostname'] = $reservation['hostname'];
+            }
+            if (!empty($reservation['option_data'])) {
+                $reservationData['option-data'] = $reservation['option_data'];
+            }
+            
+            // Try to add to Kea servers
+            foreach ($keaServers as $server) {
+                $command = [
+                    'command' => 'reservation-add',
+                    'service' => ['dhcp6'],
+                    'arguments' => [
+                        'reservation' => $reservationData,
+                        'operation-target' => 'database'
+                    ]
+                ];
+                
+                $ch = curl_init($server['api_url']);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($httpCode === 200) {
+                    $result = json_decode($response, true);
+                    if (isset($result[0]['result'])) {
+                        if ($result[0]['result'] === 0) {
+                            $addedCount++;
+                            break;
+                        } else if ($result[0]['result'] === 1) {
+                            // Already exists, try update
+                            $command['command'] = 'reservation-update';
+                            
+                            $ch = curl_init($server['api_url']);
+                            curl_setopt($ch, CURLOPT_POST, 1);
+                            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($command));
+                            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                            
+                            $response = curl_exec($ch);
+                            curl_close($ch);
+                            
+                            $result = json_decode($response, true);
+                            if (isset($result[0]['result']) && $result[0]['result'] === 0) {
+                                $updatedCount++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Reservations imported successfully',
+            'stats' => [
+                'reservations' => [
+                    'imported' => $addedCount,
+                    'updated' => $updatedCount
+                ]
+            ]
+        ]);
     }
 
     /**
