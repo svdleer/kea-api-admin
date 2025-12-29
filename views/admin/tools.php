@@ -549,6 +549,10 @@ async function importKeaReservations() {
 
             const previewResult = await previewResponse.json();
 
+            console.log('Preview result:', previewResult);
+            console.log('formData.extractHostnames:', formData.extractHostnames);
+            console.log('previewResult.reservations length:', previewResult.reservations?.length);
+
             if (!previewResult.success) {
                 Swal.fire('Error', previewResult.message || 'Failed to analyze file', 'error');
                 return;
