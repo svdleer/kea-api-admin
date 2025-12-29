@@ -147,10 +147,10 @@ ob_start();
                     <?php else: ?>
                         <?php foreach ($bviInterfaces as $bvi): ?>
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     BVI<?php echo 100 + intval($bvi['interface_number']); ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?php echo htmlspecialchars($bvi['ipv6_address']); ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
