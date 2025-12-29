@@ -297,11 +297,17 @@ class AdminController
         $addedCount = 0;
         $updatedCount = 0;
         
+        error_log("Custom hostnames received: " . print_r($customHostnames, true));
+        error_log("Total reservations: " . count($allReservations));
+        
         foreach ($allReservations as $idx => $reservation) {
             // Use custom hostname if provided
             if (isset($customHostnames[$idx]) && !empty($customHostnames[$idx])) {
+                error_log("Applying custom hostname for index $idx: " . $customHostnames[$idx]);
                 $reservation['hostname'] = $customHostnames[$idx];
             }
+            
+            error_log("Reservation $idx final hostname: " . ($reservation['hostname'] ?? 'NONE'));
             
             // Build Kea reservation data
             $reservationData = [
