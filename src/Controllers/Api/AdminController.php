@@ -143,6 +143,7 @@ class AdminController
         if ($extractHostnames) {
             $lines = explode("\n", $configContent);
             $currentComment = '';
+            $inReservation = false;
             
             // Helper function to normalize MAC address to xx:xx:xx:xx:xx:xx format
             $normalizeMac = function($mac) {
@@ -157,49 +158,60 @@ class AdminController
             };
             
             foreach ($lines as $line) {
+                // Collect comment lines
                 if (preg_match('/^\s*#(.*)$/', $line, $matches)) {
                     $currentComment .= trim($matches[1]) . ' ';
-                } else if (preg_match('/"hw-address"\s*:\s*"([0-9a-f:]+)"/i', $line, $macMatch)) {
-                    if (!empty(trim($currentComment))) {
-                        $reservationMac = $normalizeMac($macMatch[1]);
-                        
-                        // Try to find MAC in comment in various formats
-                        $commentMac = null;
-                        
-                        // Format: xxxx.xxxx.xxxx (Cisco)
-                        if (preg_match('/\b([0-9a-f]{4})\.([0-9a-f]{4})\.([0-9a-f]{4})\b/i', $currentComment, $m)) {
-                            $commentMac = $normalizeMac($m[0]);
-                        }
-                        // Format: xx:xx:xx:xx:xx:xx
-                        else if (preg_match('/\b([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})\b/i', $currentComment, $m)) {
-                            $commentMac = $normalizeMac($m[0]);
-                        }
-                        // Format: xx-xx-xx-xx-xx-xx (Windows)
-                        else if (preg_match('/\b([0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2})\b/i', $currentComment, $m)) {
-                            $commentMac = $normalizeMac($m[0]);
-                        }
-                        // Format: xxxxxxxxxxxx (no separators)
-                        else if (preg_match('/\b([0-9a-f]{12})\b/i', $currentComment, $m)) {
-                            $commentMac = $normalizeMac($m[0]);
-                        }
-                        
-                        // If MACs match, store the comment (without the MAC part)
-                        if ($commentMac && $reservationMac && $commentMac === $reservationMac) {
-                            // Remove the MAC from the comment to get clean hostname
-                            $hostname = $currentComment;
-                            $hostname = preg_replace('/\b([0-9a-f]{4})\.([0-9a-f]{4})\.([0-9a-f]{4})\b/i', '', $hostname);
-                            $hostname = preg_replace('/\b([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})\b/i', '', $hostname);
-                            $hostname = preg_replace('/\b([0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2})\b/i', '', $hostname);
-                            $hostname = preg_replace('/\b([0-9a-f]{12})\b/i', '', $hostname);
-                            $hostnameMap[$reservationMac] = trim($hostname);
-                        } else {
-                            // No MAC in comment or doesn't match - store whole comment
-                            $hostnameMap[$reservationMac] = trim($currentComment);
-                        }
+                }
+                // When we hit opening brace after comments, we're entering a reservation
+                else if (preg_match('/^\s*\{/', $line) && !empty(trim($currentComment))) {
+                    $inReservation = true;
+                }
+                // When we find hw-address and we have a pending comment
+                else if ($inReservation && preg_match('/"hw-address"\s*:\s*"([0-9a-f:]+)"/i', $line, $macMatch)) {
+                    $reservationMac = $normalizeMac($macMatch[1]);
+                    
+                    // Try to find MAC in comment in various formats
+                    $commentMac = null;
+                    
+                    // Format: xxxx.xxxx.xxxx (Cisco)
+                    if (preg_match('/\b([0-9a-f]{4})\.([0-9a-f]{4})\.([0-9a-f]{4})\b/i', $currentComment, $m)) {
+                        $commentMac = $normalizeMac($m[0]);
                     }
+                    // Format: xx:xx:xx:xx:xx:xx
+                    else if (preg_match('/\b([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})\b/i', $currentComment, $m)) {
+                        $commentMac = $normalizeMac($m[0]);
+                    }
+                    // Format: xx-xx-xx-xx-xx-xx (Windows)
+                    else if (preg_match('/\b([0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2})\b/i', $currentComment, $m)) {
+                        $commentMac = $normalizeMac($m[0]);
+                    }
+                    // Format: xxxxxxxxxxxx (no separators)
+                    else if (preg_match('/\b([0-9a-f]{12})\b/i', $currentComment, $m)) {
+                        $commentMac = $normalizeMac($m[0]);
+                    }
+                    
+                    // If MACs match, store the comment (without the MAC part)
+                    if ($commentMac && $reservationMac && $commentMac === $reservationMac) {
+                        // Remove the MAC from the comment to get clean hostname
+                        $hostname = $currentComment;
+                        $hostname = preg_replace('/\b([0-9a-f]{4})\.([0-9a-f]{4})\.([0-9a-f]{4})\b/i', '', $hostname);
+                        $hostname = preg_replace('/\b([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})\b/i', '', $hostname);
+                        $hostname = preg_replace('/\b([0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2}-[0-9a-f]{2})\b/i', '', $hostname);
+                        $hostname = preg_replace('/\b([0-9a-f]{12})\b/i', '', $hostname);
+                        $hostnameMap[$reservationMac] = trim($hostname);
+                    } else {
+                        // No MAC in comment or doesn't match - store whole comment
+                        $hostnameMap[$reservationMac] = trim($currentComment);
+                    }
+                    
+                    // Clear comment after using it
                     $currentComment = '';
-                } else if (!preg_match('/^\s*$/', $line)) {
+                    $inReservation = false;
+                }
+                // When we hit closing brace, clear any pending comment
+                else if (preg_match('/^\s*\}/', $line)) {
                     $currentComment = '';
+                    $inReservation = false;
                 }
             }
         }
