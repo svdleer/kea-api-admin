@@ -359,7 +359,7 @@ ob_start();
     <!-- Recent Backups -->
     <div class="mt-8 bg-white shadow-md rounded-lg p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Kea Configuration Backups</h2>
-        <p class="text-sm text-gray-600 mb-4">Automatic backups created before configuration changes (subnets, options, option definitions). Last 12 backups kept per server.</p>
+        <p class="text-sm text-gray-600 mb-4">Automatic backups created before configuration changes (subnets, options, option definitions). Last 12 backups kept per server (HA servers share configuration).</p>
         <div id="keaConfigBackups">
             <div class="text-center text-gray-500 py-4">
                 Loading Kea config backups...
