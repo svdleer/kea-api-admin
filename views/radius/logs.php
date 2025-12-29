@@ -150,10 +150,10 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                                 $rateColor = $successRate >= 80 ? 'text-green-600' : ($successRate >= 50 ? 'text-yellow-600' : 'text-red-600');
                             ?>
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?= htmlspecialchars($stat['nas_name']) ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?= htmlspecialchars($stat['nas_ip']) ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
@@ -165,7 +165,7 @@ $currentPerPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 50;
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?= number_format($stat['total_count']) ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium <?= $rateColor ?>">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm <?= $rateColor ?>">
                                     <?= $successRate ?>%
                                 </td>
                             </tr>
